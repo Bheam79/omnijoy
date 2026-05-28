@@ -77,13 +77,13 @@ const router = createRouter({
       path: '/live',
       name: 'live',
       component: () => import('@/views/live/LiveView.vue'),
-      meta: { requiresAuth: true, layout: 'app' },
+      meta: { requiresAuth: true, layout: 'app', wideContent: true },
     },
     {
       path: '/live/:id',
       name: 'live-stream',
       component: () => import('@/views/live/LiveStreamView.vue'),
-      meta: { requiresAuth: true, layout: 'app' },
+      meta: { requiresAuth: true, layout: 'app', wideContent: true },
     },
     {
       path: '/settings',

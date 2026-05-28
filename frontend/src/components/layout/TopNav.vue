@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useFriendsStore } from '@/stores/friends'
 import { useChatStore } from '@/stores/chat'
+import { useLiveStore } from '@/stores/live'
 import * as signalR from '@microsoft/signalr'
 
 defineProps<{ sidebarOpen: boolean }>()
@@ -12,9 +13,11 @@ const emit = defineEmits<{ 'toggle-sidebar': [] }>()
 const auth = useAuthStore()
 const friendsStore = useFriendsStore()
 const chatStore = useChatStore()
+const liveStore = useLiveStore()
 const router = useRouter()
 
 const profileOpen = ref(false)
+const hasLiveStreams = computed(() => liveStore.streams.length > 0)
 let hubConnection: signalR.HubConnection | null = null
 
 onMounted(async () => {
@@ -99,6 +102,21 @@ async function logout() {
 
     <!-- Right icons -->
     <div class="flex items-center gap-1 shrink-0">
+      <!-- Go Live button -->
+      <RouterLink
+        to="/live"
+        class="relative hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition"
+        :class="hasLiveStreams
+          ? 'bg-red-100 text-red-700 hover:bg-red-200'
+          : 'text-gray-600 hover:bg-gray-100'"
+        aria-label="Live streams"
+      >
+        <span
+          class="w-2 h-2 rounded-full"
+          :class="hasLiveStreams ? 'bg-red-500 animate-pulse' : 'bg-gray-400'"
+        />
+        Live
+      </RouterLink>
       <!-- Friend requests button with badge -->
       <RouterLink
         to="/friends"

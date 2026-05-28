@@ -21,6 +21,11 @@ public class LiveStreamConfiguration : IEntityTypeConfiguration<LiveStream>
                .HasConversion<string>()
                .HasMaxLength(32);
 
+        builder.Property(ls => ls.Privacy)
+               .HasConversion<string>()
+               .HasMaxLength(32)
+               .HasDefaultValue(Omnijoy.Core.Models.Enums.PrivacyLevel.Friends);
+
         builder.Property(ls => ls.StreamKey)
                .IsRequired()
                .HasMaxLength(128);

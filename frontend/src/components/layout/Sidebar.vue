@@ -1,8 +1,13 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
+import { useLiveStore } from '@/stores/live'
 
 defineProps<{ open: boolean }>()
 const emit = defineEmits<{ close: [] }>()
+
+const liveStore = useLiveStore()
+const hasLiveStreams = computed(() => liveStore.streams.length > 0)
 
 const route = useRoute()
 
@@ -91,9 +96,9 @@ function isActive(item: NavItem): boolean {
 
         <span>{{ item.label }}</span>
 
-        <!-- Live indicator dot -->
+        <!-- Live indicator dot — shown only when there are active streams -->
         <span
-          v-if="item.icon === 'broadcast'"
+          v-if="item.icon === 'broadcast' && hasLiveStreams"
           class="ml-auto h-2 w-2 rounded-full bg-red-500 animate-pulse"
         />
       </RouterLink>

@@ -8,6 +8,7 @@ public class LiveStream
     public Guid HostUserId { get; set; }
     public string Title { get; set; } = string.Empty;
     public LiveStreamStatus Status { get; set; } = LiveStreamStatus.Scheduled;
+    public PrivacyLevel Privacy { get; set; } = PrivacyLevel.Friends;
     public string StreamKey { get; set; } = string.Empty;
     public DateTime? StartedAt { get; set; }
     public DateTime? EndedAt { get; set; }

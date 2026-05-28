@@ -96,6 +96,7 @@ builder.Services.AddScoped<IFriendService, FriendService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<ICompanyPageService, CompanyPageService>();
+builder.Services.AddScoped<ILiveStreamService, LiveStreamService>();
 
 var app = builder.Build();
 

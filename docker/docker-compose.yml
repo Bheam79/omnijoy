@@ -22,6 +22,24 @@ services:
       retries: 5
       start_period: 30s
 
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: 07ad0b82_omnijoy_mediamtx
+    restart: unless-stopped
+    environment:
+      # Allow anonymous RTMP publish and HLS read
+      MTX_PATHS_ALL_SOURCE: publisher
+      MTX_HLSADDRESS: :8888
+      MTX_RTMPADDRESS: :1935
+    ports:
+      # RTMP ingest: OBS connects to rtmp://HOST:1935/live/STREAM_KEY
+      - "1935:1935"
+      # HLS output: proxied by the .NET API — not exposed to host by default
+      # Uncomment the line below for direct browser access in dev:
+      # - "8888:8888"
+    networks:
+      - omnijoy_net
+
 networks:
   omnijoy_net:
     name: 07ad0b82_omnijoy_net
