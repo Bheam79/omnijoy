@@ -57,3 +57,13 @@ public record ModerationLogListResult(
     int PageSize,
     bool HasMore
 );
+
+/// <summary>
+/// Paginated result for GET /api/admin/users.
+/// </summary>
+public record AdminUserListResult(
+    AdminUserDto[] Items,
+    int Page,
+    int PageSize,
+    bool HasMore
+);

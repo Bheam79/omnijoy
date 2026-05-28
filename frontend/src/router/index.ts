@@ -128,6 +128,37 @@ const router = createRouter({
       meta: { requiresAuth: true, layout: 'app' },
     },
 
+    // ── Admin / Moderator panel ───────────────────────────────────────────────
+    //
+    // Guard: requires role 'Admin' OR 'Moderator' (see beforeEach below).
+    // /admin redirects to /admin/reports. The Audit Log child is Admin-only
+    // and is enforced both by the guard (requiresAdmin) and by the
+    // AdminShell sidebar hiding the nav link for non-Admins.
+    {
+      path: '/admin',
+      component: () => import('@/views/admin/AdminShell.vue'),
+      meta: { requiresAuth: true, layout: 'app', requiresModeratorOrAdmin: true, wideContent: true },
+      redirect: '/admin/reports',
+      children: [
+        {
+          path: 'reports',
+          name: 'admin-reports',
+          component: () => import('@/views/admin/ReportQueueView.vue'),
+        },
+        {
+          path: 'users',
+          name: 'admin-users',
+          component: () => import('@/views/admin/UserManagementView.vue'),
+        },
+        {
+          path: 'audit-log',
+          name: 'admin-audit-log',
+          component: () => import('@/views/admin/AuditLogView.vue'),
+          meta: { requiresAdmin: true },
+        },
+      ],
+    },
+
     // ── Public share routes (OG meta tag rendering) ───────────────────────────
     {
       path: '/share/posts/:id',
@@ -181,6 +212,22 @@ router.beforeEach((to) => {
 
   // Redirect authenticated users away from guest-only pages
   if (to.meta.guest && auth.isAuthenticated) {
+    return { name: 'wall' }
+  }
+
+  // Admin panel — gate by role. `requiresAdmin` is strict Admin; the looser
+  // `requiresModeratorOrAdmin` admits both. Either check matches against the
+  // role on the cached user record (which is hydrated from the JWT response).
+  // Visit a non-admin location instead of throwing 401: it produces a less
+  // surprising UX for users who follow a stale link.
+  const role = auth.user?.role
+  const matched = to.matched
+  const needsAdminOnly = matched.some(r => r.meta?.requiresAdmin)
+  const needsModeratorOrAdmin = matched.some(r => r.meta?.requiresModeratorOrAdmin)
+  if (needsAdminOnly && role !== 'Admin') {
+    return { name: 'wall' }
+  }
+  if (needsModeratorOrAdmin && role !== 'Admin' && role !== 'Moderator') {
     return { name: 'wall' }
   }
 })

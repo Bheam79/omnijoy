@@ -316,6 +316,73 @@ public class AdminServiceTests : IDisposable
         log.Notes.Should().Contain("User").And.Contain("Moderator");
     }
 
+    // ── AdminService.ListUsersAsync ───────────────────────────────────────────
+
+    [Fact]
+    public async Task ListUsers_NoFilter_ReturnsAllPaginated()
+    {
+        await CreateUserAsync(UserRole.User, "alice@t.com");
+        await CreateUserAsync(UserRole.User, "bob@t.com");
+        await CreateUserAsync(UserRole.User, "carol@t.com");
+
+        var result = await _sut.ListUsersAsync(null, 1, 2);
+
+        result.Items.Should().HaveCount(2);
+        result.Page.Should().Be(1);
+        result.PageSize.Should().Be(2);
+        result.HasMore.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ListUsers_QueryMatchesEmailOrDisplayName()
+    {
+        var alice = await CreateUserAsync(UserRole.User, "alice@t.com");
+        alice.DisplayName = "Alice Wonder";
+        await _db.SaveChangesAsync();
+        await CreateUserAsync(UserRole.User, "bob@t.com");
+
+        var byEmail = await _sut.ListUsersAsync("alice", 1, 20);
+        var byName  = await _sut.ListUsersAsync("Wonder", 1, 20);
+
+        byEmail.Items.Should().HaveCount(1);
+        byEmail.Items[0].Email.Should().Be("alice@t.com");
+        byName.Items.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task ListUsers_PageSizeClampedToMax100()
+    {
+        await CreateUserAsync(UserRole.User, "a@t.com");
+
+        var result = await _sut.ListUsersAsync(null, 1, 500);
+
+        result.PageSize.Should().Be(100);
+    }
+
+    [Fact]
+    public async Task ListUsers_Page0NormalizedToPage1()
+    {
+        await CreateUserAsync(UserRole.User, "a@t.com");
+
+        var result = await _sut.ListUsersAsync(null, 0, 20);
+
+        result.Page.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ListUsers_DtoExposesIsBannedFlag()
+    {
+        var admin  = await CreateUserAsync(UserRole.Admin, "admin@t.com");
+        var target = await CreateUserAsync(UserRole.User,  "tgt@t.com");
+        await _sut.BanUserAsync(admin.Id, target.Id, null);
+
+        var result = await _sut.ListUsersAsync("tgt", 1, 20);
+
+        result.Items.Should().HaveCount(1);
+        result.Items[0].IsBanned.Should().BeTrue();
+        result.Items[0].BannedAt.Should().NotBeNull();
+    }
+
     // ── UserDto includes role ─────────────────────────────────────────────────
 
     [Theory]

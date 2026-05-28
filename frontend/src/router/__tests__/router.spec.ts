@@ -5,12 +5,28 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
-// ── Mock the auth store so the router guard doesn't crash in tests ─────────────
-vi.mock('@/stores/auth', () => ({
-  useAuthStore: () => ({
-    isAuthenticated: true,
-  }),
+// ── Mock the auth store — configurable per test ────────────────────────────────
+//
+// The default mock represents an authenticated regular user. Individual tests
+// that need different role / auth states call `setMockAuth({...})` before
+// `importRouter()` to override the next module load.
+const mockAuthState = vi.hoisted(() => ({
+  isAuthenticated: true,
+  user: { role: 'User' as 'User' | 'Moderator' | 'Admin' },
 }))
+
+vi.mock('@/stores/auth', () => ({
+  useAuthStore: () => mockAuthState,
+}))
+
+function setMockAuth(state: {
+  isAuthenticated: boolean
+  user: { role: 'User' | 'Moderator' | 'Admin' } | null
+}) {
+  mockAuthState.isAuthenticated = state.isAuthenticated
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(mockAuthState as any).user = state.user
+}
 
 // ── Import the actual app router (after mock so guard runs fine) ───────────────
 // We use a memory history so we can push routes synchronously.
@@ -25,6 +41,8 @@ describe('router route registration order', () => {
     setActivePinia(createPinia())
     // Bust the module cache so we get a fresh router instance per test
     vi.resetModules()
+    // Reset auth mock to default authenticated regular user
+    setMockAuth({ isAuthenticated: true, user: { role: 'User' } })
   })
 
   it('resolves /login to the login route, NOT the slug resolver', async () => {
@@ -87,5 +105,83 @@ describe('router route registration order', () => {
     const router = await importRouter()
     const resolved = router.resolve('/some/deep/path')
     expect(resolved.name).toBe('not-found')
+  })
+})
+
+describe('admin route role guard', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.resetModules()
+  })
+
+  it('redirects regular User away from /admin/reports back to /wall', async () => {
+    setMockAuth({ isAuthenticated: true, user: { role: 'User' } })
+    const router = await importRouter()
+
+    await router.push('/admin/reports')
+    await router.isReady()
+
+    expect(router.currentRoute.value.name).toBe('wall')
+  })
+
+  it('allows Moderator into /admin/reports', async () => {
+    setMockAuth({ isAuthenticated: true, user: { role: 'Moderator' } })
+    const router = await importRouter()
+
+    await router.push('/admin/reports')
+    await router.isReady()
+
+    expect(router.currentRoute.value.name).toBe('admin-reports')
+  })
+
+  it('allows Admin into /admin/reports', async () => {
+    setMockAuth({ isAuthenticated: true, user: { role: 'Admin' } })
+    const router = await importRouter()
+
+    await router.push('/admin/reports')
+    await router.isReady()
+
+    expect(router.currentRoute.value.name).toBe('admin-reports')
+  })
+
+  it('redirects Moderator away from /admin/audit-log (Admin-only)', async () => {
+    setMockAuth({ isAuthenticated: true, user: { role: 'Moderator' } })
+    const router = await importRouter()
+
+    await router.push('/admin/audit-log')
+    await router.isReady()
+
+    expect(router.currentRoute.value.name).toBe('wall')
+  })
+
+  it('allows Admin into /admin/audit-log', async () => {
+    setMockAuth({ isAuthenticated: true, user: { role: 'Admin' } })
+    const router = await importRouter()
+
+    await router.push('/admin/audit-log')
+    await router.isReady()
+
+    expect(router.currentRoute.value.name).toBe('admin-audit-log')
+  })
+
+  it('redirects unauthenticated user away from /admin to /login', async () => {
+    setMockAuth({ isAuthenticated: false, user: null })
+    const router = await importRouter()
+
+    await router.push('/admin/reports')
+    await router.isReady()
+
+    expect(router.currentRoute.value.name).toBe('login')
+  })
+
+  it('resolves bare /admin as the AdminShell that redirects to /admin/reports', async () => {
+    setMockAuth({ isAuthenticated: true, user: { role: 'Admin' } })
+    const router = await importRouter()
+
+    await router.push('/admin')
+    await router.isReady()
+
+    // /admin redirects to /admin/reports
+    expect(router.currentRoute.value.name).toBe('admin-reports')
   })
 })

@@ -38,4 +38,11 @@ public interface IAdminService
     /// </summary>
     /// <exception cref="KeyNotFoundException">Target user not found.</exception>
     Task<AdminUserDto> UnbanUserAsync(Guid requesterId, Guid targetUserId, string? notes);
+
+    /// <summary>
+    /// Returns a paginated list of users for the admin user-management view.
+    /// <paramref name="q"/> matches case-insensitively against display name or
+    /// email when provided.
+    /// </summary>
+    Task<AdminUserListResult> ListUsersAsync(string? q, int page, int pageSize);
 }

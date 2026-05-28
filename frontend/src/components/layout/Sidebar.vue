@@ -2,11 +2,13 @@
 import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useLiveStore } from '@/stores/live'
+import { useAuthStore } from '@/stores/auth'
 
 defineProps<{ open: boolean }>()
 const emit = defineEmits<{ close: [] }>()
 
 const liveStore = useLiveStore()
+const auth      = useAuthStore()
 const hasLiveStreams = computed(() => liveStore.streams.length > 0)
 
 const route = useRoute()
@@ -14,18 +16,25 @@ const route = useRoute()
 interface NavItem {
   label: string
   to: string
-  icon: 'home' | 'users' | 'calendar' | 'building' | 'broadcast'
+  icon: 'home' | 'users' | 'calendar' | 'building' | 'broadcast' | 'shield'
   /** If true, also mark active for sub-routes (e.g. /events/123) */
   matchPrefix?: boolean
 }
 
-const navItems: NavItem[] = [
-  { label: 'My Wall',       to: '/wall',    icon: 'home' },
-  { label: 'Friends',       to: '/friends', icon: 'users' },
-  { label: 'Events',        to: '/events',  icon: 'calendar',  matchPrefix: true },
-  { label: 'Company Pages', to: '/company', icon: 'building',  matchPrefix: true },
-  { label: 'Live',          to: '/live',    icon: 'broadcast', matchPrefix: true },
-]
+const navItems = computed<NavItem[]>(() => {
+  const items: NavItem[] = [
+    { label: 'My Wall',       to: '/wall',    icon: 'home' },
+    { label: 'Friends',       to: '/friends', icon: 'users' },
+    { label: 'Events',        to: '/events',  icon: 'calendar',  matchPrefix: true },
+    { label: 'Company Pages', to: '/company', icon: 'building',  matchPrefix: true },
+    { label: 'Live',          to: '/live',    icon: 'broadcast', matchPrefix: true },
+  ]
+  const role = auth.user?.role
+  if (role === 'Admin' || role === 'Moderator') {
+    items.push({ label: 'Admin', to: '/admin', icon: 'shield', matchPrefix: true })
+  }
+  return items
+})
 
 function isActive(item: NavItem): boolean {
   if (item.matchPrefix) {
@@ -92,6 +101,11 @@ function isActive(item: NavItem): boolean {
         <!-- Broadcast / Live -->
         <svg v-else-if="item.icon === 'broadcast'" class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.124a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
+        </svg>
+
+        <!-- Shield / Admin -->
+        <svg v-else-if="item.icon === 'shield'" class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M12 3l8 4v5c0 5-3.5 9-8 10-4.5-1-8-5-8-10V7l8-4z"/>
         </svg>
 
         <span>{{ item.label }}</span>

@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { AuthTokens, User } from '@/types'
+import type { AuthTokens, User, UserRole } from '@/types'
 
 /** Raw axios (no interceptors) for auth endpoints that don't need a Bearer token */
 const authAxios = axios.create({ baseURL: '/', headers: { 'Content-Type': 'application/json' } })
@@ -32,6 +32,7 @@ function toUser(raw: Record<string, unknown>): User {
     gender: (raw.gender as User['gender']) ?? 'NotDisclosed',
     birthDate: (raw.birthDate as string) || undefined,
     showBirthDate: (raw.showBirthDate as boolean) ?? false,
+    role: (raw.role as UserRole) ?? 'User',
     createdAt: raw.createdAt as string,
   }
 }

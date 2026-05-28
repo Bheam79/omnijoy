@@ -104,6 +104,24 @@ public class AdminController : ControllerBase
         }
     }
 
+    // ── GET /api/admin/users ──────────────────────────────────────────────────
+
+    /// <summary>
+    /// Paginated user list for the admin user-management view (Admin or
+    /// Moderator). <paramref name="q"/> matches case-insensitively against
+    /// display name and email.
+    /// </summary>
+    [HttpGet("api/admin/users")]
+    [Authorize(Roles = "Admin,Moderator")]
+    public async Task<IActionResult> ListUsers(
+        [FromQuery] string? q,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        var result = await _admin.ListUsersAsync(q, page, pageSize);
+        return Ok(result);
+    }
+
     // ── GET /api/admin/audit-log ──────────────────────────────────────────────
 
     /// <summary>

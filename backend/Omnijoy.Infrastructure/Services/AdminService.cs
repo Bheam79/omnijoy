@@ -97,6 +97,37 @@ public class AdminService : IAdminService
         return MapToDto(target);
     }
 
+    /// <inheritdoc />
+    public async Task<AdminUserListResult> ListUsersAsync(string? q, int page, int pageSize)
+    {
+        page     = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
+        var query = _db.Users.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var needle = q.Trim();
+            query = query.Where(u =>
+                EF.Functions.Like(u.DisplayName, $"%{needle}%") ||
+                EF.Functions.Like(u.Email,       $"%{needle}%"));
+        }
+
+        var total = await query.CountAsync();
+        var items = await query
+            .OrderByDescending(u => u.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return new AdminUserListResult(
+            Items:    items.Select(MapToDto).ToArray(),
+            Page:     page,
+            PageSize: pageSize,
+            HasMore:  page * pageSize < total
+        );
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────────
 
     internal static AdminUserDto MapToDto(Core.Models.User u) => new(

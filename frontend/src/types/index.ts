@@ -2,6 +2,9 @@
 
 export type Gender = 'Male' | 'Female' | 'NotDisclosed'
 
+/** Platform-level role. Mirrors backend `UserRole` enum. */
+export type UserRole = 'User' | 'Moderator' | 'Admin'
+
 export interface User {
   id: string
   email: string
@@ -12,6 +15,8 @@ export interface User {
   gender: Gender
   birthDate?: string
   showBirthDate: boolean
+  /** Platform role from JWT/login response. Defaults to 'User' for older payloads. */
+  role?: UserRole
   createdAt: string
 }
 
