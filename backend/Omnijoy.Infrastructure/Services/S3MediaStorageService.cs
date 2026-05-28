@@ -1,3 +1,4 @@
+using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Transfer;
 using Microsoft.Extensions.Configuration;
@@ -45,6 +46,15 @@ public class S3MediaStorageService : IMediaStorageService
         {
             ServiceURL = serviceUrl,
             ForcePathStyle = true, // Required for MinIO and most S3-compatible services
+
+            // AWSSDK.S3 3.7.412+ defaults to sending an extra CRC32 checksum header
+            // (x-amz-sdk-checksum-algorithm + x-amz-checksum-crc32) on every PutObject.
+            // MinIO and other S3-compatible stores reject these unknown headers with
+            // "Access Denied", breaking uploads. Restrict checksum calculation /
+            // validation to operations that strictly require it.
+            // See https://github.com/minio/minio/issues/20845
+            RequestChecksumCalculation  = RequestChecksumCalculation.WHEN_REQUIRED,
+            ResponseChecksumValidation  = ResponseChecksumValidation.WHEN_REQUIRED,
         };
 
         _s3 = new AmazonS3Client(accessKey, secretKey, s3Config);
@@ -74,6 +84,14 @@ public class S3MediaStorageService : IMediaStorageService
             ContentType = contentType,
             // Do NOT set CannedACL — MinIO rejects per-object ACL operations.
             // Public read access is handled by the bucket-level anonymous download policy.
+
+            // Belt-and-suspenders against the AWSSDK.S3 3.7.412+ default integrity
+            // check that breaks MinIO uploads with "Access Denied". The
+            // RequestChecksumCalculation = WHEN_REQUIRED on AmazonS3Config above
+            // is the primary guard; setting this on the request itself ensures
+            // that even if upstream re-enables a default, single-part uploads
+            // stay free of the unsupported x-amz-checksum-* headers.
+            DisableDefaultChecksumValidation = true,
         };
 
         await transferUtility.UploadAsync(uploadRequest);
