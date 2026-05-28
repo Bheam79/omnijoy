@@ -10,6 +10,7 @@ import {
   type UpdatePrivacyPayload,
 } from '@/services/userService'
 import FriendButton from '@/components/friends/FriendButton.vue'
+import ReportModal from '@/components/post/ReportModal.vue'
 
 const route = useRoute()
 const auth = useAuthStore()
@@ -203,6 +204,10 @@ const privacyFields: Array<{ key: keyof PrivacySettings; label: string }> = [
   { key: 'whoCanSeeEvents', label: 'Who can see my events' },
   { key: 'whoCanTagInPosts', label: 'Who can tag me in posts' },
 ]
+
+// ── Report user ───────────────────────────────────────────────────────────────
+
+const reportModalOpen = ref(false)
 </script>
 
 <template>
@@ -298,6 +303,15 @@ const privacyFields: Array<{ key: keyof PrivacySettings; label: string }> = [
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 8a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
               Message
+            </button>
+            <button
+              class="flex items-center gap-1.5 text-sm font-medium bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-600 px-3 py-2 rounded-lg transition-colors"
+              @click="reportModalOpen = true"
+            >
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6H11l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/>
+              </svg>
+              Report user
             </button>
           </template>
         </div>
@@ -466,4 +480,12 @@ const privacyFields: Array<{ key: keyof PrivacySettings; label: string }> = [
       </div>
     </Transition>
   </Teleport>
+
+  <!-- ── Report User Modal ──────────────────────────────────────────────────── -->
+  <ReportModal
+    v-if="profile && !profile.isOwnProfile"
+    v-model="reportModalOpen"
+    target-type="User"
+    :target-id="(route.params.userId as string)"
+  />
 </template>

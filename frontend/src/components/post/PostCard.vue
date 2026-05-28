@@ -6,6 +6,7 @@ import { useFeedStore } from '@/stores/feed'
 import PostReactionBar from './PostReactionBar.vue'
 import CommentThread from './CommentThread.vue'
 import ShareModal from './ShareModal.vue'
+import ReportModal from './ReportModal.vue'
 
 const props = defineProps<{ post: PostDto }>()
 const emit = defineEmits<{ deleted: [id: string] }>()
@@ -16,6 +17,9 @@ const feed = useFeedStore()
 const isLoggedIn = computed(() => !!auth.user)
 
 const isOwn = computed(() => auth.user?.id === props.post.author.id)
+
+// ── Report ────────────────────────────────────────────────────────────────────
+const reportModalOpen = ref(false)
 
 // ── Share ─────────────────────────────────────────────────────────────────────
 const shareModalOpen = ref(false)
@@ -125,8 +129,8 @@ const tobStyle = computed(() => {
         </div>
       </div>
 
-      <!-- Options (own posts) -->
-      <div v-if="isOwn" class="relative group">
+      <!-- Options menu (own posts: delete; others: report) -->
+      <div v-if="isOwn || isLoggedIn" class="relative group">
         <button
           class="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition"
           aria-label="Post options"
@@ -137,10 +141,18 @@ const tobStyle = computed(() => {
         </button>
         <div class="absolute right-0 top-7 z-10 hidden group-focus-within:block bg-white border border-gray-200 rounded-lg shadow-lg w-36 py-1">
           <button
+            v-if="isOwn"
             class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
             @click="handleDelete"
           >
             Delete post
+          </button>
+          <button
+            v-if="!isOwn"
+            class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+            @click="reportModalOpen = true"
+          >
+            Report post
           </button>
         </div>
       </div>
@@ -279,6 +291,14 @@ const tobStyle = computed(() => {
       v-if="isLoggedIn"
       v-model="shareModalOpen"
       :post="post"
+    />
+
+    <!-- Report modal -->
+    <ReportModal
+      v-if="isLoggedIn && !isOwn"
+      v-model="reportModalOpen"
+      target-type="Post"
+      :target-id="post.id"
     />
   </article>
 </template>

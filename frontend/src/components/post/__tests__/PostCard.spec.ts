@@ -162,12 +162,12 @@ describe('PostCard', () => {
     expect(optionsButton.exists()).toBe(true)
   })
 
-  it('hides options button for other users posts', () => {
+  it('shows options button for logged-in user on other users posts (to allow reporting)', () => {
     const post = makePost({ author: { id: 'someone-else', displayName: 'Someone Else' } })
     const wrapper = mountCard(post, 'me')
 
     const optionsButton = wrapper.find('button[aria-label="Post options"]')
-    expect(optionsButton.exists()).toBe(false)
+    expect(optionsButton.exists()).toBe(true)
   })
 
   // ── Privacy badge ─────────────────────────────────────────────────────────

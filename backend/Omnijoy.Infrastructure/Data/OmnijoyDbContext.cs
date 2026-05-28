@@ -32,6 +32,7 @@ public class OmnijoyDbContext : DbContext
     public DbSet<LiveStream> LiveStreams => Set<LiveStream>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<OtpCode> OtpCodes => Set<OtpCode>();
+    public DbSet<Report> Reports => Set<Report>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

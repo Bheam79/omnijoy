@@ -15,6 +15,7 @@ public class User
     public string? AvatarUrl { get; set; }
     public string? CoverUrl { get; set; }
     public string? Bio { get; set; }
+    public bool IsAdmin { get; set; } = false;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
@@ -34,4 +35,5 @@ public class User
     public ICollection<Message> SentMessages { get; set; } = [];
     public ICollection<Notification> Notifications { get; set; } = [];
     public ICollection<LiveStream> LiveStreams { get; set; } = [];
+    public ICollection<Report> FiledReports { get; set; } = [];
 }
