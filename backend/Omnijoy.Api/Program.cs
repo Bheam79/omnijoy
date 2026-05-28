@@ -110,6 +110,7 @@ builder.Services.AddScoped<ICompanyPageService, CompanyPageService>();
 builder.Services.AddScoped<ILiveStreamService, LiveStreamService>();
 builder.Services.AddScoped<IShareService, ShareService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<ISearchService, SearchService>();
 
 var app = builder.Build();
 
