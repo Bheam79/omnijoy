@@ -9,11 +9,13 @@ namespace Omnijoy.Infrastructure.Services;
 
 public class ReportService : IReportService
 {
-    private readonly OmnijoyDbContext _db;
+    private readonly OmnijoyDbContext       _db;
+    private readonly IModerationLogService  _moderationLog;
 
-    public ReportService(OmnijoyDbContext db)
+    public ReportService(OmnijoyDbContext db, IModerationLogService moderationLog)
     {
-        _db = db;
+        _db            = db;
+        _moderationLog = moderationLog;
     }
 
     // ── Submit ────────────────────────────────────────────────────────────────
@@ -105,7 +107,10 @@ public class ReportService : IReportService
 
     // ── Update status (admin) ─────────────────────────────────────────────────
 
-    public async Task<ReportDto> UpdateStatusAsync(Guid reportId, UpdateReportStatusRequest request)
+    public async Task<ReportDto> UpdateStatusAsync(
+        Guid actorId,
+        Guid reportId,
+        UpdateReportStatusRequest request)
     {
         if (!Enum.TryParse<ReportStatus>(request.Status, ignoreCase: true, out var newStatus))
             throw new ArgumentException($"Invalid Status: '{request.Status}'.");
@@ -119,6 +124,25 @@ public class ReportService : IReportService
 
         report.Status = newStatus;
         await _db.SaveChangesAsync();
+
+        // Audit log: Reviewed -> ReviewReport, Dismissed -> DismissReport.
+        // Pending (rare; usually only the initial state) deliberately not logged.
+        var auditAction = newStatus switch
+        {
+            ReportStatus.Reviewed  => (ModerationAction?)ModerationAction.ReviewReport,
+            ReportStatus.Dismissed => (ModerationAction?)ModerationAction.DismissReport,
+            _                      => null,
+        };
+
+        if (auditAction is { } action)
+        {
+            await _moderationLog.LogAsync(
+                actorId:    actorId,
+                action:     action,
+                targetType: "Report",
+                targetId:   report.Id.ToString(),
+                notes:      null);
+        }
 
         return ToDto(report, report.Reporter.DisplayName);
     }

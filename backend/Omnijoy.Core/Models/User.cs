@@ -47,6 +47,19 @@ public class User
     /// </summary>
     public DateTime? DeletionScheduledAt { get; set; }
 
+    /// <summary>
+    /// True if the account has been banned by a moderator/admin. Banned users
+    /// cannot log in or take authenticated actions. Cleared by an explicit
+    /// unban action; the ban history is preserved in <c>ModerationLogs</c>.
+    /// </summary>
+    public bool IsBanned { get; set; } = false;
+
+    /// <summary>
+    /// Timestamp the account was most recently banned, or <c>null</c> if it
+    /// is not currently banned (cleared on unban).
+    /// </summary>
+    public DateTime? BannedAt { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

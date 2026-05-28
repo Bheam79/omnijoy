@@ -62,6 +62,10 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
                .IsRequired()
                .HasDefaultValue(true);
 
+        builder.Property(u => u.IsBanned)
+               .IsRequired()
+               .HasDefaultValue(false);
+
         builder.Property(u => u.CreatedAt)
                .IsRequired();
 

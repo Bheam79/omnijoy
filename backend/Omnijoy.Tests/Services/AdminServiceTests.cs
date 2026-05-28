@@ -29,7 +29,7 @@ public class AdminServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _db  = new OmnijoyDbContext(options);
-        _sut = new AdminService(_db);
+        _sut = new AdminService(_db, new ModerationLogService(_db));
 
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -196,6 +196,124 @@ public class AdminServiceTests : IDisposable
         var result = await _sut.ChangeUserRoleAsync(admin.Id, target.Id, input);
 
         result.Role.Should().Be(expected);
+    }
+
+    // ── AdminService.BanUserAsync / UnbanUserAsync ───────────────────────────
+
+    [Fact]
+    public async Task BanUser_FlipsIsBannedAndStampsBannedAt()
+    {
+        var admin  = await CreateUserAsync(UserRole.Admin,     "admin@t.com");
+        var target = await CreateUserAsync(UserRole.User,      "target@t.com");
+
+        var result = await _sut.BanUserAsync(admin.Id, target.Id, "spammy");
+
+        result.IsBanned.Should().BeTrue();
+        result.BannedAt.Should().NotBeNull();
+
+        var refreshed = await _db.Users.FindAsync(target.Id);
+        refreshed!.IsBanned.Should().BeTrue();
+        refreshed.BannedAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task BanUser_WritesModerationLogEntry()
+    {
+        var admin  = await CreateUserAsync(UserRole.Admin, "admin@t.com");
+        var target = await CreateUserAsync(UserRole.User,  "target@t.com");
+
+        await _sut.BanUserAsync(admin.Id, target.Id, "TOS violation");
+
+        var log = _db.ModerationLogs.Single();
+        log.ActorId.Should().Be(admin.Id);
+        log.Action.Should().Be(ModerationAction.BanUser);
+        log.TargetType.Should().Be("User");
+        log.TargetId.Should().Be(target.Id.ToString());
+        log.Notes.Should().Be("TOS violation");
+    }
+
+    [Fact]
+    public async Task BanUser_UnknownTarget_ThrowsKeyNotFound()
+    {
+        var admin = await CreateUserAsync(UserRole.Admin, "admin@t.com");
+
+        await _sut.Invoking(s => s.BanUserAsync(admin.Id, Guid.NewGuid(), null))
+            .Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public async Task BanUser_AlreadyBanned_IsIdempotentButStillLogs()
+    {
+        var admin  = await CreateUserAsync(UserRole.Admin, "admin@t.com");
+        var target = await CreateUserAsync(UserRole.User,  "target@t.com");
+
+        await _sut.BanUserAsync(admin.Id, target.Id, "first");
+        await _sut.BanUserAsync(admin.Id, target.Id, "second");
+
+        var refreshed = await _db.Users.FindAsync(target.Id);
+        refreshed!.IsBanned.Should().BeTrue();
+
+        _db.ModerationLogs.Count().Should().Be(2);
+    }
+
+    [Fact]
+    public async Task UnbanUser_ClearsIsBannedAndBannedAt()
+    {
+        var admin  = await CreateUserAsync(UserRole.Admin, "admin@t.com");
+        var target = await CreateUserAsync(UserRole.User,  "target@t.com");
+
+        await _sut.BanUserAsync(admin.Id, target.Id, null);
+        var result = await _sut.UnbanUserAsync(admin.Id, target.Id, "appealed");
+
+        result.IsBanned.Should().BeFalse();
+        result.BannedAt.Should().BeNull();
+
+        var refreshed = await _db.Users.FindAsync(target.Id);
+        refreshed!.IsBanned.Should().BeFalse();
+        refreshed.BannedAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UnbanUser_WritesModerationLogEntry()
+    {
+        var admin  = await CreateUserAsync(UserRole.Admin, "admin@t.com");
+        var target = await CreateUserAsync(UserRole.User,  "target@t.com");
+
+        await _sut.BanUserAsync(admin.Id, target.Id, null);
+        await _sut.UnbanUserAsync(admin.Id, target.Id, "mistake");
+
+        // 2 entries: BanUser + UnbanUser
+        _db.ModerationLogs.Count().Should().Be(2);
+        var unban = _db.ModerationLogs
+            .Single(l => l.Action == ModerationAction.UnbanUser);
+        unban.ActorId.Should().Be(admin.Id);
+        unban.TargetId.Should().Be(target.Id.ToString());
+        unban.Notes.Should().Be("mistake");
+    }
+
+    [Fact]
+    public async Task UnbanUser_UnknownTarget_ThrowsKeyNotFound()
+    {
+        var admin = await CreateUserAsync(UserRole.Admin, "admin@t.com");
+
+        await _sut.Invoking(s => s.UnbanUserAsync(admin.Id, Guid.NewGuid(), null))
+            .Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public async Task ChangeUserRole_WritesModerationLogEntry()
+    {
+        var admin  = await CreateUserAsync(UserRole.Admin, "admin@t.com");
+        var target = await CreateUserAsync(UserRole.User,  "target@t.com");
+
+        await _sut.ChangeUserRoleAsync(admin.Id, target.Id, "Moderator");
+
+        var log = _db.ModerationLogs.Single();
+        log.Action.Should().Be(ModerationAction.ChangeRole);
+        log.ActorId.Should().Be(admin.Id);
+        log.TargetType.Should().Be("User");
+        log.TargetId.Should().Be(target.Id.ToString());
+        log.Notes.Should().Contain("User").And.Contain("Moderator");
     }
 
     // ── UserDto includes role ─────────────────────────────────────────────────

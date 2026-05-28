@@ -20,7 +20,7 @@ public class ReportServiceTests : IDisposable
             .Options;
 
         _db = new OmnijoyDbContext(options);
-        _sut = new ReportService(_db);
+        _sut = new ReportService(_db, new ModerationLogService(_db));
     }
 
     public void Dispose() => _db.Dispose();
@@ -254,7 +254,7 @@ public class ReportServiceTests : IDisposable
         var req2 = new SubmitReportRequest("User", target.Id, "Harassment", null);
         await _sut.SubmitReportAsync(reporter.Id, req2);
 
-        await _sut.UpdateStatusAsync(report1.Id, new UpdateReportStatusRequest("Reviewed"));
+        await _sut.UpdateStatusAsync(reporter.Id, report1.Id, new UpdateReportStatusRequest("Reviewed"));
 
         var pending  = await _sut.ListReportsAsync("Pending",  null, 1, 20);
         var reviewed = await _sut.ListReportsAsync("Reviewed", null, 1, 20);
@@ -319,7 +319,8 @@ public class ReportServiceTests : IDisposable
         var submitted = await _sut.SubmitReportAsync(reporter.Id,
             new SubmitReportRequest("Post", post.Id, "Spam", null));
 
-        var updated = await _sut.UpdateStatusAsync(submitted.Id,
+        var actor = await CreateUserAsync("Actor");
+        var updated = await _sut.UpdateStatusAsync(actor.Id, submitted.Id,
             new UpdateReportStatusRequest("Reviewed"));
 
         updated.Status.Should().Be("Reviewed");
@@ -336,7 +337,8 @@ public class ReportServiceTests : IDisposable
         var submitted = await _sut.SubmitReportAsync(reporter.Id,
             new SubmitReportRequest("Post", post.Id, "Spam", null));
 
-        var updated = await _sut.UpdateStatusAsync(submitted.Id,
+        var actor = await CreateUserAsync("Actor");
+        var updated = await _sut.UpdateStatusAsync(actor.Id, submitted.Id,
             new UpdateReportStatusRequest("Dismissed"));
 
         updated.Status.Should().Be("Dismissed");
@@ -352,7 +354,9 @@ public class ReportServiceTests : IDisposable
         var submitted = await _sut.SubmitReportAsync(reporter.Id,
             new SubmitReportRequest("Post", post.Id, "Spam", null));
 
-        await _sut.Invoking(s => s.UpdateStatusAsync(submitted.Id,
+        var actor = await CreateUserAsync("Actor");
+
+        await _sut.Invoking(s => s.UpdateStatusAsync(actor.Id, submitted.Id,
                 new UpdateReportStatusRequest("BadStatus")))
             .Should().ThrowAsync<ArgumentException>()
             .WithMessage("*Status*");
@@ -361,8 +365,50 @@ public class ReportServiceTests : IDisposable
     [Fact]
     public async Task UpdateStatus_NonExistentReport_ThrowsKeyNotFoundException()
     {
-        await _sut.Invoking(s => s.UpdateStatusAsync(Guid.NewGuid(),
+        await _sut.Invoking(s => s.UpdateStatusAsync(Guid.NewGuid(), Guid.NewGuid(),
                 new UpdateReportStatusRequest("Reviewed")))
             .Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public async Task UpdateStatus_Reviewed_WritesModerationLogEntry()
+    {
+        var reporter = await CreateUserAsync("Reporter");
+        var author   = await CreateUserAsync("Author");
+        var post     = await CreatePostAsync(author);
+        var actor    = await CreateUserAsync("Mod");
+
+        var submitted = await _sut.SubmitReportAsync(reporter.Id,
+            new SubmitReportRequest("Post", post.Id, "Spam", null));
+
+        await _sut.UpdateStatusAsync(actor.Id, submitted.Id,
+            new UpdateReportStatusRequest("Reviewed"));
+
+        var log = _db.ModerationLogs.Single();
+        log.ActorId.Should().Be(actor.Id);
+        log.Action.Should().Be(ModerationAction.ReviewReport);
+        log.TargetType.Should().Be("Report");
+        log.TargetId.Should().Be(submitted.Id.ToString());
+    }
+
+    [Fact]
+    public async Task UpdateStatus_Dismissed_WritesModerationLogEntry()
+    {
+        var reporter = await CreateUserAsync("Reporter");
+        var author   = await CreateUserAsync("Author");
+        var post     = await CreatePostAsync(author);
+        var actor    = await CreateUserAsync("Mod");
+
+        var submitted = await _sut.SubmitReportAsync(reporter.Id,
+            new SubmitReportRequest("Post", post.Id, "Spam", null));
+
+        await _sut.UpdateStatusAsync(actor.Id, submitted.Id,
+            new UpdateReportStatusRequest("Dismissed"));
+
+        var log = _db.ModerationLogs.Single();
+        log.ActorId.Should().Be(actor.Id);
+        log.Action.Should().Be(ModerationAction.DismissReport);
+        log.TargetType.Should().Be("Report");
+        log.TargetId.Should().Be(submitted.Id.ToString());
     }
 }

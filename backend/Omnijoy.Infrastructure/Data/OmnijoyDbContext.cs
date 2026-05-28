@@ -34,6 +34,7 @@ public class OmnijoyDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<OtpCode> OtpCodes => Set<OtpCode>();
     public DbSet<Report> Reports => Set<Report>();
+    public DbSet<ModerationLog> ModerationLogs => Set<ModerationLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

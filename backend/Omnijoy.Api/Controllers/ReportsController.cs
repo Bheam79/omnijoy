@@ -79,9 +79,12 @@ public class ReportsController : ControllerBase
     [Authorize(Roles = "Admin,Moderator")]
     public async Task<IActionResult> UpdateReportStatus(Guid id, [FromBody] UpdateReportStatusRequest request)
     {
+        if (CurrentUserId is not { } actorId)
+            return Unauthorized(new { error = "Not authenticated." });
+
         try
         {
-            var report = await _reports.UpdateStatusAsync(id, request);
+            var report = await _reports.UpdateStatusAsync(actorId, id, request);
             return Ok(report);
         }
         catch (ArgumentException ex)
