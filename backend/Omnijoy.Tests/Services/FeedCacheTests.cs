@@ -11,6 +11,7 @@ using Omnijoy.Core.Models;
 using Omnijoy.Core.Models.Enums;
 using Omnijoy.Infrastructure.Data;
 using Omnijoy.Infrastructure.Services;
+using System.IO;
 
 namespace Omnijoy.Tests.Services;
 
@@ -25,6 +26,7 @@ public class FeedCacheTests : IDisposable
     private readonly DistributedFeedCache _feedCache;
     private readonly PostService _sut;
     private readonly Mock<IMediaStorageService> _storageMock;
+    private readonly Mock<IImageProcessingService> _imageProcessorMock;
 
     public FeedCacheTests()
     {
@@ -34,13 +36,17 @@ public class FeedCacheTests : IDisposable
 
         _db = new OmnijoyDbContext(options);
         _storageMock = new Mock<IMediaStorageService>();
+        _imageProcessorMock = new Mock<IImageProcessingService>();
+        _imageProcessorMock
+            .Setup(p => p.ProcessImageAsync(It.IsAny<Stream>(), It.IsAny<ImageFolder>()))
+            .ReturnsAsync((Stream s, ImageFolder _) => s);
 
         _cache = new MemoryDistributedCache(
             Options.Create(new MemoryDistributedCacheOptions()));
         _feedCache = new DistributedFeedCache(_cache, NullLogger<DistributedFeedCache>.Instance);
 
         var privacy = new PrivacyService(_db);
-        _sut = new PostService(_db, _storageMock.Object, privacy, _feedCache);
+        _sut = new PostService(_db, _storageMock.Object, privacy, _feedCache, _imageProcessorMock.Object);
     }
 
     public void Dispose()

@@ -11,11 +11,16 @@ public class CompanyPageService : ICompanyPageService
 {
     private readonly OmnijoyDbContext _db;
     private readonly IMediaStorageService _storage;
+    private readonly IImageProcessingService _imageProcessor;
 
-    public CompanyPageService(OmnijoyDbContext db, IMediaStorageService storage)
+    public CompanyPageService(
+        OmnijoyDbContext db,
+        IMediaStorageService storage,
+        IImageProcessingService imageProcessor)
     {
-        _db = db;
-        _storage = storage;
+        _db             = db;
+        _storage        = storage;
+        _imageProcessor = imageProcessor;
     }
 
     // ── Create ────────────────────────────────────────────────────────────────
@@ -33,9 +38,15 @@ public class CompanyPageService : ICompanyPageService
         string? coverUrl = null;
 
         if (logo is not null)
-            logoUrl = await _storage.StoreAsync(logo.Content, logo.FileName, "company/logos");
+        {
+            await using var processedLogo = await _imageProcessor.ProcessImageAsync(logo.Content, ImageFolder.Avatar);
+            logoUrl = await _storage.StoreAsync(processedLogo, "logo.webp", "company/logos");
+        }
         if (cover is not null)
-            coverUrl = await _storage.StoreAsync(cover.Content, cover.FileName, "company/covers");
+        {
+            await using var processedCover = await _imageProcessor.ProcessImageAsync(cover.Content, ImageFolder.Cover);
+            coverUrl = await _storage.StoreAsync(processedCover, "cover.webp", "company/covers");
+        }
 
         var page = new CompanyPage
         {
@@ -139,9 +150,15 @@ public class CompanyPageService : ICompanyPageService
             cp.Description = request.Description.Trim();
 
         if (logo is not null)
-            cp.LogoUrl = await _storage.StoreAsync(logo.Content, logo.FileName, "company/logos");
+        {
+            await using var processedLogo = await _imageProcessor.ProcessImageAsync(logo.Content, ImageFolder.Avatar);
+            cp.LogoUrl = await _storage.StoreAsync(processedLogo, "logo.webp", "company/logos");
+        }
         if (cover is not null)
-            cp.CoverUrl = await _storage.StoreAsync(cover.Content, cover.FileName, "company/covers");
+        {
+            await using var processedCover = await _imageProcessor.ProcessImageAsync(cover.Content, ImageFolder.Cover);
+            cp.CoverUrl = await _storage.StoreAsync(processedCover, "cover.webp", "company/covers");
+        }
 
         await _db.SaveChangesAsync();
 

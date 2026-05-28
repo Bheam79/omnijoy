@@ -7,6 +7,7 @@ using Omnijoy.Core.Models;
 using Omnijoy.Core.Models.Enums;
 using Omnijoy.Infrastructure.Data;
 using Omnijoy.Infrastructure.Services;
+using System.IO;
 
 namespace Omnijoy.Tests;
 
@@ -14,6 +15,7 @@ public class UserServiceTests : IDisposable
 {
     private readonly OmnijoyDbContext _db;
     private readonly Mock<IMediaStorageService> _storageMock;
+    private readonly Mock<IImageProcessingService> _imageProcessorMock;
     private readonly UserService _sut;
 
     public UserServiceTests()
@@ -24,8 +26,13 @@ public class UserServiceTests : IDisposable
 
         _db = new OmnijoyDbContext(options);
         _storageMock = new Mock<IMediaStorageService>();
+        _imageProcessorMock = new Mock<IImageProcessingService>();
+        // Return the input stream unchanged so storage mock still receives a readable stream.
+        _imageProcessorMock
+            .Setup(p => p.ProcessImageAsync(It.IsAny<Stream>(), It.IsAny<ImageFolder>()))
+            .ReturnsAsync((Stream s, ImageFolder _) => s);
         var privacy = new PrivacyService(_db);
-        _sut = new UserService(_db, _storageMock.Object, privacy);
+        _sut = new UserService(_db, _storageMock.Object, privacy, _imageProcessorMock.Object);
     }
 
     public void Dispose() => _db.Dispose();
@@ -312,13 +319,13 @@ public class UserServiceTests : IDisposable
         var stream = new MemoryStream([0x89, 0x50, 0x4E, 0x47]); // fake PNG bytes
 
         _storageMock
-            .Setup(s => s.StoreAsync(stream, "avatar.png", "avatars"))
-            .ReturnsAsync("/uploads/avatars/new-file.png");
+            .Setup(s => s.StoreAsync(It.IsAny<Stream>(), "avatar.webp", "avatars"))
+            .ReturnsAsync("/uploads/avatars/new-file.webp");
 
         var result = await _sut.UploadAvatarAsync(user.Id, stream, "avatar.png");
 
-        result.AvatarUrl.Should().Be("/uploads/avatars/new-file.png");
-        _storageMock.Verify(s => s.StoreAsync(stream, "avatar.png", "avatars"), Times.Once);
+        result.AvatarUrl.Should().Be("/uploads/avatars/new-file.webp");
+        _storageMock.Verify(s => s.StoreAsync(It.IsAny<Stream>(), "avatar.webp", "avatars"), Times.Once);
     }
 
     [Fact]
@@ -346,12 +353,12 @@ public class UserServiceTests : IDisposable
         var stream = new MemoryStream([0xFF, 0xD8]); // fake JPEG bytes
 
         _storageMock
-            .Setup(s => s.StoreAsync(stream, "cover.jpg", "covers"))
-            .ReturnsAsync("/uploads/covers/new-cover.jpg");
+            .Setup(s => s.StoreAsync(It.IsAny<Stream>(), "cover.webp", "covers"))
+            .ReturnsAsync("/uploads/covers/new-cover.webp");
 
         var result = await _sut.UploadCoverAsync(user.Id, stream, "cover.jpg");
 
-        result.CoverUrl.Should().Be("/uploads/covers/new-cover.jpg");
+        result.CoverUrl.Should().Be("/uploads/covers/new-cover.webp");
     }
 
     // ── Privacy settings ──────────────────────────────────────────────────────

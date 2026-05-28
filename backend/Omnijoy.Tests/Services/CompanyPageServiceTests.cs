@@ -7,6 +7,7 @@ using Omnijoy.Core.Models;
 using Omnijoy.Core.Models.Enums;
 using Omnijoy.Infrastructure.Data;
 using Omnijoy.Infrastructure.Services;
+using System.IO;
 
 namespace Omnijoy.Tests.Services;
 
@@ -14,6 +15,7 @@ public class CompanyPageServiceTests : IDisposable
 {
     private readonly OmnijoyDbContext _db;
     private readonly Mock<IMediaStorageService> _storageMock;
+    private readonly Mock<IImageProcessingService> _imageProcessorMock;
     private readonly CompanyPageService _sut;
 
     public CompanyPageServiceTests()
@@ -24,7 +26,11 @@ public class CompanyPageServiceTests : IDisposable
 
         _db = new OmnijoyDbContext(options);
         _storageMock = new Mock<IMediaStorageService>();
-        _sut = new CompanyPageService(_db, _storageMock.Object);
+        _imageProcessorMock = new Mock<IImageProcessingService>();
+        _imageProcessorMock
+            .Setup(p => p.ProcessImageAsync(It.IsAny<Stream>(), It.IsAny<ImageFolder>()))
+            .ReturnsAsync((Stream s, ImageFolder _) => s);
+        _sut = new CompanyPageService(_db, _storageMock.Object, _imageProcessorMock.Object);
     }
 
     public void Dispose() => _db.Dispose();

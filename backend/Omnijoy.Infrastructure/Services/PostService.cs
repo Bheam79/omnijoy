@@ -13,9 +13,10 @@ public class PostService : IPostService
     private readonly IMediaStorageService _storage;
     private readonly IPrivacyService _privacy;
     private readonly IFeedCache? _feedCache;
+    private readonly IImageProcessingService? _imageProcessor;
 
     public PostService(OmnijoyDbContext db, IMediaStorageService storage, IPrivacyService privacy)
-        : this(db, storage, privacy, null)
+        : this(db, storage, privacy, null, null)
     {
     }
 
@@ -24,11 +25,22 @@ public class PostService : IPostService
         IMediaStorageService storage,
         IPrivacyService privacy,
         IFeedCache? feedCache)
+        : this(db, storage, privacy, feedCache, null)
     {
-        _db = db;
-        _storage = storage;
-        _privacy = privacy;
-        _feedCache = feedCache;
+    }
+
+    public PostService(
+        OmnijoyDbContext db,
+        IMediaStorageService storage,
+        IPrivacyService privacy,
+        IFeedCache? feedCache,
+        IImageProcessingService? imageProcessor)
+    {
+        _db             = db;
+        _storage        = storage;
+        _privacy        = privacy;
+        _feedCache      = feedCache;
+        _imageProcessor = imageProcessor;
     }
 
     // ── Create ────────────────────────────────────────────────────────────────
@@ -82,7 +94,16 @@ public class PostService : IPostService
                 var mediaType = DetermineMediaType(item.ContentType, item.FileName);
                 var folder = mediaType == MediaType.Video ? "posts/videos" : "posts/images";
 
-                var url = await _storage.StoreAsync(item.Content, item.FileName, folder);
+                string url;
+                if (mediaType == MediaType.Image && _imageProcessor is not null)
+                {
+                    await using var processed = await _imageProcessor.ProcessImageAsync(item.Content, ImageFolder.PostImage);
+                    url = await _storage.StoreAsync(processed, "image.webp", folder);
+                }
+                else
+                {
+                    url = await _storage.StoreAsync(item.Content, item.FileName, folder);
+                }
 
                 string? thumbUrl = null;
                 // If a thumbnail was uploaded alongside the video (convention: fileName ends with

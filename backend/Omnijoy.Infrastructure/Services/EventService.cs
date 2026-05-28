@@ -11,11 +11,16 @@ public class EventService : IEventService
 {
     private readonly OmnijoyDbContext _db;
     private readonly IMediaStorageService _storage;
+    private readonly IImageProcessingService _imageProcessor;
 
-    public EventService(OmnijoyDbContext db, IMediaStorageService storage)
+    public EventService(
+        OmnijoyDbContext db,
+        IMediaStorageService storage,
+        IImageProcessingService imageProcessor)
     {
-        _db = db;
-        _storage = storage;
+        _db             = db;
+        _storage        = storage;
+        _imageProcessor = imageProcessor;
     }
 
     // ── Create ────────────────────────────────────────────────────────────────
@@ -36,7 +41,10 @@ public class EventService : IEventService
 
         string? coverUrl = null;
         if (cover is not null)
-            coverUrl = await _storage.StoreAsync(cover.Content, cover.FileName, "events/covers");
+        {
+            await using var processed = await _imageProcessor.ProcessImageAsync(cover.Content, ImageFolder.Cover);
+            coverUrl = await _storage.StoreAsync(processed, "cover.webp", "events/covers");
+        }
 
         var ev = new Event
         {
@@ -248,7 +256,10 @@ public class EventService : IEventService
         }
 
         if (cover is not null)
-            ev.CoverImageUrl = await _storage.StoreAsync(cover.Content, cover.FileName, "events/covers");
+        {
+            await using var processed = await _imageProcessor.ProcessImageAsync(cover.Content, ImageFolder.Cover);
+            ev.CoverImageUrl = await _storage.StoreAsync(processed, "cover.webp", "events/covers");
+        }
 
         await _db.SaveChangesAsync();
 

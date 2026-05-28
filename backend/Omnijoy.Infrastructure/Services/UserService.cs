@@ -13,12 +13,18 @@ public class UserService : IUserService
     private readonly OmnijoyDbContext _db;
     private readonly IMediaStorageService _storage;
     private readonly IPrivacyService _privacy;
+    private readonly IImageProcessingService _imageProcessor;
 
-    public UserService(OmnijoyDbContext db, IMediaStorageService storage, IPrivacyService privacy)
+    public UserService(
+        OmnijoyDbContext db,
+        IMediaStorageService storage,
+        IPrivacyService privacy,
+        IImageProcessingService imageProcessor)
     {
-        _db = db;
-        _storage = storage;
-        _privacy = privacy;
+        _db             = db;
+        _storage        = storage;
+        _privacy        = privacy;
+        _imageProcessor = imageProcessor;
     }
 
     // ── GET profile ───────────────────────────────────────────────────────────
@@ -163,7 +169,8 @@ public class UserService : IUserService
         if (user.AvatarUrl is not null)
             await _storage.DeleteAsync(user.AvatarUrl);
 
-        user.AvatarUrl = await _storage.StoreAsync(fileStream, fileName, "avatars");
+        await using var processed = await _imageProcessor.ProcessImageAsync(fileStream, ImageFolder.Avatar);
+        user.AvatarUrl = await _storage.StoreAsync(processed, "avatar.webp", "avatars");
         user.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
@@ -180,7 +187,8 @@ public class UserService : IUserService
         if (user.CoverUrl is not null)
             await _storage.DeleteAsync(user.CoverUrl);
 
-        user.CoverUrl = await _storage.StoreAsync(fileStream, fileName, "covers");
+        await using var processed = await _imageProcessor.ProcessImageAsync(fileStream, ImageFolder.Cover);
+        user.CoverUrl = await _storage.StoreAsync(processed, "cover.webp", "covers");
         user.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 

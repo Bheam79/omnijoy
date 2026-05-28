@@ -157,6 +157,7 @@ else
     builder.Services.AddScoped<IMediaStorageService, LocalMediaStorageService>();
 
 builder.Services.AddScoped<IPrivacyService, PrivacyService>();
+builder.Services.AddScoped<IImageProcessingService, ImageProcessingService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPostService, PostService>();
 // Feed cache (per-user page-1 + trending list). Uses IDistributedCache —

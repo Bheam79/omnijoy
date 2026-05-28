@@ -7,6 +7,7 @@ using Omnijoy.Core.Models;
 using Omnijoy.Core.Models.Enums;
 using Omnijoy.Infrastructure.Data;
 using Omnijoy.Infrastructure.Services;
+using System.IO;
 
 namespace Omnijoy.Tests.Services;
 
@@ -14,6 +15,7 @@ public class PostServiceTests : IDisposable
 {
     private readonly OmnijoyDbContext _db;
     private readonly Mock<IMediaStorageService> _storageMock;
+    private readonly Mock<IImageProcessingService> _imageProcessorMock;
     private readonly PostService _sut;
 
     public PostServiceTests()
@@ -24,8 +26,12 @@ public class PostServiceTests : IDisposable
 
         _db = new OmnijoyDbContext(options);
         _storageMock = new Mock<IMediaStorageService>();
+        _imageProcessorMock = new Mock<IImageProcessingService>();
+        _imageProcessorMock
+            .Setup(p => p.ProcessImageAsync(It.IsAny<Stream>(), It.IsAny<ImageFolder>()))
+            .ReturnsAsync((Stream s, ImageFolder _) => s);
         var privacy = new PrivacyService(_db);
-        _sut = new PostService(_db, _storageMock.Object, privacy);
+        _sut = new PostService(_db, _storageMock.Object, privacy, null, _imageProcessorMock.Object);
     }
 
     public void Dispose() => _db.Dispose();
@@ -100,7 +106,8 @@ public class PostServiceTests : IDisposable
         dto.Media.Should().HaveCount(1);
         dto.Media[0].MediaType.Should().Be("Image");
         dto.Media[0].Url.Should().Be("/uploads/posts/images/test.jpg");
-        _storageMock.Verify(s => s.StoreAsync(It.IsAny<Stream>(), "photo.jpg", "posts/images"), Times.Once);
+        // After image processing the filename is always "image.webp"
+        _storageMock.Verify(s => s.StoreAsync(It.IsAny<Stream>(), "image.webp", "posts/images"), Times.Once);
     }
 
     [Fact]
