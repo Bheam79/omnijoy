@@ -20,6 +20,15 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasIndex(u => u.Email)
                .IsUnique();
 
+        // Vanity URL slug — nullable + globally unique (NULL slots are
+        // permitted; MySQL/MariaDB treats NULL as not-equal in unique
+        // constraints, so multiple users can have a null slug.)
+        builder.Property(u => u.UrlSlug)
+               .HasMaxLength(30);
+
+        builder.HasIndex(u => u.UrlSlug)
+               .IsUnique();
+
         builder.Property(u => u.DisplayName)
                .IsRequired()
                .HasMaxLength(128);

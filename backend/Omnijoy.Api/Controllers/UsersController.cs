@@ -16,15 +16,18 @@ public class UsersController : ControllerBase
     private readonly IUserService _users;
     private readonly IFriendService _friends;
     private readonly IPresenceTracker _presence;
+    private readonly ISlugService _slugs;
 
     public UsersController(
         IUserService users,
         IFriendService friends,
-        IPresenceTracker presence)
+        IPresenceTracker presence,
+        ISlugService slugs)
     {
         _users    = users;
         _friends  = friends;
         _presence = presence;
+        _slugs    = slugs;
     }
 
     /// <summary>Returns the currently authenticated user's ID, or null if anonymous.</summary>
@@ -198,6 +201,35 @@ public class UsersController : ControllerBase
 
         var presence = await _presence.GetPresenceAsync(ids);
         return Ok(presence);
+    }
+
+    // ── PUT /api/users/me/slug ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Sets or clears the authenticated user's vanity URL slug.
+    /// Body: <c>{ slug: string | null }</c>. Returns the canonical stored form
+    /// (lowercase) or null when cleared.
+    /// </summary>
+    [HttpPut("me/slug")]
+    public async Task<IActionResult> SetSlug([FromBody] SetSlugRequest request)
+    {
+        if (CurrentUserId is not { } userId)
+            return Unauthorized(new { error = "Not authenticated." });
+
+        try
+        {
+            var stored = await _slugs.SetUserSlugAsync(userId, request.Slug);
+            return Ok(new { slug = stored });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // ex.Message carries the SlugUnavailableReason ("invalid"/"reserved"/"taken").
+            return BadRequest(new { error = "Slug is not available.", reason = ex.Message });
+        }
     }
 
     // ── PUT /api/users/me/privacy ─────────────────────────────────────────────

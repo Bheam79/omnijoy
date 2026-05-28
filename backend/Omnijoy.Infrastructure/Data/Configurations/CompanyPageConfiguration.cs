@@ -32,6 +32,14 @@ public class CompanyPageConfiguration : IEntityTypeConfiguration<CompanyPage>
         builder.HasIndex(cp => cp.CreatedByUserId);
         builder.HasIndex(cp => cp.Name);
 
+        // Vanity URL slug — nullable + globally unique within the table
+        // (cross-table uniqueness with Users.UrlSlug is enforced by ISlugService).
+        builder.Property(cp => cp.UrlSlug)
+               .HasMaxLength(30);
+
+        builder.HasIndex(cp => cp.UrlSlug)
+               .IsUnique();
+
         builder.HasOne(cp => cp.CreatedByUser)
                .WithMany(u => u.CreatedCompanyPages)
                .HasForeignKey(cp => cp.CreatedByUserId)

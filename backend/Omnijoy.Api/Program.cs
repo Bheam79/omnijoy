@@ -174,6 +174,7 @@ builder.Services.AddScoped<ILiveStreamService, LiveStreamService>();
 builder.Services.AddScoped<IShareService, ShareService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
+builder.Services.AddScoped<ISlugService, SlugService>();
 
 var app = builder.Build();
 

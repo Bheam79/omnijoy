@@ -14,10 +14,12 @@ namespace Omnijoy.Api.Controllers;
 public class CompanyPagesController : ControllerBase
 {
     private readonly ICompanyPageService _pages;
+    private readonly ISlugService _slugs;
 
-    public CompanyPagesController(ICompanyPageService pages)
+    public CompanyPagesController(ICompanyPageService pages, ISlugService slugs)
     {
         _pages = pages;
+        _slugs = slugs;
     }
 
     private Guid? CurrentUserId =>
@@ -253,6 +255,41 @@ public class CompanyPagesController : ControllerBase
         catch (KeyNotFoundException ex)
         {
             return NotFound(new { error = ex.Message });
+        }
+    }
+
+    // ── PUT /api/company-pages/{id}/slug ──────────────────────────────────────
+
+    /// <summary>
+    /// Sets or clears the company page's vanity URL slug. Caller must be an
+    /// Owner or Admin of the page (Editor role is rejected). Body:
+    /// <c>{ slug: string | null }</c>. Returns the canonical stored form.
+    /// Note: the spec task lists this as <c>/api/companies/{id}/slug</c>; we
+    /// keep the existing <c>/api/company-pages</c> base for consistency with
+    /// every other endpoint on this resource.
+    /// </summary>
+    [HttpPut("{id:guid}/slug")]
+    public async Task<IActionResult> SetSlug(Guid id, [FromBody] Omnijoy.Core.DTOs.Users.SetSlugRequest request)
+    {
+        if (CurrentUserId is not { } userId)
+            return Unauthorized(new { error = "Not authenticated." });
+
+        try
+        {
+            var stored = await _slugs.SetCompanyPageSlugAsync(id, userId, request.Slug);
+            return Ok(new { slug = stored });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = "Slug is not available.", reason = ex.Message });
         }
     }
 

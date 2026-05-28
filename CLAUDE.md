@@ -233,6 +233,23 @@ dotnet ef database update \
 - `GET /api/feed/trending` serves the cached list; falls back to a live
   `PostService.GetTrendingPostsAsync` query on cache miss.
 
+### Vanity URL slugs
+
+- `User.UrlSlug` + `CompanyPage.UrlSlug` (nullable, unique-per-table).
+  Cross-table uniqueness enforced in `SlugService` (no FK / cross-table index).
+- `SlugValidator` (Omnijoy.Core/Services) is pure: rules = 3–30 chars,
+  lowercase a–z/0–9/`-`/`_`, must start with a letter, no consecutive
+  separators, no trailing separator. Always lowercased on store.
+- `ReservedSlugs` is a hard-coded `FrozenSet` in `SlugValidator`. **It must
+  stay in sync with every top-level Vue Router path in
+  `frontend/src/router/index.ts`.** When adding a new top-level frontend
+  route, add the path segment to `ReservedSlugs` in the same commit.
+- API: `GET /api/slugs/check?slug=…`, `GET /api/slugs/resolve/{slug}`,
+  `PUT /api/users/me/slug`, `PUT /api/company-pages/{id}/slug` (Owner/Admin
+  only, Editor rejected).
+- Race safety: pre-flight `IsSlugTakenAsync` + `SaveChanges` translates a
+  unique-index violation back into a "taken" `InvalidOperationException`.
+
 ### Rate limiting
 
 Implemented via `Microsoft.AspNetCore.RateLimiting` (built-in .NET 8+) with Redis-backed

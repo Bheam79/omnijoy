@@ -92,7 +92,8 @@ public class UserService : IUserService
             MutualFriendCount: mutualCount,
             IsOwnProfile: isOwn,
             IsFriend: isFriend,
-            CreatedAt: user.CreatedAt
+            CreatedAt: user.CreatedAt,
+            UrlSlug: user.UrlSlug
         );
     }
 
@@ -255,7 +256,8 @@ public class UserService : IUserService
         Gender: u.Gender.ToString(),
         BirthDate: u.BirthDate?.ToString("yyyy-MM-dd"),
         ShowBirthDate: u.ShowBirthDate,
-        CreatedAt: u.CreatedAt
+        CreatedAt: u.CreatedAt,
+        UrlSlug: u.UrlSlug
     );
 
     private static PrivacySettingsDto MapPrivacyDto(UserPrivacySettings s) => new(

@@ -24,7 +24,9 @@ public record CompanyPageDto(
     bool IsFollowing,
     /// <summary>Current user's role; null if not an admin.</summary>
     string? MyRole,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    /// <summary>Vanity URL slug — null when unset.</summary>
+    string? UrlSlug = null
 );
 
 // ── Create / Update requests ──────────────────────────────────────────────────

@@ -354,7 +354,8 @@ public class CompanyPageService : ICompanyPageService
             FollowerCount: followerCount,
             IsFollowing:   isFollowing,
             MyRole:        myRole,
-            CreatedAt:     cp.CreatedAt
+            CreatedAt:     cp.CreatedAt,
+            UrlSlug:       cp.UrlSlug
         );
     }
 

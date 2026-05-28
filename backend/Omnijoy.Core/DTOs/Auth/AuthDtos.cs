@@ -58,7 +58,9 @@ public record UserDto(
     string Gender,
     string? BirthDate,
     bool ShowBirthDate,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    /// <summary>Vanity URL slug — null when unset.</summary>
+    string? UrlSlug = null
 );
 
 public record AuthResponse(

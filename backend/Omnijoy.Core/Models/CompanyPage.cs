@@ -10,6 +10,12 @@ public class CompanyPage
     public Guid CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; }
 
+    /// <summary>
+    /// Vanity URL slug — lowercase a–z / 0–9 / hyphen / underscore, 3–30 chars.
+    /// Null when unset. Globally unique across users + company pages.
+    /// </summary>
+    public string? UrlSlug { get; set; }
+
     // Navigation properties
     public User CreatedByUser { get; set; } = null!;
     public ICollection<CompanyPageAdmin> Admins { get; set; } = [];

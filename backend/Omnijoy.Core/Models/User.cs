@@ -18,6 +18,13 @@ public class User
     public bool IsAdmin { get; set; } = false;
 
     /// <summary>
+    /// Vanity URL slug — lowercase a–z / 0–9 / hyphen / underscore, 3–30 chars.
+    /// Null when unset. Must be globally unique across <c>Users.UrlSlug</c>
+    /// AND <c>CompanyPages.UrlSlug</c> (enforced in <c>ISlugService</c>).
+    /// </summary>
+    public string? UrlSlug { get; set; }
+
+    /// <summary>
     /// True while the account is usable. Set to false on deactivation; logging
     /// back in re-activates it. Soft-deleted accounts also have IsActive=false.
     /// </summary>
