@@ -117,6 +117,25 @@ public class EventsController : ControllerBase
         return Ok(result);
     }
 
+    // ── GET /api/events/public ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Lists upcoming public events (Privacy = Everyone). Available without
+    /// authentication — powers the public front page feed. Optionally filtered
+    /// by a case-insensitive substring match on the event location (typically
+    /// the visitor's city derived from browser geolocation or manual entry).
+    /// </summary>
+    [HttpGet("public")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetPublicEvents(
+        [FromQuery] string? location = null,
+        [FromQuery] int     page     = 1,
+        [FromQuery] int     pageSize = 20)
+    {
+        var result = await _events.GetPublicEventsAsync(location, page, pageSize);
+        return Ok(result);
+    }
+
     // ── GET /api/events/:id ───────────────────────────────────────────────────
 
     [HttpGet("{id:guid}")]

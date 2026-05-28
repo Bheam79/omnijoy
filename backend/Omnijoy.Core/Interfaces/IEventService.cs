@@ -24,6 +24,18 @@ public interface IEventService
         int pageSize);
 
     /// <summary>
+    /// Returns upcoming public events (Privacy = Everyone) ordered by start date.
+    /// Optionally filtered by case-insensitive substring match on the event's
+    /// Location field — used by the public front page to surface events near
+    /// the visitor's location.
+    /// Available without authentication.
+    /// </summary>
+    Task<EventsPageResult> GetPublicEventsAsync(
+        string? location,
+        int page,
+        int pageSize);
+
+    /// <summary>
     /// Returns a single event with the requester's RSVP status.
     /// Throws <see cref="KeyNotFoundException"/> when not found.
     /// Throws <see cref="UnauthorizedAccessException"/> when privacy denies access.

@@ -104,6 +104,27 @@ export const eventService = {
     return data
   },
 
+  /**
+   * Public events feed (no authentication required). Optionally filtered by
+   * a location substring — powers the unauthenticated front page.
+   */
+  async getPublicEvents(params: {
+    location?: string | null
+    page?: number
+    pageSize?: number
+  } = {}): Promise<EventsPageResult> {
+    const { data } = await api.get<EventsPageResult>('/api/events/public', {
+      params: {
+        location: params.location && params.location.trim()
+          ? params.location.trim()
+          : undefined,
+        page:     params.page     ?? 1,
+        pageSize: params.pageSize ?? 20,
+      },
+    })
+    return data
+  },
+
   async getEvent(id: string): Promise<EventDto> {
     const { data } = await api.get<EventDto>(`/api/events/${id}`)
     return data

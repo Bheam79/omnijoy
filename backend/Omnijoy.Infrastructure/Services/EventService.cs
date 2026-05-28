@@ -133,6 +133,52 @@ public class EventService : IEventService
         );
     }
 
+    // ── Public list (unauthenticated) ─────────────────────────────────────────
+
+    public async Task<EventsPageResult> GetPublicEventsAsync(
+        string? location,
+        int page,
+        int pageSize)
+    {
+        if (page < 1) page = 1;
+        if (pageSize < 1 || pageSize > 50) pageSize = 20;
+
+        var cutoff = DateTime.UtcNow.AddDays(-1);
+
+        IQueryable<Event> query = _db.Events
+            .AsNoTracking()
+            .Include(e => e.CreatorUser)
+            .Include(e => e.Attendees)
+            .Where(e => e.Privacy == PrivacyLevel.Everyone)
+            .Where(e => e.StartAt >= cutoff);
+
+        if (!string.IsNullOrWhiteSpace(location))
+        {
+            var needle = location.Trim();
+            query = query.Where(e =>
+                e.Location != null &&
+                EF.Functions.Like(e.Location, $"%{needle}%"));
+        }
+
+        query = query.OrderBy(e => e.StartAt);
+
+        var total = await query.CountAsync();
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        // No RSVP overlay — caller is unauthenticated.
+        var dtos = items.Select(e => MapToDto(e, myRsvp: null)).ToArray();
+
+        return new EventsPageResult(
+            Items:    dtos,
+            Page:     page,
+            PageSize: pageSize,
+            HasMore:  (page * pageSize) < total
+        );
+    }
+
     // ── Get single ────────────────────────────────────────────────────────────
 
     public async Task<EventDto> GetEventAsync(Guid eventId, Guid? requesterId)
