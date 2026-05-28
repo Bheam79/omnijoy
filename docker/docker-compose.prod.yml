@@ -203,9 +203,14 @@ services:
     container_name: 07ad0b82_omnijoy_mediamtx
     restart: unless-stopped
     environment:
-      MTX_PATHS_ALL_SOURCE: publisher
-      MTX_HLSADDRESS:       :8888
-      MTX_RTMPADDRESS:      :1935
+      # MTX_PATHS_ALL_SOURCE is intentionally omitted.
+      # The MediaMTX Docker image ships with a default config that already
+      # defines 'all_others' (the catch-all path) with source=publisher.
+      # Defining MTX_PATHS_ALL_SOURCE adds a second entry for the alias
+      # 'all' (which is the same as 'all_others' and '~^.*$'), causing the
+      # repeated error: "all_others, all and '~^.*$' are aliases".
+      MTX_HLSADDRESS:  :8888
+      MTX_RTMPADDRESS: :1935
     ports:
       # RTMP ingest: OBS → rtmp://HOST:RTMP_PORT/live/STREAM_KEY
       - "${RTMP_PORT:-1935}:1935"
