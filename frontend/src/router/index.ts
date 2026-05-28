@@ -139,6 +139,21 @@ const router = createRouter({
       component: () => import('@/views/share/ShareEventView.vue'),
     },
 
+    // ── Vanity URL catch-all (:slug) ──────────────────────────────────────────
+    //
+    // IMPORTANT: Every top-level path segment added above this line MUST also
+    // appear in the backend's ReservedSlugs constant so users cannot claim a
+    // slug that would shadow an application route:
+    //   backend/Omnijoy.Infrastructure/Services/SlugService.cs → SlugValidator.ReservedSlugs
+    //
+    // This route must remain LAST among real routes, just before the 404 catch-all.
+    {
+      path: '/:slug([a-z][a-z0-9_-]{2,29})',
+      name: 'slug-resolver',
+      component: () => import('@/views/SlugResolverView.vue'),
+      meta: { requiresAuth: true, layout: 'app' },
+    },
+
     // ── 404 ───────────────────────────────────────────────────────────────────
     {
       path: '/:pathMatch(.*)*',

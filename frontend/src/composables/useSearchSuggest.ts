@@ -15,6 +15,8 @@
  */
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { searchService, type SearchResponse } from '@/services/searchService'
+import { useProfileUrl } from '@/composables/useProfileUrl'
+import { useCompanyUrl } from '@/composables/useCompanyUrl'
 
 export type SuggestCategory = 'user' | 'post' | 'event' | 'company'
 
@@ -56,7 +58,7 @@ export function flattenSuggestions(resp: SearchResponse | null): SuggestItem[] {
       label:     u.displayName,
       secondary: u.bio ?? undefined,
       imageUrl:  u.avatarUrl,
-      routeTo:   `/profile/${u.id}`,
+      routeTo:   useProfileUrl(u),
     })
   }
   for (const p of resp.posts) {
@@ -86,7 +88,7 @@ export function flattenSuggestions(resp: SearchResponse | null): SuggestItem[] {
       label:     c.name,
       secondary: `${c.followerCount} follower${c.followerCount === 1 ? '' : 's'}`,
       imageUrl:  c.logoUrl,
-      routeTo:   `/company/${c.id}`,
+      routeTo:   useCompanyUrl(c),
     })
   }
   return items

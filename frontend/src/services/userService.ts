@@ -17,6 +17,8 @@ export interface UserProfile {
   isOwnProfile: boolean
   isFriend: boolean
   createdAt: string
+  /** Vanity URL slug (e.g. "alice") — null when unset. */
+  urlSlug?: string | null
 }
 
 export interface PrivacySettings {

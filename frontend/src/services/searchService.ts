@@ -7,6 +7,8 @@ export interface UserSearchResult {
   displayName: string
   avatarUrl?: string
   bio?: string
+  /** Vanity URL slug — null when unset. */
+  urlSlug?: string | null
 }
 
 export interface PostSearchResult {
@@ -39,6 +41,8 @@ export interface CompanySearchResult {
   description?: string
   logoUrl?: string
   followerCount: number
+  /** Vanity URL slug — null when unset. */
+  urlSlug?: string | null
 }
 
 /** Type discriminator accepted by the backend `/api/search` endpoint. */

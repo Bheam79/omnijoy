@@ -244,6 +244,13 @@ dotnet ef database update \
   stay in sync with every top-level Vue Router path in
   `frontend/src/router/index.ts`.** When adding a new top-level frontend
   route, add the path segment to `ReservedSlugs` in the same commit.
+  The `router/index.ts` file has a comment pointing at the constant location.
+- Frontend vanity-URL helpers: `useProfileUrl({ id, urlSlug? })` →
+  `/{slug}` or `/profile/{id}`;  `useCompanyUrl({ id, urlSlug? })` →
+  `/{slug}` or `/company/{id}`.  Always use these instead of building paths by hand.
+- The catch-all `/:slug` route in the frontend router resolves via
+  `GET /api/slugs/resolve/{slug}` and redirects to the correct profile/company
+  view.  It is registered just before the `/:pathMatch(.*)* not-found` route.
 - API: `GET /api/slugs/check?slug=…`, `GET /api/slugs/resolve/{slug}`,
   `PUT /api/users/me/slug`, `PUT /api/company-pages/{id}/slug` (Owner/Admin
   only, Editor rejected).

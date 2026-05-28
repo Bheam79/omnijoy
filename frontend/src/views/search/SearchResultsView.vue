@@ -21,6 +21,8 @@ import {
   type EventSearchResult,
   type CompanySearchResult,
 } from '@/services/searchService'
+import { useProfileUrl } from '@/composables/useProfileUrl'
+import { useCompanyUrl } from '@/composables/useCompanyUrl'
 
 const route  = useRoute()
 const router = useRouter()
@@ -289,7 +291,7 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
             </div>
             <ul class="divide-y divide-gray-100">
               <li v-for="u in allResponse.users" :key="`user-${u.id}`" class="py-2">
-                <RouterLink :to="`/profile/${u.id}`" class="flex items-center gap-3 group">
+                <RouterLink :to="useProfileUrl(u)" class="flex items-center gap-3 group">
                   <img v-if="u.avatarUrl" :src="u.avatarUrl" :alt="u.displayName" class="h-10 w-10 rounded-full object-cover" />
                   <div v-else class="h-10 w-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
                     {{ u.displayName.charAt(0).toUpperCase() }}
@@ -355,7 +357,7 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
             </div>
             <ul class="divide-y divide-gray-100">
               <li v-for="c in allResponse.companies" :key="`company-${c.id}`" class="py-2">
-                <RouterLink :to="`/company/${c.id}`" class="flex items-center gap-3 group">
+                <RouterLink :to="useCompanyUrl(c)" class="flex items-center gap-3 group">
                   <img v-if="c.logoUrl" :src="c.logoUrl" :alt="c.name" class="h-10 w-10 rounded-lg object-cover shrink-0" />
                   <div v-else class="h-10 w-10 rounded-lg bg-gray-100 text-gray-700 flex items-center justify-center font-bold shrink-0">
                     {{ c.name.charAt(0).toUpperCase() }}
@@ -386,7 +388,7 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
           <RouterLink
             v-for="u in users"
             :key="u.id"
-            :to="`/profile/${u.id}`"
+            :to="useProfileUrl(u)"
             class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-3 hover:border-indigo-200 transition-colors"
           >
             <img v-if="u.avatarUrl" :src="u.avatarUrl" :alt="u.displayName" class="w-12 h-12 rounded-full object-cover" />
@@ -476,7 +478,7 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
           <RouterLink
             v-for="c in companies"
             :key="c.id"
-            :to="`/company/${c.id}`"
+            :to="useCompanyUrl(c)"
             class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-3 hover:border-indigo-200 transition-colors"
           >
             <img v-if="c.logoUrl" :src="c.logoUrl" :alt="c.name" class="w-12 h-12 rounded-lg object-cover" />

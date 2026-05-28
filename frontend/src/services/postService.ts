@@ -6,6 +6,8 @@ export interface PostAuthor {
   id: string
   displayName: string
   avatarUrl?: string
+  /** Vanity URL slug — null when unset. */
+  urlSlug?: string | null
 }
 
 export interface PostMediaItem {

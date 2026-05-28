@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import type { PostDto } from '@/services/postService'
 import { useAuthStore } from '@/stores/auth'
 import { useFeedStore } from '@/stores/feed'
+import { useProfileUrl } from '@/composables/useProfileUrl'
 import PostReactionBar from './PostReactionBar.vue'
 import CommentThread from './CommentThread.vue'
 import ShareModal from './ShareModal.vue'
@@ -17,6 +18,8 @@ const feed = useFeedStore()
 const isLoggedIn = computed(() => !!auth.user)
 
 const isOwn = computed(() => auth.user?.id === props.post.author.id)
+
+const authorUrl = computed(() => useProfileUrl(props.post.author))
 
 // ── Report ────────────────────────────────────────────────────────────────────
 const reportModalOpen = ref(false)
@@ -96,7 +99,7 @@ const tobStyle = computed(() => {
     <div class="flex items-center justify-between px-4 pt-4 pb-2">
       <div class="flex items-center gap-3">
         <!-- Avatar -->
-        <RouterLink :to="`/profile/${post.author.id}`">
+        <RouterLink :to="authorUrl">
           <img
             v-if="post.author.avatarUrl"
             :src="post.author.avatarUrl"
@@ -114,7 +117,7 @@ const tobStyle = computed(() => {
         <!-- Author name + timestamp + privacy -->
         <div>
           <RouterLink
-            :to="`/profile/${post.author.id}`"
+            :to="authorUrl"
             class="font-semibold text-gray-900 hover:underline text-sm"
           >
             {{ post.author.displayName }}

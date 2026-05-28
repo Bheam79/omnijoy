@@ -26,6 +26,8 @@ export interface CompanyPageDto {
   isFollowing: boolean
   myRole?: 'Owner' | 'Admin' | 'Editor'
   createdAt: string
+  /** Vanity URL slug — null when unset. */
+  urlSlug?: string | null
 }
 
 export interface CompanyPagesPageResult {
