@@ -1,0 +1,44 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Omnijoy systemd user unit
+#
+# Install with:  make prod-install
+# Remove with:   make prod-uninstall
+#
+# After installing, enable linger so the service survives logout:
+#   loginctl enable-linger $USER
+#
+# Podman users: replace ExecStart/ExecStop with:
+#   ExecStart=/usr/bin/podman compose -f %h/REPO_PATH/docker/docker-compose.prod.yml up -d
+#   ExecStop=/usr/bin/podman compose -f %h/REPO_PATH/docker/docker-compose.prod.yml down
+# ─────────────────────────────────────────────────────────────────────────────
+[Unit]
+Description=Omnijoy production stack (MariaDB + backend + nginx)
+Documentation=https://github.com/your-org/omnijoy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+# WorkingDirectory is rewritten by 'make prod-install' to the actual repo path.
+WorkingDirectory=REPO_PATH_PLACEHOLDER
+
+ExecStart=/usr/bin/docker compose \
+    -f docker/docker-compose.prod.yml \
+    --env-file docker/.env \
+    up -d --remove-orphans
+
+ExecStop=/usr/bin/docker compose \
+    -f docker/docker-compose.prod.yml \
+    down
+
+# Restart the service if docker compose exits unexpectedly
+Restart=on-failure
+RestartSec=10s
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

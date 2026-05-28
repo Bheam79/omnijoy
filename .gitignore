@@ -17,7 +17,9 @@ backend/Omnijoy.Api/wwwroot/
 # backend/**/Migrations/
 
 # Secrets — never commit
-**/appsettings.Production.json
+# Note: appsettings.Production.json IS committed — it contains only non-secret
+# production defaults (container names, log levels).  Real secrets (DB password,
+# JWT key) are injected at runtime via docker-compose env vars from docker/.env.
 **/appsettings.Secrets.json
 
 # ── Node / Frontend ───────────────────────────────────────────────────────────

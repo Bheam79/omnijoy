@@ -1,0 +1,33 @@
+# Git
+.git
+.gitignore
+
+# Editor artifacts
+.vs
+.vscode
+*.user
+
+# Node
+node_modules
+**/node_modules
+npm-debug.log*
+
+# .NET build artifacts
+**/bin
+**/obj
+**/TestResults
+**/coverage
+
+# Frontend output (rebuilt inside Docker from source)
+backend/Omnijoy.Api/wwwroot
+
+# E2E tests (not part of the production image)
+e2e
+
+# Environment secrets — never bake into image
+**/.env
+docker/.env
+
+# Docs / misc
+**/*.md
+**/.editorconfig

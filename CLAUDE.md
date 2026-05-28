@@ -77,12 +77,14 @@ All containers use the prefix **`07ad0b82_omnijoy`**:
 | Container name | Purpose |
 |---|---|
 | `07ad0b82_omnijoy_mysql` | MariaDB database |
-| `07ad0b82_omnijoy_blue` | Blue deployment slot |
-| `07ad0b82_omnijoy_green` | Green deployment slot |
-| `07ad0b82_omnijoy_nginx` | Nginx reverse proxy (active slot router) |
+| `07ad0b82_omnijoy_backend` | .NET API (production stack) |
+| `07ad0b82_omnijoy_nginx` | Nginx reverse proxy |
+| `07ad0b82_omnijoy_mediamtx` | RTMP/HLS live streaming |
+| `07ad0b82_omnijoy_blue` | Blue slot (legacy blue/green targets) |
+| `07ad0b82_omnijoy_green` | Green slot (legacy blue/green targets) |
 
 Docker network: `07ad0b82_omnijoy_net`
-Volume: `07ad0b82_omnijoy_mysql_data`
+Volumes: `07ad0b82_omnijoy_mysql_data`, `07ad0b82_omnijoy_media_data`
 
 ---
 
@@ -95,18 +97,64 @@ make test             # Run all tests
 make test-backend     # xUnit tests with coverage
 make test-frontend    # Vitest tests with coverage
 
-make deploy-blue      # Build + deploy to blue slot
-make deploy-green     # Build + deploy to green slot
-make switch           # Swap nginx to inactive slot (zero-downtime)
-make rollback         # Swap back to previous slot
+make deploy-blue      # Build + deploy to blue slot (legacy)
+make deploy-green     # Build + deploy to green slot (legacy)
+make switch           # Swap nginx to inactive slot (zero-downtime, legacy)
+make rollback         # Swap back to previous slot (legacy)
 
-make start-db         # Start MariaDB container
-make stop-db          # Stop MariaDB container
-make migrate          # Run EF Core migrations
+make start-db         # Start MariaDB container (dev)
+make stop-db          # Stop MariaDB container (dev)
+make migrate          # Run EF Core migrations (dev — host must reach DB)
 make status           # Show containers + active slot
 make logs             # Tail active slot logs
 make clean            # Remove build artifacts
 ```
+
+### Production stack (git pull → make)
+
+```bash
+# First-time setup on a server:
+cp docker/.env.example docker/.env
+$EDITOR docker/.env          # Set MYSQL_PASSWORD, JWT_SECRET_KEY, PUBLIC_PORT, etc.
+
+make prod-up                 # Build image + start all services
+make prod-migrate            # Apply DB migrations (runs via Docker, no host DB access needed)
+
+# Updates:
+git pull
+make prod-up                 # Rebuilds image from source and restarts
+
+# Day-to-day:
+make prod-status             # Show running containers
+make prod-logs               # Tail all logs  (SVC=backend for one service)
+make prod-logs SVC=backend
+make prod-shell              # Shell into running backend container
+make prod-restart            # Rebuild + restart backend only (fastest deploy)
+make prod-down               # Tear down the stack (volumes preserved)
+
+# Persist across reboots via systemd --user:
+make prod-install            # Install ~/.config/systemd/user/omnijoy.service
+loginctl enable-linger $USER # Keep service running when not logged in
+systemctl --user start omnijoy.service
+
+make prod-uninstall          # Remove the systemd service
+
+# Podman users — just override DOCKER:
+make prod-up DOCKER=podman
+```
+
+**docker/.env key variables** (see `docker/.env.example` for full list):
+
+| Variable | Required | Description |
+|---|---|---|
+| `MYSQL_ROOT_PASSWORD` | ✓ | MariaDB root password |
+| `MYSQL_PASSWORD` | ✓ | App DB user password |
+| `JWT_SECRET_KEY` | ✓ | Min 32 chars — signs auth tokens |
+| `PUBLIC_PORT` | — | Host port for nginx (default: 80) |
+| `RTMP_PORT` | — | RTMP ingest port (default: 1935) |
+| `CORS_ORIGINS` | — | Production domain, e.g. `https://omnijoy.example.com` |
+
+DB is **not published to the host** in production — only nginx publishes `PUBLIC_PORT`.
 
 ---
 

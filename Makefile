@@ -23,12 +23,27 @@ PUBLISH_DIR := /tmp/$(PROJECT)_publish
 BLUE_DIR    := $(PUBLISH_DIR)/blue
 GREEN_DIR   := $(PUBLISH_DIR)/green
 
+# Production compose file + env file
+PROD_COMPOSE  := docker/docker-compose.prod.yml
+PROD_ENV      := docker/.env
+PROD_ENV_EX   := docker/.env.example
+
+# Docker / Podman — override with DOCKER=podman if needed
+DOCKER        ?= docker
+COMPOSE       ?= $(DOCKER) compose
+
+# Absolute path to this repo (used by prod-install for the systemd unit)
+REPO_PATH     := $(shell pwd)
+
 .PHONY: help build build-backend build-frontend \
         start-db stop-db \
         deploy-blue deploy-green switch rollback \
         dev dev-backend dev-frontend \
         test test-backend test-frontend test-e2e test-e2e-api test-e2e-browser \
-        migrate clean status logs
+        migrate clean status logs \
+        prod-up prod-start prod-stop prod-down prod-restart \
+        prod-build prod-migrate prod-logs prod-status prod-shell \
+        prod-install prod-uninstall _check-env
 
 # ── Default target ────────────────────────────────────────────────────────────
 help:
@@ -64,6 +79,19 @@ help:
 	@echo "    make test-e2e-api    Run E2E API tests only (no browser)"
 	@echo "    make test-e2e-browser Run E2E browser tests only"
 	@echo ""
+	@echo "  Production (full Docker stack — DB + backend + nginx):"
+	@echo "    make prod-up         Build image + start all services (main entry point)"
+	@echo "    make prod-start      Start without rebuilding (after prod-down)"
+	@echo "    make prod-stop       Stop containers (keep them for prod-start)"
+	@echo "    make prod-down       Stop and remove containers"
+	@echo "    make prod-restart    Rebuild image and restart backend only"
+	@echo "    make prod-migrate    Run EF Core migrations via temporary container"
+	@echo "    make prod-logs       Tail logs (all services; pass SVC=backend to filter)"
+	@echo "    make prod-status     Show production container status"
+	@echo "    make prod-shell      Open a shell inside the backend container"
+	@echo "    make prod-install    Install systemd user service (auto-start on boot)"
+	@echo "    make prod-uninstall  Remove systemd user service"
+	@echo ""
 	@echo "  Misc:"
 	@echo "    make status          Show running containers and active slot"
 	@echo "    make logs            Tail logs from the active slot"
@@ -87,15 +115,15 @@ dev-frontend:
 # ── Database ──────────────────────────────────────────────────────────────────
 start-db:
 	@echo ">> Starting MariaDB..."
-	docker compose -f docker/docker-compose.yml --env-file docker/.env up -d mysql
+	$(COMPOSE) -f docker/docker-compose.yml --env-file docker/.env up -d mysql
 	@echo ">> Waiting for DB to be healthy..."
-	@until docker inspect --format='{{.State.Health.Status}}' $(PREFIX)_mysql 2>/dev/null | grep -q healthy; do \
+	@until $(DOCKER) inspect --format='{{.State.Health.Status}}' $(PREFIX)_mysql 2>/dev/null | grep -q healthy; do \
 	  sleep 2; \
 	done
 	@echo ">> DB is ready."
 
 stop-db:
-	docker compose -f docker/docker-compose.yml stop mysql
+	$(COMPOSE) -f docker/docker-compose.yml stop mysql
 
 migrate:
 	@echo ">> Running EF Core migrations..."
@@ -124,8 +152,8 @@ deploy-blue: build
 	@echo ">> Deploying to BLUE slot (port $(BLUE_PORT))..."
 	@mkdir -p $(BLUE_DIR)
 	@cp -r $(PUBLISH_DIR)/app/* $(BLUE_DIR)/
-	@docker rm -f $(BLUE_APP) 2>/dev/null || true
-	docker run -d \
+	@$(DOCKER) rm -f $(BLUE_APP) 2>/dev/null || true
+	$(DOCKER) run -d \
 	  --name $(BLUE_APP) \
 	  --network 07ad0b82_omnijoy_net \
 	  -p $(BLUE_PORT):80 \
@@ -142,8 +170,8 @@ deploy-green: build
 	@echo ">> Deploying to GREEN slot (port $(GREEN_PORT))..."
 	@mkdir -p $(GREEN_DIR)
 	@cp -r $(PUBLISH_DIR)/app/* $(GREEN_DIR)/
-	@docker rm -f $(GREEN_APP) 2>/dev/null || true
-	docker run -d \
+	@$(DOCKER) rm -f $(GREEN_APP) 2>/dev/null || true
+	$(DOCKER) run -d \
 	  --name $(GREEN_APP) \
 	  --network 07ad0b82_omnijoy_net \
 	  -p $(GREEN_PORT):80 \
@@ -182,7 +210,7 @@ rollback:
 
 # Internal: update nginx upstream to target port
 _nginx-point:
-	@docker rm -f $(NGINX_CONT) 2>/dev/null || true
+	@$(DOCKER) rm -f $(NGINX_CONT) 2>/dev/null || true
 	@cat > /tmp/omnijoy_nginx.conf << 'NGINX' \
 events {} \
 http { \
@@ -193,7 +221,7 @@ http { \
   } \
 } \
 NGINX
-	docker run -d \
+	$(DOCKER) run -d \
 	  --name $(NGINX_CONT) \
 	  --add-host host-gateway:host-gateway \
 	  -p $(PUBLIC_PORT):$(PUBLIC_PORT) \
@@ -232,18 +260,121 @@ test-e2e-browser:
 # ── Misc ──────────────────────────────────────────────────────────────────────
 status:
 	@echo "── Containers ──────────────────────────────────────────"
-	@docker ps --filter name=$(PREFIX) --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+	@$(DOCKER) ps --filter name=$(PREFIX) --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 	@echo "── Active slot ─────────────────────────────────────────"
 	@if [ -f $(ACTIVE_FILE) ]; then cat $(ACTIVE_FILE); else echo "(none yet)"; fi
 
 logs:
 	@SLOT=$$(cat $(ACTIVE_FILE) 2>/dev/null || echo blue); \
 	echo ">> Tailing logs for $$SLOT..."; \
-	docker logs -f $(PREFIX)_$$SLOT
+	$(DOCKER) logs -f $(PREFIX)_$$SLOT
 
 clean:
 	@echo ">> Cleaning build artifacts..."
 	rm -rf $(PUBLISH_DIR)
 	rm -rf backend/Omnijoy.Api/wwwroot
 	find . -name "bin" -o -name "obj" | grep -v node_modules | xargs rm -rf
+	@echo ">> Done."
+
+# ── Production stack ──────────────────────────────────────────────────────────
+# Ensure docker/.env exists; warn and exit if missing.
+_check-env:
+	@if [ ! -f "$(PROD_ENV)" ]; then \
+	  echo ""; \
+	  echo "  ERROR: $(PROD_ENV) not found."; \
+	  echo "  Copy the example and fill in your secrets:"; \
+	  echo "    cp $(PROD_ENV_EX) $(PROD_ENV)"; \
+	  echo "    \$$EDITOR $(PROD_ENV)"; \
+	  echo ""; \
+	  exit 1; \
+	fi
+
+# Build the Docker image (runs frontend + backend compilation inside Docker).
+prod-build: _check-env
+	@echo ">> Building production image..."
+	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) build --pull
+
+# Build image + start all services. This is the main 'git pull → make' target.
+prod-up: _check-env
+	@echo ">> Starting production stack..."
+	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) up -d --build --remove-orphans
+	@echo ""
+	@echo "  Stack is up. Run 'make prod-migrate' if this is a first-time or schema-change deploy."
+	@echo "  Public port: $$(grep PUBLIC_PORT $(PROD_ENV) | cut -d= -f2 || echo 80)"
+
+# Start without rebuilding (e.g. after prod-down).
+prod-start: _check-env
+	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) up -d --remove-orphans
+
+# Stop containers but keep them (faster restart with prod-start).
+prod-stop: _check-env
+	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) stop
+
+# Stop and remove containers (volumes are preserved).
+prod-down: _check-env
+	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) down
+
+# Rebuild backend image and restart just the backend + nginx services.
+prod-restart: _check-env
+	@echo ">> Rebuilding backend image..."
+	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) build --pull backend
+	@echo ">> Restarting backend + nginx..."
+	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) up -d --no-deps backend nginx
+
+# Run EF Core migrations via a temporary SDK container joined to the Docker network.
+# This avoids having to publish the DB port to the host.
+prod-migrate: _check-env
+	@echo ">> Running EF Core migrations (via temporary SDK container)..."
+	@DB_PASS=$$(grep MYSQL_PASSWORD $(PROD_ENV) | cut -d= -f2); \
+	DB_USER=$$(grep MYSQL_USER $(PROD_ENV) | grep -v ROOT | cut -d= -f2 | head -1); \
+	DB_NAME=$$(grep MYSQL_DATABASE $(PROD_ENV) | cut -d= -f2); \
+	$(DOCKER) run --rm \
+	  --network 07ad0b82_omnijoy_net \
+	  -v "$(REPO_PATH)/backend:/src" \
+	  -w /src \
+	  -e "ConnectionStrings__DefaultConnection=Server=07ad0b82_omnijoy_mysql;Port=3306;Database=$${DB_NAME:-omnijoy};User=$${DB_USER:-omnijoy};Password=$$DB_PASS;AllowPublicKeyRetrieval=true;" \
+	  mcr.microsoft.com/dotnet/sdk:10.0 \
+	  dotnet ef database update \
+	    --project Omnijoy.Infrastructure \
+	    --startup-project Omnijoy.Api
+	@echo ">> Migrations complete."
+
+# Tail logs. Use SVC=backend (or mysql/nginx) to filter; defaults to all.
+prod-logs: _check-env
+	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) logs -f $(SVC)
+
+# Show production container status.
+prod-status:
+	@echo "── Production containers ────────────────────────────────"
+	@$(DOCKER) ps --filter name=$(PREFIX) \
+	  --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+# Open an interactive shell inside the running backend container.
+prod-shell:
+	$(DOCKER) exec -it 07ad0b82_omnijoy_backend /bin/bash
+
+# Install a systemd user service so the stack starts automatically on boot/login.
+# After running this, also run:  loginctl enable-linger $$USER
+prod-install:
+	@echo ">> Installing systemd user service..."
+	@mkdir -p "$$HOME/.config/systemd/user"
+	@sed "s|REPO_PATH_PLACEHOLDER|$(REPO_PATH)|g" \
+	  docker/omnijoy.service \
+	  > "$$HOME/.config/systemd/user/omnijoy.service"
+	systemctl --user daemon-reload
+	systemctl --user enable omnijoy.service
+	@echo ""
+	@echo "  Service installed. To start it now:"
+	@echo "    systemctl --user start omnijoy.service"
+	@echo ""
+	@echo "  To keep it running after logout (recommended on servers):"
+	@echo "    loginctl enable-linger $$USER"
+
+# Remove the systemd user service.
+prod-uninstall:
+	@echo ">> Removing systemd user service..."
+	-systemctl --user stop    omnijoy.service 2>/dev/null
+	-systemctl --user disable omnijoy.service 2>/dev/null
+	@rm -f "$$HOME/.config/systemd/user/omnijoy.service"
+	systemctl --user daemon-reload
 	@echo ">> Done."
