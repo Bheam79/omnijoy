@@ -199,6 +199,36 @@ builder.Services.AddScoped<IAdminService, AdminService>();
 
 var app = builder.Build();
 
+// ── Auto-apply pending EF Core migrations on startup ─────────────────────────
+// This ensures the schema is always in sync after a deploy without requiring
+// a separate 'make prod-migrate' step.  If migrations fail the application
+// will refuse to start — a broken deploy is better than a running app with a
+// mismatched schema.
+{
+    using var scope = app.Services.CreateScope();
+    var migrationLogger = scope.ServiceProvider
+        .GetRequiredService<ILogger<OmnijoyDbContext>>();
+    var db = scope.ServiceProvider.GetRequiredService<OmnijoyDbContext>();
+    try
+    {
+        var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
+        if (pending.Count > 0)
+        {
+            migrationLogger.LogInformation(
+                "Applying {Count} pending migration(s): {Names}",
+                pending.Count, string.Join(", ", pending));
+            await db.Database.MigrateAsync();
+            migrationLogger.LogInformation("Database migrations applied successfully.");
+        }
+    }
+    catch (Exception ex)
+    {
+        migrationLogger.LogCritical(ex,
+            "Failed to apply database migrations. Startup aborted.");
+        throw; // Abort startup — a mismatched schema will cause cascading failures.
+    }
+}
+
 // ── Middleware pipeline ───────────────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
 {
