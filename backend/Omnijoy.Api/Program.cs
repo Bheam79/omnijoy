@@ -81,6 +81,17 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
+// ── User / media services ─────────────────────────────────────────────────────
+// Storage: "local" (default) saves to wwwroot/uploads/.
+//          "s3" uses an S3-compatible bucket — configure Storage:S3:* keys.
+var storageType = builder.Configuration["Storage:Type"] ?? "local";
+if (storageType.Equals("s3", StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddScoped<IMediaStorageService, S3MediaStorageService>();
+else
+    builder.Services.AddScoped<IMediaStorageService, LocalMediaStorageService>();
+
+builder.Services.AddScoped<IUserService, UserService>();
+
 var app = builder.Build();
 
 // ── Middleware pipeline ───────────────────────────────────────────────────────

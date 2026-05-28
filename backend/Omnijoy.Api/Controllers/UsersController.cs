@@ -1,0 +1,156 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Omnijoy.Core.DTOs.Users;
+using Omnijoy.Core.Interfaces;
+
+namespace Omnijoy.Api.Controllers;
+
+[ApiController]
+[Route("api/users")]
+[Authorize]
+public class UsersController : ControllerBase
+{
+    private readonly IUserService _users;
+
+    public UsersController(IUserService users) => _users = users;
+
+    /// <summary>Returns the currently authenticated user's ID, or null if anonymous.</summary>
+    private Guid? CurrentUserId =>
+        Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
+
+    // ── GET /api/users/{id} ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns a user's public profile. Anonymous requests are allowed;
+    /// privacy settings are enforced server-side.
+    /// </summary>
+    [HttpGet("{id:guid}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetProfile(Guid id)
+    {
+        try
+        {
+            var profile = await _users.GetUserProfileAsync(id, CurrentUserId);
+            return Ok(profile);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
+        }
+    }
+
+    // ── PUT /api/users/me ─────────────────────────────────────────────────────
+
+    [HttpPut("me")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+    {
+        if (CurrentUserId is not { } userId)
+            return Unauthorized(new { error = "Not authenticated." });
+
+        try
+        {
+            var updated = await _users.UpdateProfileAsync(userId, request);
+            return Ok(updated);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    // ── POST /api/users/me/avatar ─────────────────────────────────────────────
+
+    [HttpPost("me/avatar")]
+    [RequestSizeLimit(10 * 1024 * 1024)] // 10 MB request limit
+    public async Task<IActionResult> UploadAvatar(IFormFile? file)
+    {
+        if (CurrentUserId is not { } userId)
+            return Unauthorized(new { error = "Not authenticated." });
+
+        if (file is null || file.Length == 0)
+            return BadRequest(new { error = "No file uploaded." });
+
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            var updated = await _users.UploadAvatarAsync(userId, stream, file.FileName);
+            return Ok(updated);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    // ── POST /api/users/me/cover ──────────────────────────────────────────────
+
+    [HttpPost("me/cover")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<IActionResult> UploadCover(IFormFile? file)
+    {
+        if (CurrentUserId is not { } userId)
+            return Unauthorized(new { error = "Not authenticated." });
+
+        if (file is null || file.Length == 0)
+            return BadRequest(new { error = "No file uploaded." });
+
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            var updated = await _users.UploadCoverAsync(userId, stream, file.FileName);
+            return Ok(updated);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    // ── GET /api/users/me/privacy ─────────────────────────────────────────────
+
+    [HttpGet("me/privacy")]
+    public async Task<IActionResult> GetPrivacy()
+    {
+        if (CurrentUserId is not { } userId)
+            return Unauthorized(new { error = "Not authenticated." });
+
+        var settings = await _users.GetPrivacySettingsAsync(userId);
+        return Ok(settings);
+    }
+
+    // ── PUT /api/users/me/privacy ─────────────────────────────────────────────
+
+    [HttpPut("me/privacy")]
+    public async Task<IActionResult> UpdatePrivacy([FromBody] UpdatePrivacyRequest request)
+    {
+        if (CurrentUserId is not { } userId)
+            return Unauthorized(new { error = "Not authenticated." });
+
+        try
+        {
+            var updated = await _users.UpdatePrivacySettingsAsync(userId, request);
+            return Ok(updated);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+}
