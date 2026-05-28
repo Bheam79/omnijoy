@@ -16,6 +16,26 @@ public class User
     public string? CoverUrl { get; set; }
     public string? Bio { get; set; }
     public bool IsAdmin { get; set; } = false;
+
+    /// <summary>
+    /// True while the account is usable. Set to false on deactivation; logging
+    /// back in re-activates it. Soft-deleted accounts also have IsActive=false.
+    /// </summary>
+    public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// Timestamp when the user voluntarily deactivated the account. Cleared
+    /// on re-activation (successful login). Null when never deactivated.
+    /// </summary>
+    public DateTime? DeactivatedAt { get; set; }
+
+    /// <summary>
+    /// Timestamp when the user requested permanent deletion. The account
+    /// remains soft-deleted for a configurable grace period before being
+    /// purged. Null when the account is not pending deletion.
+    /// </summary>
+    public DateTime? DeletionScheduledAt { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { accountService } from '@/services/accountService'
 
 const auth = useAuthStore()
+const router = useRouter()
 
 // ── Change email form ─────────────────────────────────────────────────────────
 
@@ -101,6 +102,82 @@ async function savePassword() {
     pwError.value = ax.response?.data?.error ?? 'Failed to update password.'
   } finally {
     pwSaving.value = false
+  }
+}
+
+// ── Danger zone: deactivate ───────────────────────────────────────────────────
+
+const showDeactivateModal = ref(false)
+const deactivateSubmitting = ref(false)
+const deactivateError = ref<string | null>(null)
+
+function openDeactivateModal() {
+  deactivateError.value = null
+  showDeactivateModal.value = true
+}
+
+function closeDeactivateModal() {
+  if (deactivateSubmitting.value) return
+  showDeactivateModal.value = false
+}
+
+async function confirmDeactivate() {
+  deactivateError.value = null
+  deactivateSubmitting.value = true
+  try {
+    await accountService.deactivate()
+    // Wipe tokens locally (server already revoked refresh tokens).
+    await auth.logout()
+    showDeactivateModal.value = false
+    await router.push({ name: 'login' })
+  } catch (e: unknown) {
+    const ax = e as { response?: { data?: { error?: string } } }
+    deactivateError.value = ax.response?.data?.error ?? 'Failed to deactivate account.'
+  } finally {
+    deactivateSubmitting.value = false
+  }
+}
+
+// ── Danger zone: delete ───────────────────────────────────────────────────────
+
+const showDeleteModal = ref(false)
+const deleteConfirmEmail = ref('')
+const deleteSubmitting = ref(false)
+const deleteError = ref<string | null>(null)
+
+const accountEmail = computed(() => (auth.user?.email ?? '').toLowerCase())
+const deleteConfirmMatches = computed(
+  () => deleteConfirmEmail.value.trim().toLowerCase() === accountEmail.value && accountEmail.value.length > 0,
+)
+
+function openDeleteModal() {
+  deleteError.value = null
+  deleteConfirmEmail.value = ''
+  showDeleteModal.value = true
+}
+
+function closeDeleteModal() {
+  if (deleteSubmitting.value) return
+  showDeleteModal.value = false
+}
+
+async function confirmDelete() {
+  deleteError.value = null
+  if (!deleteConfirmMatches.value) {
+    deleteError.value = 'Type your email address exactly to confirm.'
+    return
+  }
+  deleteSubmitting.value = true
+  try {
+    await accountService.deleteAccount(deleteConfirmEmail.value.trim())
+    await auth.logout()
+    showDeleteModal.value = false
+    await router.push({ name: 'login' })
+  } catch (e: unknown) {
+    const ax = e as { response?: { data?: { error?: string } } }
+    deleteError.value = ax.response?.data?.error ?? 'Failed to delete account.'
+  } finally {
+    deleteSubmitting.value = false
   }
 }
 </script>
@@ -261,5 +338,162 @@ async function savePassword() {
         </button>
       </form>
     </section>
+
+    <!-- ── Danger zone ────────────────────────────────────────────────────────── -->
+    <section
+      data-testid="danger-zone"
+      class="mt-8 bg-white rounded-xl border border-red-200 px-5 py-5"
+    >
+      <h2 class="text-base font-semibold text-red-700 mb-1">Danger zone</h2>
+      <p class="text-xs text-gray-500 mb-4">
+        These actions affect your account permanently. Proceed with care.
+      </p>
+
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-3 border-t border-gray-100">
+        <div>
+          <p class="text-sm font-medium text-gray-900">Deactivate account</p>
+          <p class="text-xs text-gray-500">
+            Temporarily disables your account. Your profile and posts are hidden until you log in again.
+          </p>
+        </div>
+        <button
+          type="button"
+          data-testid="deactivate-btn"
+          class="self-start sm:self-auto px-4 py-2 text-sm rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 transition-colors"
+          @click="openDeactivateModal"
+        >
+          Deactivate account
+        </button>
+      </div>
+
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-3 border-t border-gray-100">
+        <div>
+          <p class="text-sm font-medium text-gray-900">Delete account</p>
+          <p class="text-xs text-gray-500">
+            Permanently removes your data after a 30-day grace period. This cannot be undone.
+          </p>
+        </div>
+        <button
+          type="button"
+          data-testid="delete-btn"
+          class="self-start sm:self-auto px-4 py-2 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors"
+          @click="openDeleteModal"
+        >
+          Delete account
+        </button>
+      </div>
+    </section>
+
+    <!-- ── Deactivate confirmation modal ─────────────────────────────────────── -->
+    <div
+      v-if="showDeactivateModal"
+      data-testid="deactivate-modal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      role="dialog"
+      aria-modal="true"
+      @click.self="closeDeactivateModal"
+    >
+      <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+        <h3 class="text-lg font-semibold text-gray-900">Deactivate your account?</h3>
+        <p class="mt-2 text-sm text-gray-600">
+          Your account will be hidden from search and feed, and active sessions will be signed out.
+          You can re-activate it at any time by logging back in.
+        </p>
+
+        <div
+          v-if="deactivateError"
+          class="mt-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700"
+        >
+          {{ deactivateError }}
+        </div>
+
+        <div class="mt-6 flex justify-end gap-2">
+          <button
+            type="button"
+            data-testid="deactivate-cancel"
+            :disabled="deactivateSubmitting"
+            class="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+            @click="closeDeactivateModal"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            data-testid="deactivate-confirm"
+            :disabled="deactivateSubmitting"
+            class="px-4 py-2 text-sm rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60"
+            @click="confirmDeactivate"
+          >
+            <span v-if="deactivateSubmitting">Deactivating…</span>
+            <span v-else>Deactivate</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Delete confirmation modal ─────────────────────────────────────────── -->
+    <div
+      v-if="showDeleteModal"
+      data-testid="delete-modal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      role="dialog"
+      aria-modal="true"
+      @click.self="closeDeleteModal"
+    >
+      <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+        <h3 class="text-lg font-semibold text-red-700">Permanently delete your account?</h3>
+        <p class="mt-2 text-sm text-gray-600">
+          This is irreversible. Your posts, messages, and profile will be removed after the 30-day grace period.
+          To confirm, type your email address
+          <span class="font-medium text-gray-900">{{ accountEmail }}</span>
+          below.
+        </p>
+
+        <label for="delete-confirm-email" class="block text-sm font-medium text-gray-700 mt-4 mb-1">
+          Type your email to confirm
+        </label>
+        <input
+          id="delete-confirm-email"
+          v-model="deleteConfirmEmail"
+          type="email"
+          autocomplete="off"
+          data-testid="delete-confirm-email"
+          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          :class="{
+            'border-red-400': deleteConfirmEmail && !deleteConfirmMatches,
+            'border-green-400': deleteConfirmEmail && deleteConfirmMatches,
+          }"
+        />
+
+        <div
+          v-if="deleteError"
+          class="mt-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700"
+        >
+          {{ deleteError }}
+        </div>
+
+        <div class="mt-6 flex justify-end gap-2">
+          <button
+            type="button"
+            data-testid="delete-cancel"
+            :disabled="deleteSubmitting"
+            class="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+            @click="closeDeleteModal"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            data-testid="delete-confirm"
+            :disabled="deleteSubmitting || !deleteConfirmMatches"
+            class="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+            @click="confirmDelete"
+          >
+            <span v-if="deleteSubmitting">Deleting…</span>
+            <span v-else>Delete account</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

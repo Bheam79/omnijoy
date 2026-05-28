@@ -108,4 +108,52 @@ public class AccountController : ControllerBase
             return Unauthorized(new { error = ex.Message });
         }
     }
+
+    // POST /api/account/deactivate
+    [HttpPost("deactivate")]
+    public async Task<IActionResult> Deactivate()
+    {
+        try
+        {
+            var userId = GetUserId();
+            await _account.DeactivateAccountAsync(userId);
+            return Ok(new { message = "Account deactivated." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { error = ex.Message });
+        }
+    }
+
+    // POST /api/account/delete
+    [HttpPost("delete")]
+    public async Task<IActionResult> Delete([FromBody] DeleteAccountRequest request)
+    {
+        try
+        {
+            var userId = GetUserId();
+            await _account.DeleteAccountAsync(userId, request.ConfirmEmail);
+            return Ok(new { message = "Account scheduled for deletion." });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { error = ex.Message });
+        }
+    }
 }

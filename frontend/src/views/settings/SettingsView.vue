@@ -88,7 +88,7 @@ const auth = useAuthStore()
           </div>
           <div>
             <p class="text-sm font-medium text-gray-900">Account</p>
-            <p class="text-xs text-gray-500">Change email address and password</p>
+            <p class="text-xs text-gray-500">Change email, password, or deactivate / delete your account</p>
           </div>
         </div>
         <svg class="h-4 w-4 text-gray-400 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -35,6 +35,12 @@ public record ChangeEmailRequest(string NewEmail, string CurrentPassword);
 
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword, string ConfirmNewPassword);
 
+/// <summary>
+/// Body for POST /api/account/delete. The user must re-enter their email
+/// address as a typing-confirmation step.
+/// </summary>
+public record DeleteAccountRequest(string ConfirmEmail);
+
 // ── Responses ─────────────────────────────────────────────────────────────────
 
 public record UserDto(

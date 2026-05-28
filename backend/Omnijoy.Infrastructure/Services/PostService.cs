@@ -110,11 +110,21 @@ public class PostService : IPostService
         // IDs of users that have a block relationship with the requesting user
         var blockedIds = await GetBlockedUserIdsAsync(userId);
 
+        // IDs of users whose accounts are deactivated/deleted – they should be
+        // entirely invisible in the feed.
+        var inactiveAuthorIds = await _db.Users
+            .AsNoTracking()
+            .Where(u => !u.IsActive)
+            .Select(u => u.Id)
+            .ToListAsync();
+        var inactiveSet = inactiveAuthorIds.ToHashSet();
+
         // ── Regular posts visible to this user ────────────────────────────────
         var postQuery = _db.Posts
             .AsNoTracking()
             .Where(p => p.DeletedAt == null)
             .Where(p => !blockedIds.Contains(p.AuthorUserId))
+            .Where(p => !inactiveSet.Contains(p.AuthorUserId))
             .Where(p =>
                 p.AuthorUserId == userId ||
                 (friendIds.Contains(p.AuthorUserId) &&
@@ -130,6 +140,7 @@ public class PostService : IPostService
         var shareQuery = _db.SharedPosts
             .AsNoTracking()
             .Where(s => !blockedIds.Contains(s.SharerId))
+            .Where(s => !inactiveSet.Contains(s.SharerId))
             .Where(s =>
                 s.SharerId == userId ||
                 (friendIds.Contains(s.SharerId) &&

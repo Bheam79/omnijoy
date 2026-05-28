@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Omnijoy.Core.DTOs.Notifications;
 using Omnijoy.Core.Models;
 using Omnijoy.Core.Models.Enums;
@@ -23,6 +24,14 @@ public class AccountServiceTests : IDisposable
 
         _db = new OmnijoyDbContext(options);
         _sut = new AccountService(_db);
+    }
+
+    private AccountService MakeSutWithConfig(IDictionary<string, string?> values)
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(values)
+            .Build();
+        return new AccountService(_db, config);
     }
 
     public void Dispose() => _db.Dispose();
@@ -317,5 +326,181 @@ public class AccountServiceTests : IDisposable
         var act = async () => await _sut.UpdateNotificationPreferencesAsync(Guid.NewGuid(), dto);
 
         await act.Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    // ── DeactivateAccountAsync ────────────────────────────────────────────────
+
+    [Fact]
+    public async Task DeactivateAccount_MarksUserInactive_AndStampsDeactivatedAt()
+    {
+        var user = await CreateUserAsync();
+
+        await _sut.DeactivateAccountAsync(user.Id);
+
+        var updated = await _db.Users.FindAsync(user.Id);
+        updated!.IsActive.Should().BeFalse();
+        updated.DeactivatedAt.Should().NotBeNull();
+        updated.DeactivatedAt!.Value.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public async Task DeactivateAccount_RevokesAllOutstandingRefreshTokens()
+    {
+        var user = await CreateUserAsync();
+        _db.RefreshTokens.AddRange(
+            new RefreshToken
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                TokenHash = "hash-a",
+                ExpiresAt = DateTime.UtcNow.AddDays(30),
+                CreatedAt = DateTime.UtcNow,
+                IsRevoked = false,
+            },
+            new RefreshToken
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                TokenHash = "hash-b",
+                ExpiresAt = DateTime.UtcNow.AddDays(30),
+                CreatedAt = DateTime.UtcNow,
+                IsRevoked = false,
+            });
+        await _db.SaveChangesAsync();
+
+        await _sut.DeactivateAccountAsync(user.Id);
+
+        (await _db.RefreshTokens.Where(rt => rt.UserId == user.Id).ToListAsync())
+            .Should().OnlyContain(rt => rt.IsRevoked);
+    }
+
+    [Fact]
+    public async Task DeactivateAccount_UserNotFound_ThrowsKeyNotFound()
+    {
+        var act = async () => await _sut.DeactivateAccountAsync(Guid.NewGuid());
+        await act.Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public async Task DeactivateAccount_AlreadyPendingDeletion_ThrowsInvalidOperation()
+    {
+        var user = await CreateUserAsync();
+        user.DeletionScheduledAt = DateTime.UtcNow;
+        user.IsActive = false;
+        await _db.SaveChangesAsync();
+
+        var act = async () => await _sut.DeactivateAccountAsync(user.Id);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*pending deletion*");
+    }
+
+    // ── DeleteAccountAsync (soft delete path) ────────────────────────────────
+
+    [Fact]
+    public async Task DeleteAccount_SoftDelete_MarksDeletionScheduledAndInactive()
+    {
+        var user = await CreateUserAsync();
+
+        await _sut.DeleteAccountAsync(user.Id, user.Email);
+
+        var updated = await _db.Users.FindAsync(user.Id);
+        updated.Should().NotBeNull();
+        updated!.IsActive.Should().BeFalse();
+        updated.DeletionScheduledAt.Should().NotBeNull();
+        updated.DeactivatedAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DeleteAccount_SoftDelete_RevokesAllOutstandingRefreshTokens()
+    {
+        var user = await CreateUserAsync();
+        _db.RefreshTokens.Add(new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            TokenHash = "h",
+            ExpiresAt = DateTime.UtcNow.AddDays(30),
+            CreatedAt = DateTime.UtcNow,
+            IsRevoked = false,
+        });
+        await _db.SaveChangesAsync();
+
+        await _sut.DeleteAccountAsync(user.Id, user.Email);
+
+        (await _db.RefreshTokens.Where(rt => rt.UserId == user.Id).ToListAsync())
+            .Should().OnlyContain(rt => rt.IsRevoked);
+    }
+
+    [Fact]
+    public async Task DeleteAccount_EmailConfirmationCaseInsensitive_Succeeds()
+    {
+        var user = await CreateUserAsync(email: "alice@example.com");
+
+        await _sut.DeleteAccountAsync(user.Id, "ALICE@example.com");
+
+        var updated = await _db.Users.FindAsync(user.Id);
+        updated!.DeletionScheduledAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DeleteAccount_EmptyConfirmation_ThrowsArgument()
+    {
+        var user = await CreateUserAsync();
+
+        var act = async () => await _sut.DeleteAccountAsync(user.Id, "  ");
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*required*");
+    }
+
+    [Fact]
+    public async Task DeleteAccount_MismatchedEmail_ThrowsArgument()
+    {
+        var user = await CreateUserAsync(email: "alice@example.com");
+
+        var act = async () => await _sut.DeleteAccountAsync(user.Id, "bob@example.com");
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*does not match*");
+    }
+
+    [Fact]
+    public async Task DeleteAccount_UserNotFound_ThrowsKeyNotFound()
+    {
+        var act = async () => await _sut.DeleteAccountAsync(Guid.NewGuid(), "x@x.com");
+        await act.Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    // ── DeleteAccountAsync (hard delete path via config flag) ────────────────
+
+    [Fact]
+    public async Task DeleteAccount_HardDeleteFlag_RemovesUserRow()
+    {
+        var sut = MakeSutWithConfig(new Dictionary<string, string?>
+        {
+            ["Account:HardDelete"] = "true",
+        });
+        var user = await CreateUserAsync();
+
+        await sut.DeleteAccountAsync(user.Id, user.Email);
+
+        (await _db.Users.FindAsync(user.Id)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task DeleteAccount_HardDeleteFlagFalse_SoftDeletes()
+    {
+        var sut = MakeSutWithConfig(new Dictionary<string, string?>
+        {
+            ["Account:HardDelete"] = "false",
+        });
+        var user = await CreateUserAsync();
+
+        await sut.DeleteAccountAsync(user.Id, user.Email);
+
+        var updated = await _db.Users.FindAsync(user.Id);
+        updated.Should().NotBeNull();
+        updated!.DeletionScheduledAt.Should().NotBeNull();
     }
 }

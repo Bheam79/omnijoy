@@ -156,6 +156,38 @@ public class AuthServiceTests : IDisposable
             .Should().ThrowAsync<UnauthorizedAccessException>();
     }
 
+    [Fact]
+    public async Task LoginWithPassword_DeactivatedAccount_ReactivatesAndSignsIn()
+    {
+        var user = await RegisterPasswordUserAsync("deact@example.com", "P@ssw0rd!");
+        user.IsActive = false;
+        user.DeactivatedAt = DateTime.UtcNow.AddDays(-1);
+        await _db.SaveChangesAsync();
+
+        var response = await _sut.LoginWithPasswordAsync(
+            new LoginPasswordRequest("deact@example.com", "P@ssw0rd!"));
+
+        response.Should().NotBeNull();
+        var reloaded = await _db.Users.FirstAsync(u => u.Id == user.Id);
+        reloaded.IsActive.Should().BeTrue();
+        reloaded.DeactivatedAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task LoginWithPassword_PendingDeletion_ThrowsUnauthorized()
+    {
+        var user = await RegisterPasswordUserAsync("doomed@example.com", "P@ssw0rd!");
+        user.IsActive = false;
+        user.DeactivatedAt = DateTime.UtcNow;
+        user.DeletionScheduledAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        await _sut.Invoking(s => s.LoginWithPasswordAsync(
+                new LoginPasswordRequest("doomed@example.com", "P@ssw0rd!")))
+            .Should().ThrowAsync<UnauthorizedAccessException>()
+            .WithMessage("*deleted*");
+    }
+
     // ── OTP ───────────────────────────────────────────────────────────────────
 
     [Fact]

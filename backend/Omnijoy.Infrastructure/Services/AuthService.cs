@@ -97,7 +97,24 @@ public class AuthService : IAuthService
             !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             throw new UnauthorizedAccessException("Invalid email or password.");
 
+        // Accounts pending permanent deletion cannot be reactivated by login.
+        if (user.DeletionScheduledAt is not null)
+            throw new UnauthorizedAccessException("This account has been deleted.");
+
+        await ReactivateIfNeededAsync(user);
+
         return await IssueTokensAsync(user);
+    }
+
+    private async Task ReactivateIfNeededAsync(User user)
+    {
+        if (user.IsActive && user.DeactivatedAt is null)
+            return;
+
+        user.IsActive = true;
+        user.DeactivatedAt = null;
+        user.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
     }
 
     // ── OTP: request code ─────────────────────────────────────────────────────
@@ -152,6 +169,11 @@ public class AuthService : IAuthService
 
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email)
             ?? throw new UnauthorizedAccessException("User not found.");
+
+        if (user.DeletionScheduledAt is not null)
+            throw new UnauthorizedAccessException("This account has been deleted.");
+
+        await ReactivateIfNeededAsync(user);
 
         return await IssueTokensAsync(user);
     }
@@ -290,10 +312,22 @@ public class AuthService : IAuthService
                 ap.Provider == provider && ap.ProviderUserId == providerUserId);
 
         if (existingProvider is not null)
+        {
+            if (existingProvider.User.DeletionScheduledAt is not null)
+                throw new UnauthorizedAccessException("This account has been deleted.");
+            await ReactivateIfNeededAsync(existingProvider.User);
             return await IssueTokensAsync(existingProvider.User);
+        }
 
         // Try to find user by email (link existing account)
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
+
+        if (user is not null)
+        {
+            if (user.DeletionScheduledAt is not null)
+                throw new UnauthorizedAccessException("This account has been deleted.");
+            await ReactivateIfNeededAsync(user);
+        }
 
         if (user is null)
         {

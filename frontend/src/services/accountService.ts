@@ -60,4 +60,22 @@ export const accountService = {
     )
     return data
   },
+
+  /**
+   * Deactivates the current user's account. The account is hidden from
+   * search and feed; all refresh tokens are invalidated. Logging back in
+   * with the correct credentials re-activates it.
+   */
+  async deactivate(): Promise<void> {
+    await api.post('/api/account/deactivate')
+  },
+
+  /**
+   * Permanently deletes the current user's account. The user must
+   * re-enter their email address as a confirmation step (matches the
+   * email on file, case-insensitive).
+   */
+  async deleteAccount(confirmEmail: string): Promise<void> {
+    await api.post('/api/account/delete', { confirmEmail })
+  },
 }

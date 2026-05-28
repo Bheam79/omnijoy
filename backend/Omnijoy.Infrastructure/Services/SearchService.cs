@@ -115,6 +115,7 @@ public class SearchService : ISearchService
 
         var rows = await _db.Users
             .AsNoTracking()
+            .Where(u => u.IsActive)
             .Where(u => u.DisplayName.ToLower().Contains(ql) ||
                         (u.Bio != null && u.Bio.ToLower().Contains(ql)))
             .OrderBy(u => u.DisplayName)

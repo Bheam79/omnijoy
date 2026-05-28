@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Omnijoy.Core.DTOs.Notifications;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models;
@@ -9,10 +10,12 @@ namespace Omnijoy.Infrastructure.Services;
 public class AccountService : IAccountService
 {
     private readonly OmnijoyDbContext _db;
+    private readonly IConfiguration? _config;
 
-    public AccountService(OmnijoyDbContext db)
+    public AccountService(OmnijoyDbContext db, IConfiguration? config = null)
     {
         _db = db;
+        _config = config;
     }
 
     // ── Change email ──────────────────────────────────────────────────────────
@@ -118,6 +121,72 @@ public class AccountService : IAccountService
 
         await _db.SaveChangesAsync();
         return ToDto(prefs);
+    }
+
+    // ── Deactivate / delete account ───────────────────────────────────────────
+
+    public async Task DeactivateAccountAsync(Guid userId)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId)
+            ?? throw new KeyNotFoundException("User not found.");
+
+        if (user.DeletionScheduledAt is not null)
+            throw new InvalidOperationException("Account is pending deletion and cannot be deactivated.");
+
+        var now = DateTime.UtcNow;
+        user.IsActive = false;
+        user.DeactivatedAt = now;
+        user.UpdatedAt = now;
+
+        // Revoke all outstanding refresh tokens so existing sessions can't
+        // silently refresh themselves back into the app.
+        await RevokeRefreshTokensAsync(userId);
+
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task DeleteAccountAsync(Guid userId, string confirmEmail)
+    {
+        if (string.IsNullOrWhiteSpace(confirmEmail))
+            throw new ArgumentException("Email confirmation is required.");
+
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId)
+            ?? throw new KeyNotFoundException("User not found.");
+
+        var normalizedConfirm = confirmEmail.Trim().ToLowerInvariant();
+        if (!string.Equals(user.Email, normalizedConfirm, StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Email confirmation does not match the account email.");
+
+        // Revoke all outstanding refresh tokens regardless of hard/soft path.
+        await RevokeRefreshTokensAsync(userId);
+
+        var hardDelete = _config?.GetValue<bool>("Account:HardDelete") ?? false;
+        if (hardDelete)
+        {
+            _db.Users.Remove(user);
+            await _db.SaveChangesAsync();
+            return;
+        }
+
+        // Soft-delete: mark inactive + schedule purge after the grace period.
+        // The grace period default is 30 days; a background job (out of scope)
+        // would later remove rows whose DeletionScheduledAt + grace <= now.
+        var now = DateTime.UtcNow;
+        user.IsActive = false;
+        user.DeactivatedAt ??= now;
+        user.DeletionScheduledAt = now;
+        user.UpdatedAt = now;
+
+        await _db.SaveChangesAsync();
+    }
+
+    private async Task RevokeRefreshTokensAsync(Guid userId)
+    {
+        var tokens = await _db.RefreshTokens
+            .Where(rt => rt.UserId == userId && !rt.IsRevoked)
+            .ToListAsync();
+        foreach (var t in tokens)
+            t.IsRevoked = true;
     }
 
     private static NotificationPreferencesDto ToDto(NotificationPreferences p) => new(

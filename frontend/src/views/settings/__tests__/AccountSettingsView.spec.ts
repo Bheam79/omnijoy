@@ -9,6 +9,8 @@ import AccountSettingsView from '../AccountSettingsView.vue'
 const mockAccountService = vi.hoisted(() => ({
   changeEmail:    vi.fn(),
   changePassword: vi.fn(),
+  deactivate:     vi.fn(),
+  deleteAccount:  vi.fn(),
 }))
 
 vi.mock('@/services/accountService', () => ({
@@ -16,6 +18,7 @@ vi.mock('@/services/accountService', () => ({
 }))
 
 const mockSetUser = vi.fn()
+const mockLogout = vi.fn()
 const fakeUser = {
   id:            'user-1',
   email:         'alice@example.com',
@@ -29,6 +32,7 @@ vi.mock('@/stores/auth', () => ({
   useAuthStore: () => ({
     user:    fakeUser,
     setUser: mockSetUser,
+    logout:  mockLogout,
   }),
 }))
 
@@ -40,6 +44,7 @@ function makeRouter() {
     routes: [
       { path: '/settings/account', component: AccountSettingsView },
       { path: '/settings', component: { template: '<div>Settings</div>' } },
+      { path: '/login', name: 'login', component: { template: '<div>Login</div>' } },
     ],
   })
 }
@@ -302,5 +307,197 @@ describe('AccountSettingsView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Failed to update password')
+  })
+
+  // ── Danger zone: rendering ────────────────────────────────────────────────
+
+  it('renders the danger zone with deactivate and delete buttons', async () => {
+    const wrapper = await mountView()
+    expect(wrapper.find('[data-testid="danger-zone"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="deactivate-btn"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="delete-btn"]').exists()).toBe(true)
+  })
+
+  it('does not render the deactivate modal by default', async () => {
+    const wrapper = await mountView()
+    expect(wrapper.find('[data-testid="deactivate-modal"]').exists()).toBe(false)
+  })
+
+  it('does not render the delete modal by default', async () => {
+    const wrapper = await mountView()
+    expect(wrapper.find('[data-testid="delete-modal"]').exists()).toBe(false)
+  })
+
+  // ── Deactivate flow ───────────────────────────────────────────────────────
+
+  it('opens the deactivate modal when the button is clicked', async () => {
+    const wrapper = await mountView()
+    await wrapper.find('[data-testid="deactivate-btn"]').trigger('click')
+    expect(wrapper.find('[data-testid="deactivate-modal"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Deactivate your account')
+  })
+
+  it('closes the deactivate modal when cancel is clicked', async () => {
+    const wrapper = await mountView()
+    await wrapper.find('[data-testid="deactivate-btn"]').trigger('click')
+    expect(wrapper.find('[data-testid="deactivate-modal"]').exists()).toBe(true)
+
+    await wrapper.find('[data-testid="deactivate-cancel"]').trigger('click')
+    expect(wrapper.find('[data-testid="deactivate-modal"]').exists()).toBe(false)
+  })
+
+  it('calls accountService.deactivate when deactivate is confirmed', async () => {
+    mockAccountService.deactivate.mockResolvedValue(undefined)
+    const wrapper = await mountView()
+
+    await wrapper.find('[data-testid="deactivate-btn"]').trigger('click')
+    await wrapper.find('[data-testid="deactivate-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(mockAccountService.deactivate).toHaveBeenCalledTimes(1)
+  })
+
+  it('logs the user out and navigates to /login after successful deactivation', async () => {
+    mockAccountService.deactivate.mockResolvedValue(undefined)
+    const router = makeRouter()
+    await router.push('/settings/account')
+    const pushSpy = vi.spyOn(router, 'push')
+
+    const wrapper = mount(AccountSettingsView, {
+      global: {
+        plugins: [createPinia(), router],
+        stubs:   { RouterLink: true },
+      },
+    })
+    await flushPromises()
+
+    await wrapper.find('[data-testid="deactivate-btn"]').trigger('click')
+    await wrapper.find('[data-testid="deactivate-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(mockLogout).toHaveBeenCalledTimes(1)
+    expect(pushSpy).toHaveBeenCalledWith({ name: 'login' })
+  })
+
+  it('shows server error when deactivation fails', async () => {
+    mockAccountService.deactivate.mockRejectedValue({
+      response: { data: { error: 'Cannot deactivate.' } },
+    })
+    const wrapper = await mountView()
+
+    await wrapper.find('[data-testid="deactivate-btn"]').trigger('click')
+    await wrapper.find('[data-testid="deactivate-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Cannot deactivate.')
+    expect(mockLogout).not.toHaveBeenCalled()
+  })
+
+  // ── Delete flow ───────────────────────────────────────────────────────────
+
+  it('opens the delete modal when the button is clicked', async () => {
+    const wrapper = await mountView()
+    await wrapper.find('[data-testid="delete-btn"]').trigger('click')
+    expect(wrapper.find('[data-testid="delete-modal"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Permanently delete')
+  })
+
+  it('disables the delete confirm button until email matches', async () => {
+    const wrapper = await mountView()
+    await wrapper.find('[data-testid="delete-btn"]').trigger('click')
+
+    const confirmBtn = wrapper.find('[data-testid="delete-confirm"]').element as HTMLButtonElement
+    expect(confirmBtn.disabled).toBe(true)
+
+    await wrapper.find('[data-testid="delete-confirm-email"]').setValue('alice@example.com')
+    expect((wrapper.find('[data-testid="delete-confirm"]').element as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('keeps the delete confirm button disabled when email does not match', async () => {
+    const wrapper = await mountView()
+    await wrapper.find('[data-testid="delete-btn"]').trigger('click')
+    await wrapper.find('[data-testid="delete-confirm-email"]').setValue('not-my-email@example.com')
+
+    expect((wrapper.find('[data-testid="delete-confirm"]').element as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('matches the email confirmation case-insensitively', async () => {
+    const wrapper = await mountView()
+    await wrapper.find('[data-testid="delete-btn"]').trigger('click')
+    await wrapper.find('[data-testid="delete-confirm-email"]').setValue('ALICE@example.com')
+
+    expect((wrapper.find('[data-testid="delete-confirm"]').element as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('calls accountService.deleteAccount with the confirmation email', async () => {
+    mockAccountService.deleteAccount.mockResolvedValue(undefined)
+    const wrapper = await mountView()
+
+    await wrapper.find('[data-testid="delete-btn"]').trigger('click')
+    await wrapper.find('[data-testid="delete-confirm-email"]').setValue('alice@example.com')
+    await wrapper.find('[data-testid="delete-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(mockAccountService.deleteAccount).toHaveBeenCalledWith('alice@example.com')
+  })
+
+  it('logs the user out and navigates to /login after successful deletion', async () => {
+    mockAccountService.deleteAccount.mockResolvedValue(undefined)
+    const router = makeRouter()
+    await router.push('/settings/account')
+    const pushSpy = vi.spyOn(router, 'push')
+
+    const wrapper = mount(AccountSettingsView, {
+      global: {
+        plugins: [createPinia(), router],
+        stubs:   { RouterLink: true },
+      },
+    })
+    await flushPromises()
+
+    await wrapper.find('[data-testid="delete-btn"]').trigger('click')
+    await wrapper.find('[data-testid="delete-confirm-email"]').setValue('alice@example.com')
+    await wrapper.find('[data-testid="delete-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(mockLogout).toHaveBeenCalledTimes(1)
+    expect(pushSpy).toHaveBeenCalledWith({ name: 'login' })
+  })
+
+  it('shows server error when deletion fails', async () => {
+    mockAccountService.deleteAccount.mockRejectedValue({
+      response: { data: { error: 'Cannot delete.' } },
+    })
+    const wrapper = await mountView()
+
+    await wrapper.find('[data-testid="delete-btn"]').trigger('click')
+    await wrapper.find('[data-testid="delete-confirm-email"]').setValue('alice@example.com')
+    await wrapper.find('[data-testid="delete-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Cannot delete.')
+    expect(mockLogout).not.toHaveBeenCalled()
+  })
+
+  it('closes the delete modal when cancel is clicked', async () => {
+    const wrapper = await mountView()
+    await wrapper.find('[data-testid="delete-btn"]').trigger('click')
+    expect(wrapper.find('[data-testid="delete-modal"]').exists()).toBe(true)
+
+    await wrapper.find('[data-testid="delete-cancel"]').trigger('click')
+    expect(wrapper.find('[data-testid="delete-modal"]').exists()).toBe(false)
+  })
+
+  it('resets the confirmation field when re-opening the delete modal', async () => {
+    const wrapper = await mountView()
+
+    await wrapper.find('[data-testid="delete-btn"]').trigger('click')
+    await wrapper.find('[data-testid="delete-confirm-email"]').setValue('partial')
+    await wrapper.find('[data-testid="delete-cancel"]').trigger('click')
+
+    await wrapper.find('[data-testid="delete-btn"]').trigger('click')
+    expect(
+      (wrapper.find('[data-testid="delete-confirm-email"]').element as HTMLInputElement).value,
+    ).toBe('')
   })
 })
