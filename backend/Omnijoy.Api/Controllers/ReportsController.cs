@@ -54,11 +54,11 @@ public class ReportsController : ControllerBase
     // ── GET /api/admin/reports ────────────────────────────────────────────────
 
     /// <summary>
-    /// List all reports. Admin only.
+    /// List all reports. Accessible to Moderators and Admins.
     /// Query params: status (Pending|Reviewed|Dismissed), type (Post|User|Comment), page, pageSize
     /// </summary>
     [HttpGet("api/admin/reports")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Moderator")]
     public async Task<IActionResult> ListReports(
         [FromQuery] string? status,
         [FromQuery] string? type,
@@ -72,11 +72,11 @@ public class ReportsController : ControllerBase
     // ── PATCH /api/admin/reports/{id} ─────────────────────────────────────────
 
     /// <summary>
-    /// Update the status of a report. Admin only.
+    /// Update the status of a report. Accessible to Moderators and Admins.
     /// Body: { "status": "Reviewed"|"Dismissed" }
     /// </summary>
     [HttpPatch("api/admin/reports/{id:guid}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Moderator")]
     public async Task<IActionResult> UpdateReportStatus(Guid id, [FromBody] UpdateReportStatusRequest request)
     {
         try

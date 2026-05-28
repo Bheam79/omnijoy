@@ -265,7 +265,8 @@ public class UserService : IUserService
         BirthDate: u.BirthDate?.ToString("yyyy-MM-dd"),
         ShowBirthDate: u.ShowBirthDate,
         CreatedAt: u.CreatedAt,
-        UrlSlug: u.UrlSlug
+        UrlSlug: u.UrlSlug,
+        Role: u.Role.ToString()
     );
 
     private static PrivacySettingsDto MapPrivacyDto(UserPrivacySettings s) => new(

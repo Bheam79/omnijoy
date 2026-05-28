@@ -84,7 +84,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+// ── Authorization policies ────────────────────────────────────────────────────
+// Named policies wrap the role checks so controllers can use either
+// [Authorize(Policy = "RequireAdmin")] or [Authorize(Roles = "Admin")] — both work.
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("RequireAdmin", policy =>
+        policy.RequireRole("Admin"));
+
+    options.AddPolicy("RequireModeratorOrAdmin", policy =>
+        policy.RequireRole("Admin", "Moderator"));
+});
 
 // ── SignalR ───────────────────────────────────────────────────────────────────
 var signalRBuilder = builder.Services.AddSignalR();
@@ -184,6 +194,7 @@ builder.Services.AddScoped<IShareService, ShareService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<ISlugService, SlugService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 
 var app = builder.Build();
 

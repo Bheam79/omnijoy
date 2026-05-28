@@ -52,6 +52,12 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
                .HasConversion<string>()
                .HasMaxLength(32);
 
+        builder.Property(u => u.Role)
+               .HasConversion<string>()
+               .HasMaxLength(32)
+               .IsRequired()
+               .HasDefaultValue(Omnijoy.Core.Models.Enums.UserRole.User);
+
         builder.Property(u => u.IsActive)
                .IsRequired()
                .HasDefaultValue(true);

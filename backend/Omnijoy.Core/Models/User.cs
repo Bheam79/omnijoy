@@ -15,7 +15,11 @@ public class User
     public string? AvatarUrl { get; set; }
     public string? CoverUrl { get; set; }
     public string? Bio { get; set; }
-    public bool IsAdmin { get; set; } = false;
+    /// <summary>
+    /// Platform-level role. Defaults to <see cref="UserRole.User"/>.
+    /// Only <see cref="UserRole.Admin"/> users may promote or demote others.
+    /// </summary>
+    public UserRole Role { get; set; } = UserRole.User;
 
     /// <summary>
     /// Vanity URL slug — lowercase a–z / 0–9 / hyphen / underscore, 3–30 chars.

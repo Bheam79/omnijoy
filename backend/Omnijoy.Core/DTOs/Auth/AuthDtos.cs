@@ -60,7 +60,9 @@ public record UserDto(
     bool ShowBirthDate,
     DateTime CreatedAt,
     /// <summary>Vanity URL slug — null when unset.</summary>
-    string? UrlSlug = null
+    string? UrlSlug = null,
+    /// <summary>Platform role: "User" | "Moderator" | "Admin".</summary>
+    string Role = "User"
 );
 
 public record AuthResponse(

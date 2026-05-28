@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models;
+using Omnijoy.Core.Models.Enums;
 
 namespace Omnijoy.Infrastructure.Services;
 
@@ -44,8 +45,11 @@ public class TokenService : ITokenService
                 ClaimValueTypes.Integer64),
         };
 
-        if (user.IsAdmin)
-            claims.Add(new Claim(ClaimTypes.Role, "Admin"));
+        // Emit a role claim for Moderator and Admin so ASP.NET Core
+        // [Authorize(Roles = "...")] checks work without extra middleware.
+        // Regular users get no role claim (treated as "User" by default).
+        if (user.Role != UserRole.User)
+            claims.Add(new Claim(ClaimTypes.Role, user.Role.ToString()));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
