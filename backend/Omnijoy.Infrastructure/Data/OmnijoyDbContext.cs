@@ -1,21 +1,37 @@
 using Microsoft.EntityFrameworkCore;
+using Omnijoy.Core.Models;
 
 namespace Omnijoy.Infrastructure.Data;
 
-/// <summary>
-/// Entity Framework Core DbContext for Omnijoy.
-/// Entities (tables) will be added in OMNIJOY-3 (database schema task).
-/// </summary>
 public class OmnijoyDbContext : DbContext
 {
     public OmnijoyDbContext(DbContextOptions<OmnijoyDbContext> options)
         : base(options) { }
 
+    // ── DbSets ────────────────────────────────────────────────────────────────
+    public DbSet<User> Users => Set<User>();
+    public DbSet<UserPrivacySettings> UserPrivacySettings => Set<UserPrivacySettings>();
+    public DbSet<AuthProvider> AuthProviders => Set<AuthProvider>();
+    public DbSet<Post> Posts => Set<Post>();
+    public DbSet<PostMedia> PostMedia => Set<PostMedia>();
+    public DbSet<Friend> Friends => Set<Friend>();
+    public DbSet<FamilyRelation> FamilyRelations => Set<FamilyRelation>();
+    public DbSet<Event> Events => Set<Event>();
+    public DbSet<EventAttendee> EventAttendees => Set<EventAttendee>();
+    public DbSet<CompanyPage> CompanyPages => Set<CompanyPage>();
+    public DbSet<CompanyPageAdmin> CompanyPageAdmins => Set<CompanyPageAdmin>();
+    public DbSet<Conversation> Conversations => Set<Conversation>();
+    public DbSet<ConversationParticipant> ConversationParticipants => Set<ConversationParticipant>();
+    public DbSet<Message> Messages => Set<Message>();
+    public DbSet<MessageMedia> MessageMedia => Set<MessageMedia>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<LiveStream> LiveStreams => Set<LiveStream>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Entity configurations will be applied here in OMNIJOY-3.
-        // modelBuilder.ApplyConfigurationsFromAssembly(typeof(OmnijoyDbContext).Assembly);
+        // Apply all IEntityTypeConfiguration<T> classes from this assembly
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(OmnijoyDbContext).Assembly);
     }
 }
