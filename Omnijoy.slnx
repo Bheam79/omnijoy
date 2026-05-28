@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/Omnijoy.Api/Omnijoy.Api.csproj" />
+    <Project Path="backend/Omnijoy.Core/Omnijoy.Core.csproj" />
+    <Project Path="backend/Omnijoy.Infrastructure/Omnijoy.Infrastructure.csproj" />
+    <Project Path="backend/Omnijoy.Tests/Omnijoy.Tests.csproj" />
+  </Folder>
+</Solution>

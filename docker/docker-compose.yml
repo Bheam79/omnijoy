@@ -1,0 +1,32 @@
+name: 07ad0b82_omnijoy
+
+services:
+  mysql:
+    image: mariadb:11
+    container_name: 07ad0b82_omnijoy_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnijoy_root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-omnijoy}
+      MYSQL_USER: ${MYSQL_USER:-omnijoy}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-omnijoy_pass}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - omnijoy_net
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+networks:
+  omnijoy_net:
+    name: 07ad0b82_omnijoy_net
+    driver: bridge
+
+volumes:
+  mysql_data:
+    name: 07ad0b82_omnijoy_mysql_data

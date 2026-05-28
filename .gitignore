@@ -1,0 +1,46 @@
+# ── .NET ──────────────────────────────────────────────────────────────────────
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.csproj.user
+TestResults/
+coverage/
+*.coverage
+lcov.info
+
+# Published output
+backend/Omnijoy.Api/wwwroot/
+
+# EF Core migrations (keep Migrations/ folder but ignore snapshot overrides)
+# backend/**/Migrations/
+
+# Secrets — never commit
+**/appsettings.Production.json
+**/appsettings.Secrets.json
+
+# ── Node / Frontend ───────────────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/coverage/
+.npm
+*.log
+npm-debug.log*
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+docker/.env
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# ── Editor ────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.orig
+
+# ── Temp build artifacts ──────────────────────────────────────────────────────
+/tmp/omnijoy_*
