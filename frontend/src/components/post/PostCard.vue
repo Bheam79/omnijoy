@@ -4,6 +4,7 @@ import type { PostDto } from '@/services/postService'
 import { useAuthStore } from '@/stores/auth'
 import { useFeedStore } from '@/stores/feed'
 import PostReactionBar from './PostReactionBar.vue'
+import CommentThread from './CommentThread.vue'
 
 const props = defineProps<{ post: PostDto }>()
 const emit = defineEmits<{ deleted: [id: string] }>()
@@ -51,6 +52,13 @@ async function handleDelete() {
   if (!confirm('Delete this post?')) return
   await feed.deletePost(props.post.id)
   emit('deleted', props.post.id)
+}
+
+const threadRef = ref<InstanceType<typeof CommentThread> | null>(null)
+const threadExpanded = ref(false)
+
+function handleCommentClick() {
+  threadRef.value?.openThread()
 }
 
 // Text-on-background style
@@ -224,8 +232,8 @@ const tobStyle = computed(() => {
     <div class="flex items-center gap-1 px-4 py-2 border-t border-gray-100">
       <button
         class="flex items-center gap-1.5 text-gray-500 hover:text-blue-600 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-blue-50 transition flex-1 justify-center"
-        disabled
-        title="Comment (coming soon)"
+        :class="{ 'text-blue-600': threadExpanded }"
+        @click="handleCommentClick"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -245,5 +253,12 @@ const tobStyle = computed(() => {
         {{ shareCopied ? 'Copied!' : 'Share' }}
       </button>
     </div>
+
+    <!-- Comment thread (collapsed by default, expands on Comment button click) -->
+    <CommentThread
+      ref="threadRef"
+      :post-id="post.id"
+      v-model:expanded="threadExpanded"
+    />
   </article>
 </template>

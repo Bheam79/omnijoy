@@ -4,14 +4,17 @@ import * as signalR from '@microsoft/signalr'
 import { useFeedStore } from '@/stores/feed'
 import { useAuthStore } from '@/stores/auth'
 import { useReactionsStore } from '@/stores/reactions'
+import { useCommentsStore } from '@/stores/comments'
 import type { PostDto } from '@/services/postService'
 import type { ReactionCountsUpdatedEvent } from '@/services/reactionService'
+import type { CommentDto } from '@/services/commentService'
 import PostCard from '@/components/post/PostCard.vue'
 import PostComposer from '@/components/post/PostComposer.vue'
 
 const feed = useFeedStore()
 const auth = useAuthStore()
 const reactionsStore = useReactionsStore()
+const commentsStore = useCommentsStore()
 
 const composer = ref<InstanceType<typeof PostComposer> | null>(null)
 const sentinelRef = ref<HTMLElement | null>(null)
@@ -34,6 +37,7 @@ onUnmounted(() => {
   intersectionObserver?.disconnect()
   feed.reset()
   reactionsStore.reset()
+  commentsStore.reset()
   subscribedPostIds.clear()
 })
 
@@ -58,6 +62,10 @@ function connectSignalR() {
 
   hubConnection.on('ReactionCountsUpdated', (event: ReactionCountsUpdatedEvent) => {
     reactionsStore.applyUpdate(event)
+  })
+
+  hubConnection.on('NewComment', (comment: CommentDto) => {
+    commentsStore.applyNewComment(comment)
   })
 
   hubConnection.start()
