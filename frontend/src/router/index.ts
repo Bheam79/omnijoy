@@ -86,6 +86,12 @@ const router = createRouter({
       meta: { requiresAuth: true, layout: 'app', wideContent: true },
     },
     {
+      path: '/search',
+      name: 'search',
+      component: () => import('@/views/search/SearchResultsView.vue'),
+      meta: { requiresAuth: true, layout: 'app' },
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: () => import('@/views/settings/SettingsView.vue'),

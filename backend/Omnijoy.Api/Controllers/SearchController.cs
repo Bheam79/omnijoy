@@ -50,4 +50,24 @@ public class SearchController : ControllerBase
         var result = await _search.SearchAsync(CurrentUserId, q, type, page, pageSize);
         return Ok(result);
     }
+
+    // ── GET /api/search/suggest ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Light-weight auto-suggest endpoint backing the top-nav search dropdown.
+    /// Returns up to 5 results per category (users, posts, events, companies) in
+    /// a single round-trip. Equivalent to <c>GET /api/search?q=…&amp;type=all&amp;pageSize=5</c>
+    /// but exposed as a stable, dedicated route so the client can debounce calls
+    /// to it without depending on shared search-page query semantics.
+    /// </summary>
+    [HttpGet("suggest")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Suggest([FromQuery] string? q)
+    {
+        if (string.IsNullOrWhiteSpace(q))
+            return BadRequest(new { error = "Query parameter 'q' is required." });
+
+        var result = await _search.SearchAsync(CurrentUserId, q, type: "all", page: 1, pageSize: 5);
+        return Ok(result);
+    }
 }
