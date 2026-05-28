@@ -121,27 +121,29 @@ make clean            # Remove build artifacts
 cp docker/.env.example docker/.env
 $EDITOR docker/.env          # Set MYSQL_PASSWORD, JWT_SECRET_KEY, PUBLIC_PORT, etc.
 
-make prod-up                 # Build image + start all services
-make prod-migrate            # Apply DB migrations (runs via Docker, no host DB access needed)
+make prod-up                 # Build image + start + recreate backend/nginx
+# No separate prod-migrate needed — migrations auto-apply on backend startup.
 
 # Updates (normal flow — source-code change):
 git pull
-make prod-up                 # Rebuilds backend image; ONLY recreates containers whose image/config changed
-make prod-migrate            # Only if a new EF migration landed in this pull
+make prod-up                 # That's it. Backend is force-recreated with the new image.
 
-# What 'make prod-up' actually restarts:
-#   - backend  → recreated if backend or frontend source changed (image hash differs)
-#   - nginx    → recreated only if docker-compose.prod.yml changed
-#                (nginx.prod.conf is a bind mount — the file is updated live, but the running
-#                 nginx process still uses the old config. Run `make prod-nginx-reload` or
-#                 `$(DOCKER) compose -f docker/docker-compose.prod.yml restart nginx` after
-#                 editing nginx.prod.conf.)
-#   - mysql / redis / minio / mediamtx → NOT restarted (external images, not rebuilt).
+# What 'make prod-up' actually does (3 steps):
+#   1. Build the backend image (Vite + dotnet publish inside Docker multi-stage).
+#   2. Start any services that aren't running yet (data services untouched if healthy).
+#   3. Force-recreate backend + nginx with the fresh image.
+#      --force-recreate is required because podman-compose does NOT auto-recreate
+#      containers when their image is rebuilt (unlike docker compose).
+#
+# Which services get restarted:
+#   - backend  → ALWAYS recreated (step 3 is unconditional)
+#   - nginx    → ALWAYS recreated (step 3)
+#   - mysql / redis / minio / mediamtx → NOT restarted (step 2 is no-op for healthy containers).
 #     Use `$(DOCKER) compose -f docker/docker-compose.prod.yml pull` to update them.
 #
-# If `make prod-up` shows no "Recreated" lines, that's expected when the rebuilt
-# backend image is bit-for-bit identical to the running one (e.g. you only pulled
-# docs / non-source changes). To force a full restart: `make prod-down && make prod-up`.
+# DB migrations run automatically when the new backend container starts up.
+# Run 'make prod-migrate' only if you need to apply migrations outside normal startup
+# (e.g. manual schema inspection, rollback testing).
 
 # Day-to-day:
 make prod-status             # Show running containers

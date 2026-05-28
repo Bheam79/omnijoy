@@ -330,11 +330,28 @@ prod-build: _check-env
 	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) build --pull
 
 # Build image + start all services. This is the main 'git pull → make' target.
+#
+# Three-step deploy (works with both docker compose and podman-compose):
+#   1. Build the backend image (multi-stage: Vite + dotnet publish inside Docker).
+#   2. Ensure all services are running — data services (mysql/redis/minio/mediamtx)
+#      are left untouched if already healthy; new services are created.
+#   3. Force-recreate backend + nginx so the freshly built image is actually
+#      running.  This explicit step is necessary because podman-compose does NOT
+#      automatically recreate containers when their image is rebuilt (unlike
+#      plain docker compose up --build).
+#
+# Migrations are applied automatically at backend startup (Program.cs).
+# 'make prod-migrate' is only needed for the very first deploy or to run
+# migrations manually outside of normal startup.
 prod-up: _check-env
-	@echo ">> Starting production stack..."
-	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) up -d --build --remove-orphans
+	@echo ">> Building backend image..."
+	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) build backend
+	@echo ">> Ensuring all services are running..."
+	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) up -d --remove-orphans
+	@echo ">> Applying new image to backend + nginx..."
+	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) up -d --no-deps --force-recreate backend nginx
 	@echo ""
-	@echo "  Stack is up. Run 'make prod-migrate' if this is a first-time or schema-change deploy."
+	@echo "  Deploy complete. DB migrations applied automatically on startup."
 	@echo "  Public port: $$(grep PUBLIC_PORT $(PROD_ENV) | cut -d= -f2 || echo 80)"
 
 # Start without rebuilding (e.g. after prod-down).
@@ -349,12 +366,13 @@ prod-stop: _check-env
 prod-down: _check-env
 	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) down
 
-# Rebuild backend image and restart just the backend + nginx services.
+# Rebuild backend image and force-recreate just the backend + nginx services.
+# Fastest deploy path — skips data services entirely.
 prod-restart: _check-env
 	@echo ">> Rebuilding backend image..."
 	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) build --pull backend
-	@echo ">> Restarting backend + nginx..."
-	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) up -d --no-deps backend nginx
+	@echo ">> Force-recreating backend + nginx with new image..."
+	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) up -d --no-deps --force-recreate backend nginx
 
 # Run EF Core migrations via a temporary SDK container joined to the Docker network.
 # This avoids having to publish the DB port to the host.
