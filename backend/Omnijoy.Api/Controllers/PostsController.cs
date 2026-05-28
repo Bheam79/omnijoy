@@ -59,11 +59,16 @@ public class PostsController : ControllerBase
             }
 
             var request = new CreatePostRequest(
-                Content:           input.Content ?? string.Empty,
-                PostType:          input.PostType ?? "Text",
-                Privacy:           input.Privacy  ?? "Friends",
+                Content:            input.Content ?? string.Empty,
+                PostType:           input.PostType ?? "Text",
+                Privacy:            input.Privacy  ?? "Friends",
                 BackgroundImageUrl: input.Background,
-                CompanyPageId:     input.CompanyPageId
+                CompanyPageId:      input.CompanyPageId,
+                LinkUrl:            input.LinkUrl,
+                LinkTitle:          input.LinkTitle,
+                LinkDescription:    input.LinkDescription,
+                LinkImageUrl:       input.LinkImageUrl,
+                LinkSiteName:       input.LinkSiteName
             );
 
             var post = await _posts.CreatePostAsync(userId, request, mediaItems.Count > 0 ? mediaItems : null);
@@ -189,4 +194,12 @@ public class CreatePostFormInput
     /// <summary>Optional: ID of a company page to post on behalf of.</summary>
     public Guid?   CompanyPageId { get; set; }
     public IFormFileCollection? Media { get; set; }
+
+    // ── Optional embedded OG / link preview ──────────────────────────────────
+    /// <summary>URL pasted by the user — triggers an OG card in the feed.</summary>
+    public string? LinkUrl         { get; set; }
+    public string? LinkTitle       { get; set; }
+    public string? LinkDescription { get; set; }
+    public string? LinkImageUrl    { get; set; }
+    public string? LinkSiteName    { get; set; }
 }

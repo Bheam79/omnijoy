@@ -49,6 +49,11 @@ public class PostService : IPostService
             BackgroundImageUrl = request.BackgroundImageUrl,
             PostType = postType,
             Privacy = privacy,
+            LinkUrl = NullIfBlank(request.LinkUrl),
+            LinkTitle = NullIfBlank(request.LinkTitle),
+            LinkDescription = NullIfBlank(request.LinkDescription),
+            LinkImageUrl = NullIfBlank(request.LinkImageUrl),
+            LinkSiteName = NullIfBlank(request.LinkSiteName),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
         };
@@ -254,6 +259,15 @@ public class PostService : IPostService
             .Select(m => new PostMediaItemDto(m.Id, m.MediaType.ToString(), m.Url, m.ThumbnailUrl, m.Order))
             .ToArray();
 
+        PostLinkPreviewDto? linkPreview = string.IsNullOrWhiteSpace(post.LinkUrl)
+            ? null
+            : new PostLinkPreviewDto(
+                Url: post.LinkUrl!,
+                Title: post.LinkTitle,
+                Description: post.LinkDescription,
+                ImageUrl: post.LinkImageUrl,
+                SiteName: post.LinkSiteName);
+
         return new PostDto(
             Id: post.Id,
             Author: author,
@@ -263,10 +277,14 @@ public class PostService : IPostService
             PostType: post.PostType.ToString(),
             Privacy: post.Privacy.ToString(),
             Media: media,
+            LinkPreview: linkPreview,
             CreatedAt: post.CreatedAt,
             UpdatedAt: post.UpdatedAt
         );
     }
+
+    private static string? NullIfBlank(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static MediaType DetermineMediaType(string contentType, string fileName)
     {

@@ -16,6 +16,15 @@ export interface PostMediaItem {
   order: number
 }
 
+/** Open Graph / link preview attached to a post. */
+export interface PostLinkPreview {
+  url: string
+  title?: string
+  description?: string
+  imageUrl?: string
+  siteName?: string
+}
+
 export interface PostDto {
   id: string
   author: PostAuthor
@@ -25,6 +34,7 @@ export interface PostDto {
   postType: 'Text' | 'Image' | 'Video' | 'TextOnBackground'
   privacy: 'Everyone' | 'Friends' | 'OnlyMe'
   media: PostMediaItem[]
+  linkPreview?: PostLinkPreview
   createdAt: string
   updatedAt: string
 }
@@ -44,6 +54,17 @@ export interface CreatePostPayload {
   mediaFiles?: File[]
   /** Post on behalf of this company page (user must be admin). */
   companyPageId?: string
+  /** Embedded link preview (fetched at compose time via /api/meta-preview). */
+  linkPreview?: PostLinkPreview
+}
+
+/** Result returned by GET /api/meta-preview?url=... */
+export interface OgPreviewDto {
+  url: string
+  title?: string
+  description?: string
+  imageUrl?: string
+  siteName?: string
 }
 
 export interface UpdatePostPayload {
@@ -66,8 +87,26 @@ export const postService = {
       }
     }
     if (payload.companyPageId) form.append('companyPageId', payload.companyPageId)
+    if (payload.linkPreview) {
+      form.append('linkUrl', payload.linkPreview.url)
+      if (payload.linkPreview.title) form.append('linkTitle', payload.linkPreview.title)
+      if (payload.linkPreview.description) form.append('linkDescription', payload.linkPreview.description)
+      if (payload.linkPreview.imageUrl) form.append('linkImageUrl', payload.linkPreview.imageUrl)
+      if (payload.linkPreview.siteName) form.append('linkSiteName', payload.linkPreview.siteName)
+    }
     const { data } = await api.post<PostDto>('/api/posts', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data
+  },
+
+  /**
+   * Fetches an Open Graph preview for an external URL. The backend caches
+   * results for 30 minutes; safe to call on every paste / debounce tick.
+   */
+  async fetchMetaPreview(url: string): Promise<OgPreviewDto> {
+    const { data } = await api.get<OgPreviewDto>('/api/meta-preview', {
+      params: { url },
     })
     return data
   },

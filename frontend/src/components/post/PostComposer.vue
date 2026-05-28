@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import type { PostDto } from '@/services/postService'
+import { postService, type PostDto, type PostLinkPreview } from '@/services/postService'
 import { useFeedStore } from '@/stores/feed'
 import { useAuthStore } from '@/stores/auth'
 import { companyPageService, type CompanyPageDto } from '@/services/companyPageService'
@@ -28,6 +28,68 @@ const error = ref<string | null>(null)
 // "Posting as" — company pages where user is admin
 const myAdminPages = ref<CompanyPageDto[]>([])
 const postingAsPageId = ref<string | null>(null)
+
+// ── URL preview state ────────────────────────────────────────────────────────
+// The composer scans the text for a URL whenever the content changes; when a
+// URL is detected it requests an OG preview from /api/meta-preview and shows
+// a card below the textarea. The user can dismiss the card to suppress the
+// preview for this post.
+const linkPreview = ref<PostLinkPreview | null>(null)
+const linkPreviewUrl = ref<string | null>(null)
+const linkPreviewLoading = ref(false)
+const linkPreviewDismissed = ref<Set<string>>(new Set())
+let linkPreviewDebounce: ReturnType<typeof setTimeout> | null = null
+
+const URL_REGEX = /https?:\/\/[^\s<>"']+/i
+
+function extractFirstUrl(text: string): string | null {
+  const match = text.match(URL_REGEX)
+  if (!match) return null
+  // Strip trailing punctuation that's almost never part of the URL
+  return match[0].replace(/[.,;:!?)\]]+$/, '')
+}
+
+async function refreshLinkPreview() {
+  const url = extractFirstUrl(content.value)
+  if (!url) {
+    linkPreview.value = null
+    linkPreviewUrl.value = null
+    return
+  }
+  if (linkPreviewDismissed.value.has(url)) return
+  if (linkPreviewUrl.value === url) return
+  linkPreviewUrl.value = url
+  linkPreviewLoading.value = true
+  try {
+    const og = await postService.fetchMetaPreview(url)
+    // Only commit if the URL hasn't changed in the meantime
+    if (linkPreviewUrl.value !== url) return
+    linkPreview.value = {
+      url: og.url,
+      title: og.title,
+      description: og.description,
+      imageUrl: og.imageUrl,
+      siteName: og.siteName,
+    }
+  } catch {
+    // Network/parse failure — leave preview null but remember we tried.
+    if (linkPreviewUrl.value === url) linkPreview.value = null
+  } finally {
+    if (linkPreviewUrl.value === url) linkPreviewLoading.value = false
+  }
+}
+
+function dismissLinkPreview() {
+  if (linkPreviewUrl.value) linkPreviewDismissed.value.add(linkPreviewUrl.value)
+  linkPreview.value = null
+  linkPreviewUrl.value = null
+  linkPreviewLoading.value = false
+}
+
+watch(content, () => {
+  if (linkPreviewDebounce) clearTimeout(linkPreviewDebounce)
+  linkPreviewDebounce = setTimeout(refreshLinkPreview, 400)
+})
 
 onMounted(async () => {
   try {
@@ -99,6 +161,10 @@ function reset() {
   error.value = null
   submitting.value = false
   postingAsPageId.value = null
+  linkPreview.value = null
+  linkPreviewUrl.value = null
+  linkPreviewLoading.value = false
+  linkPreviewDismissed.value = new Set()
 }
 
 function handleFileInput(event: Event) {
@@ -130,6 +196,7 @@ async function submit() {
       background: postType.value === 'TextOnBackground' ? background.value : undefined,
       mediaFiles: mediaFiles.value.length > 0 ? mediaFiles.value : undefined,
       companyPageId: postingAsPageId.value ?? undefined,
+      linkPreview: linkPreview.value ?? undefined,
     })
     emit('created', post)
     close()
@@ -340,6 +407,50 @@ defineExpose({ open, close })
                     aria-label="Remove"
                   >×</button>
                 </div>
+              </div>
+            </div>
+
+            <!-- Link preview card (auto-fetched when a URL is detected) -->
+            <div
+              v-if="linkPreviewLoading"
+              class="flex items-center gap-3 border border-gray-200 rounded-xl p-3 bg-gray-50"
+            >
+              <svg class="animate-spin w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+              <span class="text-sm text-gray-500">Fetching link preview…</span>
+            </div>
+
+            <div
+              v-else-if="linkPreview"
+              class="relative border border-gray-200 rounded-xl overflow-hidden bg-white"
+            >
+              <button
+                type="button"
+                class="absolute top-2 right-2 bg-black/50 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-black/70 transition z-10"
+                @click="dismissLinkPreview"
+                aria-label="Remove link preview"
+              >×</button>
+              <img
+                v-if="linkPreview.imageUrl"
+                :src="linkPreview.imageUrl"
+                :alt="linkPreview.title ?? ''"
+                class="w-full max-h-48 object-cover bg-gray-100"
+              />
+              <div class="px-3 py-2">
+                <p v-if="linkPreview.siteName" class="text-xs uppercase tracking-wide text-gray-400">
+                  {{ linkPreview.siteName }}
+                </p>
+                <p
+                  v-if="linkPreview.title"
+                  class="font-semibold text-sm text-gray-900 line-clamp-2"
+                >{{ linkPreview.title }}</p>
+                <p
+                  v-if="linkPreview.description"
+                  class="text-xs text-gray-500 mt-1 line-clamp-2"
+                >{{ linkPreview.description }}</p>
+                <p class="text-xs text-blue-600 mt-1 truncate">{{ linkPreview.url }}</p>
               </div>
             </div>
 

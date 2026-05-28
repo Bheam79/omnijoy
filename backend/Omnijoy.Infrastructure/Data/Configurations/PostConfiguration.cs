@@ -19,6 +19,22 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
         builder.Property(p => p.BackgroundImageUrl)
                .HasMaxLength(2048);
 
+        // ── Embedded URL / OG preview ────────────────────────────────────────
+        builder.Property(p => p.LinkUrl)
+               .HasMaxLength(2048);
+
+        builder.Property(p => p.LinkTitle)
+               .HasMaxLength(512);
+
+        builder.Property(p => p.LinkDescription)
+               .HasColumnType("text");
+
+        builder.Property(p => p.LinkImageUrl)
+               .HasMaxLength(2048);
+
+        builder.Property(p => p.LinkSiteName)
+               .HasMaxLength(256);
+
         builder.Property(p => p.PostType)
                .HasConversion<string>()
                .HasMaxLength(32);

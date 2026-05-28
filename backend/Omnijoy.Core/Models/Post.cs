@@ -15,6 +15,15 @@ public class Post
     public DateTime UpdatedAt { get; set; }
     public DateTime? DeletedAt { get; set; }
 
+    // ── Embedded URL preview (OG / Twitter Card metadata) ──────────────────────
+    // When a user pastes a URL into the composer the frontend fetches the
+    // preview via /api/meta-preview and submits these fields alongside the post.
+    public string? LinkUrl { get; set; }
+    public string? LinkTitle { get; set; }
+    public string? LinkDescription { get; set; }
+    public string? LinkImageUrl { get; set; }
+    public string? LinkSiteName { get; set; }
+
     // Navigation properties
     public User Author { get; set; } = null!;
     public CompanyPage? CompanyPage { get; set; }

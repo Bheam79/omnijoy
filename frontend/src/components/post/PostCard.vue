@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { PostDto } from '@/services/postService'
 import { useAuthStore } from '@/stores/auth'
 import { useFeedStore } from '@/stores/feed'
@@ -11,6 +11,19 @@ const auth = useAuthStore()
 const feed = useFeedStore()
 
 const isOwn = computed(() => auth.user?.id === props.post.author.id)
+const shareUrl = computed(() => `${window.location.origin}/share/posts/${props.post.id}`)
+const shareCopied = ref(false)
+
+async function copyShareLink() {
+  try {
+    await navigator.clipboard.writeText(shareUrl.value)
+    shareCopied.value = true
+    setTimeout(() => { shareCopied.value = false }, 1800)
+  } catch {
+    // Fallback: prompt the user with the URL so they can copy manually.
+    window.prompt('Copy share link:', shareUrl.value)
+  }
+}
 
 const privacyLabel: Record<string, string> = {
   Everyone: 'Public',
@@ -117,6 +130,37 @@ const tobStyle = computed(() => {
       {{ post.content }}
     </div>
 
+    <!-- Link preview card (Open Graph) -->
+    <a
+      v-if="post.linkPreview"
+      :href="post.linkPreview.url"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="block mx-4 mb-3 border border-gray-200 rounded-xl overflow-hidden hover:bg-gray-50 transition"
+    >
+      <img
+        v-if="post.linkPreview.imageUrl"
+        :src="post.linkPreview.imageUrl"
+        :alt="post.linkPreview.title ?? ''"
+        class="w-full max-h-72 object-cover bg-gray-100"
+        loading="lazy"
+      />
+      <div class="px-3 py-2">
+        <p v-if="post.linkPreview.siteName" class="text-xs uppercase tracking-wide text-gray-400">
+          {{ post.linkPreview.siteName }}
+        </p>
+        <p
+          v-if="post.linkPreview.title"
+          class="font-semibold text-sm text-gray-900 line-clamp-2"
+        >{{ post.linkPreview.title }}</p>
+        <p
+          v-if="post.linkPreview.description"
+          class="text-xs text-gray-500 mt-1 line-clamp-2"
+        >{{ post.linkPreview.description }}</p>
+        <p class="text-xs text-blue-600 mt-1 truncate">{{ post.linkPreview.url }}</p>
+      </div>
+    </a>
+
     <!-- Content: TextOnBackground -->
     <div
       v-else-if="post.postType === 'TextOnBackground'"
@@ -196,14 +240,14 @@ const tobStyle = computed(() => {
       </button>
       <button
         class="flex items-center gap-1.5 text-gray-500 hover:text-blue-600 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-blue-50 transition flex-1 justify-center"
-        disabled
-        title="Share (coming soon)"
+        :title="shareCopied ? 'Link copied!' : 'Copy share link'"
+        @click="copyShareLink"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
         </svg>
-        Share
+        {{ shareCopied ? 'Copied!' : 'Share' }}
       </button>
     </div>
   </article>

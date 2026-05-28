@@ -12,6 +12,18 @@ public record PostMediaItemDto(
     int Order
 );
 
+/// <summary>
+/// Open Graph / link preview embedded in a post (the URL the author pasted +
+/// title / description / image fetched at compose time).
+/// </summary>
+public record PostLinkPreviewDto(
+    string Url,
+    string? Title,
+    string? Description,
+    string? ImageUrl,
+    string? SiteName
+);
+
 // ── Post response ─────────────────────────────────────────────────────────────
 
 public record PostDto(
@@ -23,6 +35,7 @@ public record PostDto(
     string PostType,
     string Privacy,
     PostMediaItemDto[] Media,
+    PostLinkPreviewDto? LinkPreview,
     DateTime CreatedAt,
     DateTime UpdatedAt
 );
@@ -40,7 +53,13 @@ public record CreatePostRequest(
     string Privacy,
     string? BackgroundImageUrl,
     /// <summary>Optional: post on behalf of a company page the user administers.</summary>
-    Guid? CompanyPageId = null
+    Guid? CompanyPageId = null,
+    /// <summary>Optional embedded link preview (URL the user pasted into the composer).</summary>
+    string? LinkUrl = null,
+    string? LinkTitle = null,
+    string? LinkDescription = null,
+    string? LinkImageUrl = null,
+    string? LinkSiteName = null
 );
 
 public record UpdatePostRequest(
