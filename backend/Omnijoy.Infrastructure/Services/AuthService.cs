@@ -1,0 +1,361 @@
+using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text;
+using Google.Apis.Auth;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Omnijoy.Core.DTOs.Auth;
+using Omnijoy.Core.Interfaces;
+using Omnijoy.Core.Models;
+using Omnijoy.Core.Models.Enums;
+using Omnijoy.Infrastructure.Data;
+
+namespace Omnijoy.Infrastructure.Services;
+
+public class AuthService : IAuthService
+{
+    private readonly OmnijoyDbContext _db;
+    private readonly ITokenService _tokens;
+    private readonly IEmailService _email;
+    private readonly IConfiguration _config;
+    private readonly IHttpClientFactory _httpClientFactory;
+
+    private const int OtpExpiryMinutes = 10;
+
+    public AuthService(
+        OmnijoyDbContext db,
+        ITokenService tokens,
+        IEmailService email,
+        IConfiguration config,
+        IHttpClientFactory httpClientFactory)
+    {
+        _db = db;
+        _tokens = tokens;
+        _email = email;
+        _config = config;
+        _httpClientFactory = httpClientFactory;
+    }
+
+    // ── Register ─────────────────────────────────────────────────────────────
+
+    public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+    {
+        if (await _db.Users.AnyAsync(u => u.Email == request.Email.ToLowerInvariant()))
+            throw new InvalidOperationException("An account with this email already exists.");
+
+        var authMethod = request.AuthMethod.ToLowerInvariant();
+        if (authMethod is not ("password" or "otp"))
+            throw new ArgumentException("authMethod must be 'password' or 'otp'.");
+
+        if (authMethod == "password" && string.IsNullOrWhiteSpace(request.Password))
+            throw new ArgumentException("Password is required for password authentication.");
+
+        var now = DateTime.UtcNow;
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = request.Email.ToLowerInvariant().Trim(),
+            DisplayName = request.DisplayName.Trim(),
+            Gender = Enum.TryParse<Gender>(request.Gender, true, out var g) ? g : Gender.NotDisclosed,
+            BirthDate = request.BirthDate,
+            ShowBirthDate = request.ShowBirthDate,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+
+        if (authMethod == "password")
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+
+        // Default privacy settings
+        user.PrivacySettings = new UserPrivacySettings { UserId = user.Id };
+
+        // Auth provider record
+        _db.Users.Add(user);
+        _db.AuthProviders.Add(new AuthProvider
+        {
+            UserId = user.Id,
+            Provider = authMethod == "password" ? AuthProviderType.Password : AuthProviderType.OTP,
+            CreatedAt = now,
+        });
+
+        await _db.SaveChangesAsync();
+
+        return await IssueTokensAsync(user);
+    }
+
+    // ── Login with password ───────────────────────────────────────────────────
+
+    public async Task<AuthResponse> LoginWithPasswordAsync(LoginPasswordRequest request)
+    {
+        var user = await _db.Users
+            .FirstOrDefaultAsync(u => u.Email == request.Email.ToLowerInvariant());
+
+        if (user is null || string.IsNullOrEmpty(user.PasswordHash) ||
+            !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+            throw new UnauthorizedAccessException("Invalid email or password.");
+
+        return await IssueTokensAsync(user);
+    }
+
+    // ── OTP: request code ─────────────────────────────────────────────────────
+
+    public async Task RequestOtpAsync(OtpRequestDto request)
+    {
+        var email = request.Email.ToLowerInvariant().Trim();
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+        // Always respond successfully to prevent email enumeration
+        if (user is null)
+            return;
+
+        // Generate 6-digit code
+        var code = RandomNumberGenerator.GetInt32(100_000, 1_000_000).ToString("D6");
+        var codeHash = HashCode(code);
+        var now = DateTime.UtcNow;
+
+        _db.OtpCodes.Add(new OtpCode
+        {
+            Id = Guid.NewGuid(),
+            Email = email,
+            CodeHash = codeHash,
+            ExpiresAt = now.AddMinutes(OtpExpiryMinutes),
+            CreatedAt = now,
+            IsUsed = false,
+        });
+        await _db.SaveChangesAsync();
+
+        await _email.SendOtpEmailAsync(email, user.DisplayName, code);
+    }
+
+    // ── OTP: verify code ──────────────────────────────────────────────────────
+
+    public async Task<AuthResponse> VerifyOtpAsync(OtpVerifyDto request)
+    {
+        var email = request.Email.ToLowerInvariant().Trim();
+        var codeHash = HashCode(request.Code.Trim());
+        var now = DateTime.UtcNow;
+
+        var otpRecord = await _db.OtpCodes
+            .Where(o => o.Email == email && !o.IsUsed && o.ExpiresAt > now)
+            .OrderByDescending(o => o.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (otpRecord is null || otpRecord.CodeHash != codeHash)
+            throw new UnauthorizedAccessException("Invalid or expired OTP code.");
+
+        // Mark used
+        otpRecord.IsUsed = true;
+        await _db.SaveChangesAsync();
+
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email)
+            ?? throw new UnauthorizedAccessException("User not found.");
+
+        return await IssueTokensAsync(user);
+    }
+
+    // ── Google OAuth ──────────────────────────────────────────────────────────
+
+    public async Task<AuthResponse> LoginWithGoogleAsync(string idToken)
+    {
+        var clientId = _config["OAuth:Google:ClientId"];
+        if (string.IsNullOrWhiteSpace(clientId))
+            throw new InvalidOperationException("Google OAuth is not configured.");
+
+        GoogleJsonWebSignature.Payload payload;
+        try
+        {
+            payload = await GoogleJsonWebSignature.ValidateAsync(idToken,
+                new GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = new[] { clientId }
+                });
+        }
+        catch (Exception ex)
+        {
+            throw new UnauthorizedAccessException($"Invalid Google token: {ex.Message}");
+        }
+
+        return await FindOrCreateOAuthUserAsync(
+            email: payload.Email,
+            displayName: payload.Name ?? payload.Email,
+            avatarUrl: payload.Picture,
+            provider: AuthProviderType.Google,
+            providerUserId: payload.Subject);
+    }
+
+    // ── Facebook OAuth ────────────────────────────────────────────────────────
+
+    public async Task<AuthResponse> LoginWithFacebookAsync(string accessToken)
+    {
+        var http = _httpClientFactory.CreateClient();
+        var url = $"https://graph.facebook.com/me?access_token={Uri.EscapeDataString(accessToken)}&fields=id,name,email,picture";
+
+        var response = await http.GetAsync(url);
+        if (!response.IsSuccessStatusCode)
+            throw new UnauthorizedAccessException("Invalid Facebook access token.");
+
+        var fbData = await response.Content.ReadFromJsonAsync<FacebookMeResponse>()
+            ?? throw new UnauthorizedAccessException("Failed to read Facebook profile.");
+
+        if (string.IsNullOrWhiteSpace(fbData.Id))
+            throw new UnauthorizedAccessException("Facebook did not return a user ID.");
+
+        return await FindOrCreateOAuthUserAsync(
+            email: fbData.Email ?? $"fb_{fbData.Id}@facebook.local",
+            displayName: fbData.Name ?? fbData.Id,
+            avatarUrl: fbData.Picture?.Data?.Url,
+            provider: AuthProviderType.Facebook,
+            providerUserId: fbData.Id);
+    }
+
+    // ── Refresh tokens ────────────────────────────────────────────────────────
+
+    public async Task<AuthResponse> RefreshAsync(string refreshToken)
+    {
+        var hash = TokenService.HashToken(refreshToken);
+        var now = DateTime.UtcNow;
+
+        var stored = await _db.RefreshTokens
+            .Include(rt => rt.User)
+            .FirstOrDefaultAsync(rt => rt.TokenHash == hash && !rt.IsRevoked && rt.ExpiresAt > now);
+
+        if (stored is null)
+            throw new UnauthorizedAccessException("Invalid or expired refresh token.");
+
+        // Rotate: revoke old, issue new
+        stored.IsRevoked = true;
+        await _db.SaveChangesAsync();
+
+        return await IssueTokensAsync(stored.User);
+    }
+
+    // ── Logout ────────────────────────────────────────────────────────────────
+
+    public async Task LogoutAsync(string refreshToken)
+    {
+        var hash = TokenService.HashToken(refreshToken);
+        var stored = await _db.RefreshTokens.FirstOrDefaultAsync(rt => rt.TokenHash == hash);
+        if (stored is not null)
+        {
+            stored.IsRevoked = true;
+            await _db.SaveChangesAsync();
+        }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private async Task<AuthResponse> IssueTokensAsync(User user)
+    {
+        var accessToken = _tokens.GenerateAccessToken(user);
+        var (rawRefresh, refreshHash) = _tokens.GenerateRefreshToken();
+        var expiryDays = _config.GetValue<int>("Jwt:RefreshTokenExpiryDays", 30);
+        var now = DateTime.UtcNow;
+
+        _db.RefreshTokens.Add(new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            TokenHash = refreshHash,
+            ExpiresAt = now.AddDays(expiryDays),
+            CreatedAt = now,
+            IsRevoked = false,
+        });
+        await _db.SaveChangesAsync();
+
+        return new AuthResponse(
+            AccessToken: accessToken,
+            RefreshToken: rawRefresh,
+            ExpiresIn: _tokens.AccessTokenExpirySeconds,
+            User: MapUser(user)
+        );
+    }
+
+    private async Task<AuthResponse> FindOrCreateOAuthUserAsync(
+        string email,
+        string displayName,
+        string? avatarUrl,
+        AuthProviderType provider,
+        string providerUserId)
+    {
+        var normalizedEmail = email.ToLowerInvariant().Trim();
+        var now = DateTime.UtcNow;
+
+        // Check if provider entry already exists
+        var existingProvider = await _db.AuthProviders
+            .Include(ap => ap.User)
+            .FirstOrDefaultAsync(ap =>
+                ap.Provider == provider && ap.ProviderUserId == providerUserId);
+
+        if (existingProvider is not null)
+            return await IssueTokensAsync(existingProvider.User);
+
+        // Try to find user by email (link existing account)
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
+
+        if (user is null)
+        {
+            user = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = normalizedEmail,
+                DisplayName = displayName,
+                AvatarUrl = avatarUrl,
+                CreatedAt = now,
+                UpdatedAt = now,
+                PrivacySettings = new UserPrivacySettings()
+            };
+            user.PrivacySettings.UserId = user.Id;
+            _db.Users.Add(user);
+        }
+
+        _db.AuthProviders.Add(new AuthProvider
+        {
+            UserId = user.Id,
+            Provider = provider,
+            ProviderUserId = providerUserId,
+            CreatedAt = now,
+        });
+
+        await _db.SaveChangesAsync();
+        return await IssueTokensAsync(user);
+    }
+
+    private static UserDto MapUser(User u) => new(
+        Id: u.Id,
+        Email: u.Email,
+        DisplayName: u.DisplayName,
+        AvatarUrl: u.AvatarUrl,
+        CoverUrl: u.CoverUrl,
+        Bio: u.Bio,
+        Gender: u.Gender.ToString(),
+        BirthDate: u.BirthDate?.ToString("yyyy-MM-dd"),
+        ShowBirthDate: u.ShowBirthDate,
+        CreatedAt: u.CreatedAt
+    );
+
+    private static string HashCode(string code)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(code));
+        return Convert.ToBase64String(bytes);
+    }
+
+    // ── Facebook DTO ──────────────────────────────────────────────────────────
+
+    private sealed class FacebookMeResponse
+    {
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+        public string? Email { get; set; }
+        public FacebookPicture? Picture { get; set; }
+    }
+
+    private sealed class FacebookPicture
+    {
+        public FacebookPictureData? Data { get; set; }
+    }
+
+    private sealed class FacebookPictureData
+    {
+        public string? Url { get; set; }
+    }
+}

@@ -6,6 +6,7 @@ public class User
 {
     public Guid Id { get; set; }
     public string Email { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
     public string? PasswordHash { get; set; }
     public string? OtpSecret { get; set; }
     public Gender Gender { get; set; } = Gender.NotDisclosed;

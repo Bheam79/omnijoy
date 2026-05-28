@@ -1,11 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User } from '@/types'
+import { authService, type RegisterPayload } from '@/services/authService'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const accessToken = ref<string | null>(localStorage.getItem('access_token'))
   const refreshToken = ref<string | null>(localStorage.getItem('refresh_token'))
+  const loading = ref(false)
+  const error = ref<string | null>(null)
 
   const isAuthenticated = computed(() => !!accessToken.value && !!user.value)
 
@@ -20,13 +23,134 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = u
   }
 
-  function logout() {
+  function clearError() {
+    error.value = null
+  }
+
+  async function register(payload: RegisterPayload) {
+    loading.value = true
+    error.value = null
+    try {
+      const result = await authService.register(payload)
+      setTokens(result.accessToken, result.refreshToken)
+      user.value = result.user
+    } catch (e: unknown) {
+      error.value = extractError(e)
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function loginPassword(email: string, password: string) {
+    loading.value = true
+    error.value = null
+    try {
+      const result = await authService.loginPassword(email, password)
+      setTokens(result.accessToken, result.refreshToken)
+      user.value = result.user
+    } catch (e: unknown) {
+      error.value = extractError(e)
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function requestOtp(email: string) {
+    loading.value = true
+    error.value = null
+    try {
+      await authService.requestOtp(email)
+    } catch (e: unknown) {
+      error.value = extractError(e)
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function verifyOtp(email: string, code: string) {
+    loading.value = true
+    error.value = null
+    try {
+      const result = await authService.verifyOtp(email, code)
+      setTokens(result.accessToken, result.refreshToken)
+      user.value = result.user
+    } catch (e: unknown) {
+      error.value = extractError(e)
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function loginGoogle(idToken: string) {
+    loading.value = true
+    error.value = null
+    try {
+      const result = await authService.loginGoogle(idToken)
+      setTokens(result.accessToken, result.refreshToken)
+      user.value = result.user
+    } catch (e: unknown) {
+      error.value = extractError(e)
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function loginFacebook(fbAccessToken: string) {
+    loading.value = true
+    error.value = null
+    try {
+      const result = await authService.loginFacebook(fbAccessToken)
+      setTokens(result.accessToken, result.refreshToken)
+      user.value = result.user
+    } catch (e: unknown) {
+      error.value = extractError(e)
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function logout() {
+    const rt = refreshToken.value
     user.value = null
     accessToken.value = null
     refreshToken.value = null
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
+    if (rt) await authService.logout(rt)
   }
 
-  return { user, accessToken, refreshToken, isAuthenticated, setTokens, setUser, logout }
+  return {
+    user,
+    accessToken,
+    refreshToken,
+    loading,
+    error,
+    isAuthenticated,
+    setTokens,
+    setUser,
+    clearError,
+    register,
+    loginPassword,
+    requestOtp,
+    verifyOtp,
+    loginGoogle,
+    loginFacebook,
+    logout,
+  }
 })
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function extractError(e: unknown): string {
+  if (typeof e === 'object' && e !== null) {
+    const axiosError = e as { response?: { data?: { error?: string } }; message?: string }
+    return axiosError.response?.data?.error ?? axiosError.message ?? 'An unexpected error occurred.'
+  }
+  return 'An unexpected error occurred.'
+}

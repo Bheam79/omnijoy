@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Omnijoy.Api.Hubs;
+using Omnijoy.Core.Interfaces;
 using Omnijoy.Infrastructure.Data;
+using Omnijoy.Infrastructure.Services;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -68,11 +70,16 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
-// ── HTTP Client (for OG meta fetching) ───────────────────────────────────────
+// ── HTTP Client (for OG meta fetching & OAuth) ───────────────────────────────
 builder.Services.AddHttpClient();
 
 // ── Memory Cache (for OG preview cache) ──────────────────────────────────────
 builder.Services.AddMemoryCache();
+
+// ── Auth services ─────────────────────────────────────────────────────────────
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 var app = builder.Build();
 

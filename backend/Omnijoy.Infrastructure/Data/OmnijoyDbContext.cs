@@ -26,6 +26,8 @@ public class OmnijoyDbContext : DbContext
     public DbSet<MessageMedia> MessageMedia => Set<MessageMedia>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<LiveStream> LiveStreams => Set<LiveStream>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<OtpCode> OtpCodes => Set<OtpCode>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
