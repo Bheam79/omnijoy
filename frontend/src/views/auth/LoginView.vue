@@ -198,7 +198,8 @@ onMounted(() => {
     <div class="w-full max-w-md">
       <!-- Logo / Heading -->
       <div class="text-center mb-8">
-        <h1 class="text-4xl font-bold text-indigo-600 tracking-tight">Omnijoy</h1>
+        <img src="/logo.png" alt="Omnijoy" class="h-20 w-20 mx-auto mb-3 rounded-2xl" />
+        <h1 class="text-4xl font-bold text-gray-900 tracking-tight">Omnijoy</h1>
         <p class="text-gray-500 mt-2">Sign in to your account</p>
       </div>
 

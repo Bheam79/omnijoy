@@ -74,10 +74,8 @@ async function logout() {
 
     <!-- Logo -->
     <RouterLink to="/wall" class="shrink-0 flex items-center gap-1.5">
-      <div class="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-        <span class="text-white font-bold text-sm">OJ</span>
-      </div>
-      <span class="hidden sm:block text-lg font-bold text-indigo-600 tracking-tight">Omnijoy</span>
+      <img src="/logo.png" alt="Omnijoy" class="h-8 w-8 rounded-lg" />
+      <span class="hidden sm:block text-lg font-bold text-gray-900 tracking-tight">Omnijoy</span>
     </RouterLink>
 
     <!-- Search (grows to fill available space) -->
