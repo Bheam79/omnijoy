@@ -5,6 +5,7 @@ import { companyPageService, type CompanyPageDto, type AdminsResult } from '@/se
 import { postService, type PostDto } from '@/services/postService'
 import { useAuthStore } from '@/stores/auth'
 import PostCard from '@/components/post/PostCard.vue'
+import SlugPicker from '@/components/shared/SlugPicker.vue'
 
 const route = useRoute()
 const auth  = useAuthStore()
@@ -153,6 +154,12 @@ function extractError(e: unknown): string {
   return 'An error occurred.'
 }
 
+function onSlugUpdated(newSlug: string | null) {
+  if (page.value) {
+    page.value = { ...page.value, urlSlug: newSlug }
+  }
+}
+
 onMounted(fetchData)
 </script>
 
@@ -267,7 +274,16 @@ onMounted(fetchData)
         </div>
 
         <!-- Admins tab (Owner/Admin only) -->
-        <div v-else-if="activeTab === 'admins' && isAdmin" class="pb-8">
+        <div v-else-if="activeTab === 'admins' && isAdmin" class="pb-8 space-y-4">
+          <!-- Public URL card (Owner/Admin only) -->
+          <SlugPicker
+            v-if="isAdmin && page"
+            :initial-slug="page.urlSlug ?? null"
+            scope="company"
+            :target-id="page.id"
+            @updated="onSlugUpdated"
+          />
+
           <div class="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
             <div class="flex items-center justify-between mb-4">
               <h2 class="font-semibold text-gray-900">Page Admins</h2>

@@ -43,6 +43,22 @@ export const slugService = {
     })
     return data
   },
+
+  /**
+   * Sets (or clears) the vanity slug for the current user.
+   * Pass `null` to revert to the default `/profile/{id}` URL.
+   */
+  async setUserSlug(slug: string | null): Promise<void> {
+    await api.put('/api/users/me/slug', { slug })
+  },
+
+  /**
+   * Sets (or clears) the vanity slug for a company page.
+   * Pass `null` to revert to the default `/company/{id}` URL.
+   */
+  async setCompanySlug(companyId: string, slug: string | null): Promise<void> {
+    await api.put(`/api/company-pages/${companyId}/slug`, { slug })
+  },
 }
 
 export default slugService

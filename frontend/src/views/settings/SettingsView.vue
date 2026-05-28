@@ -33,6 +33,28 @@ const auth = useAuthStore()
         </svg>
       </RouterLink>
 
+      <!-- Public URL -->
+      <RouterLink
+        to="/settings/profile"
+        class="flex items-center justify-between bg-white rounded-xl border border-gray-100 px-5 py-4 hover:border-indigo-200 transition-colors group"
+        data-testid="settings-profile-link"
+      >
+        <div class="flex items-center gap-4">
+          <div class="h-10 w-10 rounded-full bg-violet-50 flex items-center justify-center text-violet-600">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-900">Public URL</p>
+            <p class="text-xs text-gray-500">Choose a vanity URL like omnijoy.com/yourname</p>
+          </div>
+        </div>
+        <svg class="h-4 w-4 text-gray-400 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </RouterLink>
+
       <!-- Privacy -->
       <RouterLink
         to="/settings/privacy"
