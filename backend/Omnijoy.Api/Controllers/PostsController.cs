@@ -15,15 +15,18 @@ namespace Omnijoy.Api.Controllers;
 public class PostsController : ControllerBase
 {
     private readonly IPostService _posts;
+    private readonly IReactionService _reactions;
     private readonly IHubContext<FeedHub> _feedHub;
     private readonly INotificationService _notifications;
 
     public PostsController(
         IPostService posts,
+        IReactionService reactions,
         IHubContext<FeedHub> feedHub,
         INotificationService notifications)
     {
         _posts         = posts;
+        _reactions     = reactions;
         _feedHub       = feedHub;
         _notifications = notifications;
     }
@@ -193,6 +196,83 @@ public class PostsController : ControllerBase
         {
             return StatusCode(403, new { error = ex.Message });
         }
+    }
+
+    // ── GET /api/posts/{id}/reactions ─────────────────────────────────────────
+
+    [HttpGet("{id:guid}/reactions")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetReactions(Guid id)
+    {
+        try
+        {
+            var dto = await _reactions.GetReactionsAsync(id, CurrentUserId);
+            return Ok(dto);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
+    // ── POST /api/posts/{id}/reactions ────────────────────────────────────────
+
+    /// <summary>
+    /// Add or change the current user's reaction to a post.
+    /// Body: { "reactionType": "Like" | "Love" | "Haha" | "Wow" | "Sad" | "Angry" }
+    /// </summary>
+    [HttpPost("{id:guid}/reactions")]
+    public async Task<IActionResult> AddOrUpdateReaction(
+        Guid id,
+        [FromBody] AddOrUpdateReactionRequest request)
+    {
+        if (CurrentUserId is not { } userId)
+            return Unauthorized(new { error = "Not authenticated." });
+
+        try
+        {
+            var dto = await _reactions.AddOrUpdateReactionAsync(id, userId, request.ReactionType);
+            await PushReactionUpdateAsync(id, dto);
+            return Ok(dto);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    // ── DELETE /api/posts/{id}/reactions ──────────────────────────────────────
+
+    [HttpDelete("{id:guid}/reactions")]
+    public async Task<IActionResult> RemoveReaction(Guid id)
+    {
+        if (CurrentUserId is not { } userId)
+            return Unauthorized(new { error = "Not authenticated." });
+
+        try
+        {
+            var dto = await _reactions.RemoveReactionAsync(id, userId);
+            await PushReactionUpdateAsync(id, dto);
+            return Ok(dto);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
+    // ── SignalR helper ────────────────────────────────────────────────────────
+
+    private Task PushReactionUpdateAsync(Guid postId, PostReactionsDto dto)
+    {
+        var evt = new ReactionCountsUpdatedEvent(postId, dto.Counts, dto.TotalCount);
+        return _feedHub.Clients
+            .Group($"post:{postId}")
+            .SendAsync("ReactionCountsUpdated", evt);
     }
 }
 

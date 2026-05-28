@@ -28,4 +28,5 @@ public class Post
     public User Author { get; set; } = null!;
     public CompanyPage? CompanyPage { get; set; }
     public ICollection<PostMedia> Media { get; set; } = [];
+    public ICollection<PostReaction> Reactions { get; set; } = [];
 }

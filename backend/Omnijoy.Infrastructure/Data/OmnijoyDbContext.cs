@@ -14,6 +14,7 @@ public class OmnijoyDbContext : DbContext
     public DbSet<AuthProvider> AuthProviders => Set<AuthProvider>();
     public DbSet<Post> Posts => Set<Post>();
     public DbSet<PostMedia> PostMedia => Set<PostMedia>();
+    public DbSet<PostReaction> PostReactions => Set<PostReaction>();
     public DbSet<Friend> Friends => Set<Friend>();
     public DbSet<FamilyRelation> FamilyRelations => Set<FamilyRelation>();
     public DbSet<Event> Events => Set<Event>();

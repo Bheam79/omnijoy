@@ -7,6 +7,8 @@ namespace Omnijoy.Api.Hubs;
 /// Hub for real-time feed updates.
 /// When a user creates a post, the server pushes a NewPost event to all
 /// connected friends/followers — no polling required.
+/// Clients may also subscribe to individual post groups to receive
+/// real-time reaction count updates (<c>ReactionCountsUpdated</c> event).
 /// </summary>
 [Authorize]
 public class FeedHub : Hub
@@ -28,4 +30,16 @@ public class FeedHub : Hub
 
         await base.OnDisconnectedAsync(exception);
     }
+
+    /// <summary>
+    /// Subscribe this connection to real-time updates for a specific post
+    /// (e.g. reaction count changes).  Clients call this when a post is visible
+    /// on screen; call <see cref="UnsubscribeFromPost"/> when it leaves the viewport.
+    /// </summary>
+    public async Task SubscribeToPost(Guid postId)
+        => await Groups.AddToGroupAsync(Context.ConnectionId, $"post:{postId}");
+
+    /// <summary>Unsubscribe from per-post updates.</summary>
+    public async Task UnsubscribeFromPost(Guid postId)
+        => await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"post:{postId}");
 }
