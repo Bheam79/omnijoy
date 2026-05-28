@@ -357,20 +357,30 @@ prod-restart: _check-env
 
 # Run EF Core migrations via a temporary SDK container joined to the Docker network.
 # This avoids having to publish the DB port to the host.
+#
+# Notes:
+#  - Uses 'dotnet-ef' v9.x (latest Pomelo-compatible version); installed at runtime
+#    because the mcr.microsoft.com/dotnet/sdk image does not ship it.
+#  - Volume mount uses ':z' (lowercase) so SELinux / Podman rootless environments
+#    can relabel the bind-mount without needing exclusive ownership.
+#  - OMNIJOY_CONN is the env var read by DesignTimeDbContextFactory.
+#  - grep patterns are anchored (^VAR=) to avoid matching ROOT_PASSWORD with MYSQL_PASSWORD.
 prod-migrate: _check-env
 	@echo ">> Running EF Core migrations (via temporary SDK container)..."
-	@DB_PASS=$$(grep MYSQL_PASSWORD $(PROD_ENV) | cut -d= -f2); \
-	DB_USER=$$(grep MYSQL_USER $(PROD_ENV) | grep -v ROOT | cut -d= -f2 | head -1); \
-	DB_NAME=$$(grep MYSQL_DATABASE $(PROD_ENV) | cut -d= -f2); \
+	@DB_PASS=$$(grep "^MYSQL_PASSWORD=" $(PROD_ENV) | cut -d= -f2 | head -1); \
+	DB_USER=$$(grep "^MYSQL_USER=" $(PROD_ENV) | cut -d= -f2 | head -1); \
+	DB_NAME=$$(grep "^MYSQL_DATABASE=" $(PROD_ENV) | cut -d= -f2 | head -1); \
 	$(DOCKER) run --rm \
 	  --network 07ad0b82_omnijoy_net \
-	  -v "$(REPO_PATH)/backend:/src" \
+	  -v "$(REPO_PATH)/backend:/src:z" \
 	  -w /src \
-	  -e "ConnectionStrings__DefaultConnection=Server=07ad0b82_omnijoy_mysql;Port=3306;Database=$${DB_NAME:-omnijoy};User=$${DB_USER:-omnijoy};Password=$$DB_PASS;AllowPublicKeyRetrieval=true;" \
+	  -e "OMNIJOY_CONN=Server=07ad0b82_omnijoy_mysql;Port=3306;Database=$${DB_NAME:-omnijoy};User=$${DB_USER:-omnijoy};Password=$$DB_PASS;AllowPublicKeyRetrieval=true;" \
 	  mcr.microsoft.com/dotnet/sdk:10.0 \
-	  dotnet ef database update \
-	    --project Omnijoy.Infrastructure \
-	    --startup-project Omnijoy.Api
+	  sh -c "dotnet tool install --global dotnet-ef --version '9.*' 2>&1 | tail -1 \
+	    && export PATH=\$$PATH:/root/.dotnet/tools \
+	    && dotnet ef database update \
+	         --project Omnijoy.Infrastructure \
+	         --startup-project Omnijoy.Api"
 	@echo ">> Migrations complete."
 
 # Tail logs. Use SVC=backend (or mysql/nginx) to filter; defaults to all.
