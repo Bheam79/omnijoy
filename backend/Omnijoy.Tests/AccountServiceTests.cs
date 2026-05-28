@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Omnijoy.Core.DTOs.Notifications;
 using Omnijoy.Core.Models;
 using Omnijoy.Core.Models.Enums;
 using Omnijoy.Infrastructure.Data;
@@ -206,6 +207,114 @@ public class AccountServiceTests : IDisposable
     public async Task ChangePassword_UserNotFound_ThrowsKeyNotFound()
     {
         var act = async () => await _sut.ChangePasswordAsync(Guid.NewGuid(), ValidPassword, "NewP@ssw0rd!", "NewP@ssw0rd!");
+
+        await act.Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    // ── GetNotificationPreferencesAsync ──────────────────────────────────────
+
+    [Fact]
+    public async Task GetNotificationPreferences_NoExistingRow_CreatesDefaults()
+    {
+        var user = await CreateUserAsync();
+
+        var prefs = await _sut.GetNotificationPreferencesAsync(user.Id);
+
+        prefs.LikesOnMyPosts.Should().BeTrue();
+        prefs.CommentsOnMyPosts.Should().BeTrue();
+        prefs.FriendRequests.Should().BeTrue();
+        prefs.EventInvites.Should().BeTrue();
+        prefs.NewFollower.Should().BeTrue();
+
+        // Persisted to DB.
+        (await _db.NotificationPreferences.CountAsync(p => p.UserId == user.Id))
+            .Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetNotificationPreferences_ExistingRow_ReturnsStoredValues()
+    {
+        var user = await CreateUserAsync();
+        _db.NotificationPreferences.Add(new NotificationPreferences
+        {
+            UserId            = user.Id,
+            LikesOnMyPosts    = false,
+            EventInvites      = false,
+        });
+        await _db.SaveChangesAsync();
+
+        var prefs = await _sut.GetNotificationPreferencesAsync(user.Id);
+
+        prefs.LikesOnMyPosts.Should().BeFalse();
+        prefs.EventInvites.Should().BeFalse();
+        prefs.CommentsOnMyPosts.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetNotificationPreferences_UserNotFound_ThrowsKeyNotFound()
+    {
+        var act = async () => await _sut.GetNotificationPreferencesAsync(Guid.NewGuid());
+
+        await act.Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    // ── UpdateNotificationPreferencesAsync ───────────────────────────────────
+
+    [Fact]
+    public async Task UpdateNotificationPreferences_PersistsAndReturnsValues()
+    {
+        var user = await CreateUserAsync();
+
+        var dto = new NotificationPreferencesDto(
+            LikesOnMyPosts:      false,
+            CommentsOnMyPosts:   true,
+            PostShares:          false,
+            FriendRequests:      false,
+            NewFollower:         true,
+            Mentions:            false,
+            NewPostsFromFriends: true,
+            FamilyRelations:     false,
+            EventInvites:        true,
+            DirectMessages:      false,
+            LiveStreams:         true,
+            CompanyPageInvites:  false);
+
+        var result = await _sut.UpdateNotificationPreferencesAsync(user.Id, dto);
+
+        result.Should().Be(dto);
+
+        var stored = await _db.NotificationPreferences.FirstAsync(p => p.UserId == user.Id);
+        stored.LikesOnMyPosts.Should().BeFalse();
+        stored.CommentsOnMyPosts.Should().BeTrue();
+        stored.Mentions.Should().BeFalse();
+        stored.CompanyPageInvites.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task UpdateNotificationPreferences_NoExistingRow_CreatesRow()
+    {
+        var user = await CreateUserAsync();
+
+        var dto = new NotificationPreferencesDto(
+            LikesOnMyPosts: false, CommentsOnMyPosts: false, PostShares: false,
+            FriendRequests: false, NewFollower: false, Mentions: false,
+            NewPostsFromFriends: false, FamilyRelations: false,
+            EventInvites: false, DirectMessages: false, LiveStreams: false,
+            CompanyPageInvites: false);
+
+        await _sut.UpdateNotificationPreferencesAsync(user.Id, dto);
+
+        (await _db.NotificationPreferences.CountAsync(p => p.UserId == user.Id))
+            .Should().Be(1);
+    }
+
+    [Fact]
+    public async Task UpdateNotificationPreferences_UserNotFound_ThrowsKeyNotFound()
+    {
+        var dto = new NotificationPreferencesDto(
+            true, true, true, true, true, true, true, true, true, true, true, true);
+
+        var act = async () => await _sut.UpdateNotificationPreferencesAsync(Guid.NewGuid(), dto);
 
         await act.Should().ThrowAsync<KeyNotFoundException>();
     }

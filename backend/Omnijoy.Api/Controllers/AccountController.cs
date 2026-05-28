@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Omnijoy.Core.DTOs.Auth;
+using Omnijoy.Core.DTOs.Notifications;
 using Omnijoy.Core.Interfaces;
 
 namespace Omnijoy.Api.Controllers;
@@ -61,6 +62,46 @@ public class AccountController : ControllerBase
         catch (ArgumentException ex)
         {
             return BadRequest(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { error = ex.Message });
+        }
+    }
+
+    // GET /api/account/notification-preferences
+    [HttpGet("notification-preferences")]
+    public async Task<IActionResult> GetNotificationPreferences()
+    {
+        try
+        {
+            var userId = GetUserId();
+            var dto = await _account.GetNotificationPreferencesAsync(userId);
+            return Ok(dto);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { error = ex.Message });
+        }
+    }
+
+    // PUT /api/account/notification-preferences
+    [HttpPut("notification-preferences")]
+    public async Task<IActionResult> UpdateNotificationPreferences([FromBody] NotificationPreferencesDto request)
+    {
+        try
+        {
+            var userId = GetUserId();
+            var dto = await _account.UpdateNotificationPreferencesAsync(userId, request);
+            return Ok(dto);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
         }
         catch (UnauthorizedAccessException ex)
         {

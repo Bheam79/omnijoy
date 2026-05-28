@@ -3,6 +3,7 @@ using Omnijoy.Core.DTOs.Notifications;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models;
 using Omnijoy.Core.Models.Enums;
+using Omnijoy.Core.Services;
 using Omnijoy.Infrastructure.Data;
 
 namespace Omnijoy.Infrastructure.Services;
@@ -36,6 +37,15 @@ public class NotificationService : INotificationService
     {
         // Never notify yourself — silently skip (still return a DTO so callers stay simple).
         if (actorUserId == recipientUserId)
+        {
+            return new NotificationDto(
+                Guid.Empty, type.ToString(), referenceId, true,
+                DateTime.UtcNow, null, null, null);
+        }
+
+        // Honour the recipient's notification preferences — return a no-op DTO
+        // (matching the "self-notify" short-circuit shape) when this type is muted.
+        if (!await IsAllowedForUserAsync(recipientUserId, type))
         {
             return new NotificationDto(
                 Guid.Empty, type.ToString(), referenceId, true,
@@ -86,7 +96,11 @@ public class NotificationService : INotificationService
         string? referenceId = null,
         Guid? actorUserId = null)
     {
-        var recipients = recipientUserIds.Where(id => id != actorUserId).Distinct().ToArray();
+        var candidates = recipientUserIds.Where(id => id != actorUserId).Distinct().ToArray();
+        if (candidates.Length == 0) return;
+
+        // Filter recipients by their notification preferences in one batch query.
+        var recipients = await FilterAllowedAsync(candidates, type);
         if (recipients.Length == 0) return;
 
         var now = DateTime.UtcNow;
@@ -267,6 +281,40 @@ public class NotificationService : INotificationService
              or NotificationType.FriendRequestAccepted
              or NotificationType.NewFollower
              or NotificationType.FamilyRelationRequest;
+
+    /// <summary>
+    /// Returns <c>true</c> when the recipient has not muted this notification
+    /// type. Missing rows are treated as "all enabled".
+    /// </summary>
+    private async Task<bool> IsAllowedForUserAsync(Guid userId, NotificationType type)
+    {
+        var prefs = await _db.NotificationPreferences
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.UserId == userId);
+        if (prefs is null) return true;
+        return NotificationPreferenceMap.IsAllowed(type, prefs);
+    }
+
+    /// <summary>
+    /// Batch-filters a list of recipients to only those who allow notifications
+    /// of the given type. Recipients without a preferences row are kept (default-on).
+    /// </summary>
+    private async Task<Guid[]> FilterAllowedAsync(Guid[] recipientUserIds, NotificationType type)
+    {
+        if (recipientUserIds.Length == 0) return recipientUserIds;
+
+        var prefsList = await _db.NotificationPreferences
+            .AsNoTracking()
+            .Where(p => recipientUserIds.Contains(p.UserId))
+            .ToListAsync();
+
+        var prefsMap = prefsList.ToDictionary(p => p.UserId);
+
+        return recipientUserIds
+            .Where(id => !prefsMap.TryGetValue(id, out var p)
+                          || NotificationPreferenceMap.IsAllowed(type, p))
+            .ToArray();
+    }
 }
 
 /// <summary>

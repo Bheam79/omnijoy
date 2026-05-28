@@ -69,6 +69,9 @@ public class AuthService : IAuthService
         // Default privacy settings
         user.PrivacySettings = new UserPrivacySettings { UserId = user.Id };
 
+        // Default notification preferences (all enabled)
+        user.NotificationPreferences = new NotificationPreferences { UserId = user.Id };
+
         // Auth provider record
         _db.Users.Add(user);
         _db.AuthProviders.Add(new AuthProvider
@@ -302,9 +305,11 @@ public class AuthService : IAuthService
                 AvatarUrl = avatarUrl,
                 CreatedAt = now,
                 UpdatedAt = now,
-                PrivacySettings = new UserPrivacySettings()
+                PrivacySettings = new UserPrivacySettings(),
+                NotificationPreferences = new NotificationPreferences()
             };
             user.PrivacySettings.UserId = user.Id;
+            user.NotificationPreferences.UserId = user.Id;
             _db.Users.Add(user);
         }
 

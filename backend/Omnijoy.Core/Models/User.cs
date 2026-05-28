@@ -21,6 +21,7 @@ public class User
 
     // Navigation properties
     public UserPrivacySettings? PrivacySettings { get; set; }
+    public NotificationPreferences? NotificationPreferences { get; set; }
     public ICollection<AuthProvider> AuthProviders { get; set; } = [];
     public ICollection<Post> Posts { get; set; } = [];
     public ICollection<Friend> SentFriendRequests { get; set; } = [];
