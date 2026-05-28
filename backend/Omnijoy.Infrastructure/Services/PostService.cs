@@ -14,9 +14,10 @@ public class PostService : IPostService
     private readonly IPrivacyService _privacy;
     private readonly IFeedCache? _feedCache;
     private readonly IImageProcessingService? _imageProcessor;
+    private readonly IThumbnailService? _thumbnailService;
 
     public PostService(OmnijoyDbContext db, IMediaStorageService storage, IPrivacyService privacy)
-        : this(db, storage, privacy, null, null)
+        : this(db, storage, privacy, null, null, null)
     {
     }
 
@@ -25,7 +26,7 @@ public class PostService : IPostService
         IMediaStorageService storage,
         IPrivacyService privacy,
         IFeedCache? feedCache)
-        : this(db, storage, privacy, feedCache, null)
+        : this(db, storage, privacy, feedCache, null, null)
     {
     }
 
@@ -35,12 +36,24 @@ public class PostService : IPostService
         IPrivacyService privacy,
         IFeedCache? feedCache,
         IImageProcessingService? imageProcessor)
+        : this(db, storage, privacy, feedCache, imageProcessor, null)
     {
-        _db             = db;
-        _storage        = storage;
-        _privacy        = privacy;
-        _feedCache      = feedCache;
-        _imageProcessor = imageProcessor;
+    }
+
+    public PostService(
+        OmnijoyDbContext db,
+        IMediaStorageService storage,
+        IPrivacyService privacy,
+        IFeedCache? feedCache,
+        IImageProcessingService? imageProcessor,
+        IThumbnailService? thumbnailService)
+    {
+        _db               = db;
+        _storage          = storage;
+        _privacy          = privacy;
+        _feedCache        = feedCache;
+        _imageProcessor   = imageProcessor;
+        _thumbnailService = thumbnailService;
     }
 
     // ── Create ────────────────────────────────────────────────────────────────
@@ -85,7 +98,9 @@ public class PostService : IPostService
 
         _db.Posts.Add(post);
 
-        // Upload + attach media files
+        // Upload + attach media files; track video entries so we can enqueue thumbnail jobs later.
+        var videoMediaItems = new List<(Guid Id, string Url)>();
+
         if (mediaItems is { Count: > 0 })
         {
             int order = 0;
@@ -105,25 +120,31 @@ public class PostService : IPostService
                     url = await _storage.StoreAsync(item.Content, item.FileName, folder);
                 }
 
-                string? thumbUrl = null;
-                // If a thumbnail was uploaded alongside the video (convention: fileName ends with
-                // "_thumb.jpg"), treat it as the thumbnail for the preceding video entry.
-                // For simplicity, we just store videos without auto-generated thumbnails here;
-                // clients may pass a separate thumb file labelled "_thumb".
-
+                var newMediaId = Guid.NewGuid();
                 _db.PostMedia.Add(new PostMedia
                 {
-                    Id = Guid.NewGuid(),
-                    PostId = post.Id,
-                    MediaType = mediaType,
-                    Url = url,
-                    ThumbnailUrl = thumbUrl,
-                    Order = order++,
+                    Id           = newMediaId,
+                    PostId       = post.Id,
+                    MediaType    = mediaType,
+                    Url          = url,
+                    ThumbnailUrl = null,   // populated asynchronously by ThumbnailGeneratorService
+                    Order        = order++,
                 });
+
+                if (mediaType == MediaType.Video)
+                    videoMediaItems.Add((newMediaId, url));
             }
         }
 
         await _db.SaveChangesAsync();
+
+        // Enqueue thumbnail generation for every video attachment.
+        // Fire-and-forget: the queue write is fast and PostService should not wait for FFmpeg.
+        if (_thumbnailService is not null)
+        {
+            foreach (var (mediaId, mediaUrl) in videoMediaItems)
+                await _thumbnailService.EnqueueAsync(mediaId, mediaUrl);
+        }
 
         return await LoadPostDtoAsync(post.Id)
             ?? throw new InvalidOperationException("Post not found after creation.");

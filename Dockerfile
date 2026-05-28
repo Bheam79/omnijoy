@@ -45,6 +45,10 @@ RUN dotnet publish Omnijoy.Api/Omnijoy.Api.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
+# FFmpeg is required for async video thumbnail extraction (ThumbnailGeneratorService).
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 RUN mkdir -p /var/omnijoy/media
 
 COPY --from=backend-build /app/publish .

@@ -159,6 +159,14 @@ else
 builder.Services.AddScoped<IPrivacyService, PrivacyService>();
 builder.Services.AddScoped<IImageProcessingService, ImageProcessingService>();
 builder.Services.AddScoped<IUserService, UserService>();
+// ── Background task queue + thumbnail generator ───────────────────────────────
+// IBackgroundTaskQueue is a singleton channel; ThumbnailGeneratorService drains it.
+// IThumbnailService (scoped) enqueues jobs from PostService.
+builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
+builder.Services.AddSingleton<IProcessRunner, ProcessRunner>();
+builder.Services.AddScoped<IThumbnailService, ThumbnailService>();
+builder.Services.AddHostedService<ThumbnailGeneratorService>();
+
 builder.Services.AddScoped<IPostService, PostService>();
 // Feed cache (per-user page-1 + trending list). Uses IDistributedCache —
 // Redis when configured, in-memory otherwise. Trade-offs documented on
