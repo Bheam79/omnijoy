@@ -12,11 +12,13 @@ public class UserService : IUserService
 {
     private readonly OmnijoyDbContext _db;
     private readonly IMediaStorageService _storage;
+    private readonly IPrivacyService _privacy;
 
-    public UserService(OmnijoyDbContext db, IMediaStorageService storage)
+    public UserService(OmnijoyDbContext db, IMediaStorageService storage, IPrivacyService privacy)
     {
         _db = db;
         _storage = storage;
+        _privacy = privacy;
     }
 
     // ── GET profile ───────────────────────────────────────────────────────────
@@ -25,36 +27,24 @@ public class UserService : IUserService
     {
         var user = await _db.Users
             .AsNoTracking()
-            .Include(u => u.PrivacySettings)
             .FirstOrDefaultAsync(u => u.Id == userId)
             ?? throw new KeyNotFoundException($"User {userId} not found.");
 
-        var privacy = user.PrivacySettings ?? new UserPrivacySettings { UserId = userId };
         var isOwn = requesterId.HasValue && requesterId.Value == userId;
 
         // Determine friendship
         bool isFriend = false;
         if (!isOwn && requesterId.HasValue)
         {
-            isFriend = await _db.Friends.AnyAsync(f =>
-                f.Status == FriendStatus.Accepted &&
-                ((f.RequesterId == requesterId.Value && f.AddresseeId == userId) ||
-                 (f.RequesterId == userId && f.AddresseeId == requesterId.Value)));
+            isFriend = await _privacy.AreFriendsAsync(userId, requesterId.Value);
         }
 
-        // Enforce profile visibility
+        // Enforce profile visibility via the central PrivacyService
+        // (this also handles the block check)
         if (!isOwn)
         {
-            var visibleToViewer = privacy.WhoCanSeeProfile switch
-            {
-                PrivacyLevel.Everyone         => true,
-                PrivacyLevel.FriendsOfFriends => isFriend || requesterId.HasValue,
-                PrivacyLevel.Friends          => isFriend,
-                PrivacyLevel.OnlyMe           => false,
-                _                             => false,
-            };
-
-            if (!visibleToViewer)
+            bool canView = await _privacy.CanViewProfileAsync(userId, requesterId);
+            if (!canView)
                 throw new UnauthorizedAccessException("This profile is private.");
         }
 

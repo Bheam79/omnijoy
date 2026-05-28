@@ -88,6 +88,10 @@ public class ConversationsController : ControllerBase
         {
             return NotFound(new { error = ex.Message });
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
+        }
     }
 
     // ── PUT /api/conversations/{id}/read ──────────────────────────────────────

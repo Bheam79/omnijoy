@@ -37,6 +37,13 @@ public interface IFriendService
     /// <summary>Returns paginated list of accepted friends for <paramref name="userId"/>.</summary>
     Task<FriendsPageResult> GetFriendsAsync(Guid userId, int page, int pageSize);
 
+    /// <summary>
+    /// Returns paginated list of accepted friends of <paramref name="targetUserId"/>
+    /// as seen by <paramref name="viewerId"/>.  Throws <see cref="UnauthorizedAccessException"/>
+    /// when the viewer is not allowed to see the friend list per privacy settings.
+    /// </summary>
+    Task<FriendsPageResult> GetUserFriendsAsync(Guid targetUserId, Guid? viewerId, int page, int pageSize);
+
     /// <summary>Returns pending friend requests directed at <paramref name="userId"/> (inbox).</summary>
     Task<FriendRequestDto[]> GetPendingRequestsAsync(Guid userId);
 

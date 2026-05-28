@@ -90,6 +90,7 @@ if (storageType.Equals("s3", StringComparison.OrdinalIgnoreCase))
 else
     builder.Services.AddScoped<IMediaStorageService, LocalMediaStorageService>();
 
+builder.Services.AddScoped<IPrivacyService, PrivacyService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<IFriendService, FriendService>();

@@ -10,8 +10,13 @@ namespace Omnijoy.Infrastructure.Services;
 public class FriendService : IFriendService
 {
     private readonly OmnijoyDbContext _db;
+    private readonly IPrivacyService _privacy;
 
-    public FriendService(OmnijoyDbContext db) => _db = db;
+    public FriendService(OmnijoyDbContext db, IPrivacyService privacy)
+    {
+        _db = db;
+        _privacy = privacy;
+    }
 
     // ── Send request ──────────────────────────────────────────────────────────
 
@@ -226,6 +231,55 @@ public class FriendService : IFriendService
             var friend = r.RequesterId == userId ? r.Addressee : r.Requester;
             var mutual = await MutualFriendCountAsync(userId, friend.Id);
             var relation = await GetFamilyRelationAsync(userId, friend.Id);
+
+            items.Add(new FriendDto(
+                r.Id,
+                new FriendUserDto(friend.Id, friend.DisplayName, friend.AvatarUrl),
+                mutual,
+                r.UpdatedAt,
+                relation
+            ));
+        }
+
+        return new FriendsPageResult(items.ToArray(), page, pageSize, (page * pageSize) < total);
+    }
+
+    // ── View another user's friends (with privacy enforcement) ────────────────
+
+    public async Task<FriendsPageResult> GetUserFriendsAsync(
+        Guid targetUserId, Guid? viewerId, int page, int pageSize)
+    {
+        if (page < 1) page = 1;
+        if (pageSize < 1 || pageSize > 100) pageSize = 20;
+
+        // Owner always sees their own friend list
+        if (viewerId.HasValue && viewerId.Value == targetUserId)
+            return await GetFriendsAsync(targetUserId, page, pageSize);
+
+        // Privacy gate
+        if (!await _privacy.CanViewFriendListAsync(targetUserId, viewerId))
+            throw new UnauthorizedAccessException("This user's friend list is private.");
+
+        // Same query as GetFriendsAsync but for targetUserId
+        var query = _db.Friends
+            .AsNoTracking()
+            .Include(f => f.Requester)
+            .Include(f => f.Addressee)
+            .Where(f => f.Status == FriendStatus.Accepted &&
+                        (f.RequesterId == targetUserId || f.AddresseeId == targetUserId))
+            .OrderBy(f => f.UpdatedAt);
+
+        var total = await query.CountAsync();
+        var records = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+        var items = new List<FriendDto>(records.Count);
+        foreach (var r in records)
+        {
+            var friend = r.RequesterId == targetUserId ? r.Addressee : r.Requester;
+            var mutual = viewerId.HasValue
+                ? await MutualFriendCountAsync(viewerId.Value, friend.Id)
+                : 0;
+            var relation = await GetFamilyRelationAsync(targetUserId, friend.Id);
 
             items.Add(new FriendDto(
                 r.Id,

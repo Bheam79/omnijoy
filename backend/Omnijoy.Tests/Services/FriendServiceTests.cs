@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Omnijoy.Core.DTOs.Friends;
+using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models;
 using Omnijoy.Core.Models.Enums;
 using Omnijoy.Infrastructure.Data;
@@ -19,7 +20,8 @@ public class FriendServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _db = new OmnijoyDbContext(options);
-        _sut = new FriendService(_db);
+        var privacy = new PrivacyService(_db);
+        _sut = new FriendService(_db, privacy);
     }
 
     public void Dispose() => _db.Dispose();

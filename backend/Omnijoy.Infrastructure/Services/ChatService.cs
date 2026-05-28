@@ -16,11 +16,13 @@ public class ChatService : IChatService
 {
     private readonly OmnijoyDbContext _db;
     private readonly IMediaStorageService _storage;
+    private readonly IPrivacyService _privacy;
 
-    public ChatService(OmnijoyDbContext db, IMediaStorageService storage)
+    public ChatService(OmnijoyDbContext db, IMediaStorageService storage, IPrivacyService privacy)
     {
         _db = db;
         _storage = storage;
+        _privacy = privacy;
     }
 
     // ── Conversations ─────────────────────────────────────────────────────────
@@ -108,6 +110,10 @@ public class ChatService : IChatService
         // Verify the other user exists
         _ = await _db.Users.FindAsync(otherUserId)
             ?? throw new KeyNotFoundException($"User {otherUserId} not found.");
+
+        // Enforce WhoCanSendMessages privacy setting (only when starting a new conversation)
+        if (!await _privacy.CanSendMessagesAsync(otherUserId, userId))
+            throw new UnauthorizedAccessException("This user has restricted who can send them messages.");
 
         // Create new direct conversation
         var conversation = new Conversation

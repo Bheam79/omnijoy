@@ -11,11 +11,13 @@ public class PostService : IPostService
 {
     private readonly OmnijoyDbContext _db;
     private readonly IMediaStorageService _storage;
+    private readonly IPrivacyService _privacy;
 
-    public PostService(OmnijoyDbContext db, IMediaStorageService storage)
+    public PostService(OmnijoyDbContext db, IMediaStorageService storage, IPrivacyService privacy)
     {
         _db = db;
         _storage = storage;
+        _privacy = privacy;
     }
 
     // ── Create ────────────────────────────────────────────────────────────────
@@ -105,15 +107,21 @@ public class PostService : IPostService
         // Accepted friend IDs
         var friendIds = await GetFriendIdsAsync(userId);
 
+        // IDs of users that have a block relationship with the requesting user
+        // (blocked by me OR they blocked me — neither can see the other's content)
+        var blockedIds = await GetBlockedUserIdsAsync(userId);
+
         // Posts visible to this user:
         //   1. Own posts (all privacy levels)
-        //   2. Friend posts where Privacy is Everyone or Friends
-        //   3. Non-friend posts where Privacy is Everyone
+        //   2. Friend posts where Privacy is Everyone or Friends (and not blocked)
+        //   3. Non-friend posts where Privacy is Everyone (and not blocked)
         var query = _db.Posts
             .AsNoTracking()
             .Include(p => p.Author)
             .Include(p => p.Media)
             .Where(p => p.DeletedAt == null)
+            // Never show posts from blocked users
+            .Where(p => !blockedIds.Contains(p.AuthorUserId))
             .Where(p =>
                 // Own posts
                 p.AuthorUserId == userId ||
@@ -214,6 +222,22 @@ public class PostService : IPostService
             .ToListAsync();
     }
 
+    /// <summary>
+    /// Returns IDs of users that have a block relationship with <paramref name="userId"/>
+    /// in either direction (they blocked me OR I blocked them).
+    /// </summary>
+    private async Task<HashSet<Guid>> GetBlockedUserIdsAsync(Guid userId)
+    {
+        var ids = await _db.Friends
+            .AsNoTracking()
+            .Where(f => f.Status == FriendStatus.Blocked &&
+                        (f.RequesterId == userId || f.AddresseeId == userId))
+            .Select(f => f.RequesterId == userId ? f.AddresseeId : f.RequesterId)
+            .ToListAsync();
+
+        return [.. ids];
+    }
+
     private async Task<PostDto?> LoadPostDtoAsync(Guid postId)
     {
         var post = await _db.Posts
@@ -229,6 +253,13 @@ public class PostService : IPostService
     {
         if (requesterId.HasValue && post.AuthorUserId == requesterId.Value)
             return; // owner always can read
+
+        // Blocked users can never see each other's content
+        if (requesterId.HasValue &&
+            !await _privacy.AreNotBlockedAsync(post.AuthorUserId, requesterId.Value))
+        {
+            throw new UnauthorizedAccessException("You do not have permission to view this post.");
+        }
 
         bool canRead = post.Privacy switch
         {

@@ -24,7 +24,8 @@ public class UserServiceTests : IDisposable
 
         _db = new OmnijoyDbContext(options);
         _storageMock = new Mock<IMediaStorageService>();
-        _sut = new UserService(_db, _storageMock.Object);
+        var privacy = new PrivacyService(_db);
+        _sut = new UserService(_db, _storageMock.Object, privacy);
     }
 
     public void Dispose() => _db.Dispose();

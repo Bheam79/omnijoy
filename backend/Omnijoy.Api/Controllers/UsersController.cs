@@ -12,8 +12,13 @@ namespace Omnijoy.Api.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserService _users;
+    private readonly IFriendService _friends;
 
-    public UsersController(IUserService users) => _users = users;
+    public UsersController(IUserService users, IFriendService friends)
+    {
+        _users = users;
+        _friends = friends;
+    }
 
     /// <summary>Returns the currently authenticated user's ID, or null if anonymous.</summary>
     private Guid? CurrentUserId =>
@@ -120,6 +125,34 @@ public class UsersController : ControllerBase
         catch (ArgumentException ex)
         {
             return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    // ── GET /api/users/{id}/friends ───────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the paginated friend list for a given user.
+    /// Respects the target user's WhoCanSeeFriendList privacy setting.
+    /// </summary>
+    [HttpGet("{id:guid}/friends")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetUserFriends(
+        Guid id,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        try
+        {
+            var result = await _friends.GetUserFriendsAsync(id, CurrentUserId, page, pageSize);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
         }
     }
 
