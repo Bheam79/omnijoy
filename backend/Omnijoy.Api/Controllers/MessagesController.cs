@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.SignalR;
 using Omnijoy.Api.Hubs;
+using Omnijoy.Api.RateLimiting;
 using Omnijoy.Core.DTOs.Chat;
 using Omnijoy.Core.DTOs.Posts;
 using Omnijoy.Core.Interfaces;
@@ -42,6 +44,7 @@ public class MessagesController : ControllerBase
     /// </summary>
     [HttpPost]
     [RequestSizeLimit(210 * 1024 * 1024)] // 210 MB to support large video attachments
+    [EnableRateLimiting(RateLimitConstants.UploadPolicy)]
     public async Task<IActionResult> SendMessage([FromForm] SendMessageFormInput input)
     {
         if (CurrentUserId is not { } userId) return Unauthorized();

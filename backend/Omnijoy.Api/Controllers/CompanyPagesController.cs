@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Omnijoy.Api.RateLimiting;
 using Omnijoy.Core.DTOs.CompanyPages;
 using Omnijoy.Core.Interfaces;
 
@@ -29,6 +31,7 @@ public class CompanyPagesController : ControllerBase
     /// </summary>
     [HttpPost]
     [RequestSizeLimit(25 * 1024 * 1024)]
+    [EnableRateLimiting(RateLimitConstants.UploadPolicy)]
     public async Task<IActionResult> CreatePage([FromForm] CreatePageFormInput input)
     {
         if (CurrentUserId is not { } userId)

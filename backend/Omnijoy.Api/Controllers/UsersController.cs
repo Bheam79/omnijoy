@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Omnijoy.Api.RateLimiting;
 using Omnijoy.Core.DTOs.Users;
 using Omnijoy.Core.Interfaces;
 
@@ -81,6 +83,7 @@ public class UsersController : ControllerBase
 
     [HttpPost("me/avatar")]
     [RequestSizeLimit(10 * 1024 * 1024)] // 10 MB request limit
+    [EnableRateLimiting(RateLimitConstants.UploadPolicy)]
     public async Task<IActionResult> UploadAvatar(IFormFile? file)
     {
         if (CurrentUserId is not { } userId)
@@ -109,6 +112,7 @@ public class UsersController : ControllerBase
 
     [HttpPost("me/cover")]
     [RequestSizeLimit(10 * 1024 * 1024)]
+    [EnableRateLimiting(RateLimitConstants.UploadPolicy)]
     public async Task<IActionResult> UploadCover(IFormFile? file)
     {
         if (CurrentUserId is not { } userId)

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Omnijoy.Api.Hubs;
+using Omnijoy.Api.RateLimiting;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Infrastructure.Data;
 using Omnijoy.Infrastructure.Services;
@@ -112,6 +113,12 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 // ── Token blacklist (JWT revocation on logout) ────────────────────────────────
 builder.Services.AddSingleton<ITokenBlacklist, RedisTokenBlacklist>();
 
+// ── Rate limiting ─────────────────────────────────────────────────────────────
+// GlobalLimiter: 200 req/min per IP (unauth) | 600 req/min per userId (auth)
+// "strict":  10 req/min per IP  — applied to auth endpoints via [EnableRateLimiting]
+// "upload":  20 req/hour per userId — applied to upload endpoints
+builder.Services.AddOmnijoyRateLimiting(redisConnectionString);
+
 // ── CORS ──────────────────────────────────────────────────────────────────────
 builder.Services.AddCors(options =>
 {
@@ -174,6 +181,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 // ── Static files (Vue SPA served from wwwroot) ────────────────────────────────
 app.UseDefaultFiles();

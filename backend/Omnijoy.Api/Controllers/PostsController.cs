@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.SignalR;
 using Omnijoy.Api.Hubs;
+using Omnijoy.Api.RateLimiting;
 using Omnijoy.Core.DTOs.Posts;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models.Enums;
@@ -50,6 +52,7 @@ public class PostsController : ControllerBase
     /// </summary>
     [HttpPost]
     [RequestSizeLimit(210 * 1024 * 1024)] // 210 MB to cover large video uploads
+    [EnableRateLimiting(RateLimitConstants.UploadPolicy)]
     public async Task<IActionResult> CreatePost([FromForm] CreatePostFormInput input)
     {
         if (CurrentUserId is not { } userId)

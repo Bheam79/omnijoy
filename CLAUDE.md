@@ -216,6 +216,28 @@ dotnet ef database update \
   --startup-project backend/Omnijoy.Api
 ```
 
+### Rate limiting
+
+Implemented via `Microsoft.AspNetCore.RateLimiting` (built-in .NET 8+) with Redis-backed
+counters when Redis is available, falling back gracefully to per-instance in-memory limiters.
+Registration: `services.AddOmnijoyRateLimiting(redisConnectionString)` in `Program.cs`.
+Middleware: `app.UseRateLimiter()` (after `UseAuthorization()`).
+
+| Policy | Key | Limit | Applied to |
+|--------|-----|-------|-----------|
+| **GlobalLimiter** (implicit) | IP (unauthenticated) | 200 req/min | Every request |
+| **GlobalLimiter** (implicit) | userId (authenticated) | 600 req/min | Every request |
+| `strict` | IP | 10 req/min | `AuthController` (class-level) |
+| `upload` | userId or IP | 20 req/hour | POST media/avatar/cover/messages/events/company-pages |
+
+Apply named policies with `[EnableRateLimiting(RateLimitConstants.StrictPolicy)]` or
+`[EnableRateLimiting(RateLimitConstants.UploadPolicy)]` on controllers/actions.
+All rejections return **429 Too Many Requests** with a `Retry-After` header (seconds).
+
+Package: `RedisRateLimiting` 1.2.1 (cristipufu) — use `RedisRateLimitPartition.GetFixedWindowRateLimiter`
+with `options.AddPolicy<string>(name, ctx => ...)` for per-user/IP partitioned Redis policies.
+The `.AddRedisFixedWindowLimiter` extension only supports global (non-partitioned) counters.
+
 ---
 
 ## Frontend structure

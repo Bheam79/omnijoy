@@ -1,11 +1,19 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Omnijoy.Api.RateLimiting;
 using Omnijoy.Core.DTOs.Auth;
 using Omnijoy.Core.Interfaces;
 
 namespace Omnijoy.Api.Controllers;
 
+/// <summary>
+/// Authentication endpoints. All actions are rate-limited to
+/// <see cref="RateLimitConstants.StrictPermitLimit"/> requests per minute
+/// (per IP) to prevent brute-force and enumeration attacks.
+/// </summary>
 [ApiController]
 [Route("api/auth")]
+[EnableRateLimiting(RateLimitConstants.StrictPolicy)]
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _auth;

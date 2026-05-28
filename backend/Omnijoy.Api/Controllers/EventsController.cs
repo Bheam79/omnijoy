@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.SignalR;
 using Omnijoy.Api.Hubs;
+using Omnijoy.Api.RateLimiting;
 using Omnijoy.Core.DTOs.Events;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models.Enums;
@@ -39,6 +41,7 @@ public class EventsController : ControllerBase
     /// </summary>
     [HttpPost]
     [RequestSizeLimit(25 * 1024 * 1024)] // 25 MB cover image limit
+    [EnableRateLimiting(RateLimitConstants.UploadPolicy)]
     public async Task<IActionResult> CreateEvent([FromForm] CreateEventFormInput input)
     {
         if (CurrentUserId is not { } userId)
