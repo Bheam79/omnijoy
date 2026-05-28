@@ -1,9 +1,15 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { postService, type PostDto, type CreatePostPayload } from '@/services/postService'
+import {
+  postService,
+  type PostDto,
+  type FeedItemDto,
+  type SharedPostFeedItemDto,
+  type CreatePostPayload,
+} from '@/services/postService'
 
 export const useFeedStore = defineStore('feed', () => {
-  const posts = ref<PostDto[]>([])
+  const items = ref<FeedItemDto[]>([])
   const page = ref(1)
   const hasMore = ref(true)
   const loading = ref(false)
@@ -19,7 +25,7 @@ export const useFeedStore = defineStore('feed', () => {
     hasMore.value = true
     try {
       const result = await postService.getFeed(1)
-      posts.value = result.items
+      items.value = result.items
       hasMore.value = result.hasMore
       page.value = 1
     } catch (e: unknown) {
@@ -37,7 +43,7 @@ export const useFeedStore = defineStore('feed', () => {
     try {
       const nextPage = page.value + 1
       const result = await postService.getFeed(nextPage)
-      posts.value.push(...result.items)
+      items.value.push(...result.items)
       hasMore.value = result.hasMore
       page.value = nextPage
     } catch (e: unknown) {
@@ -51,8 +57,6 @@ export const useFeedStore = defineStore('feed', () => {
 
   async function createPost(payload: CreatePostPayload): Promise<PostDto> {
     const post = await postService.createPost(payload)
-    // Optimistically prepend to feed; SignalR may also push it —
-    // deduplication is handled by prependPost
     prependPost(post)
     return post
   }
@@ -61,18 +65,27 @@ export const useFeedStore = defineStore('feed', () => {
 
   async function deletePost(id: string) {
     await postService.deletePost(id)
-    posts.value = posts.value.filter(p => p.id !== id)
+    items.value = items.value.filter(item =>
+      item.post?.id !== id && item.sharedPost?.originalPost.id !== id,
+    )
   }
 
   // ── SignalR: push new post to top (deduplication guard) ───────────────────
 
   function prependPost(post: PostDto) {
-    if (posts.value.some(p => p.id === post.id)) return
-    posts.value.unshift(post)
+    if (items.value.some(item => item.post?.id === post.id)) return
+    items.value.unshift({ itemType: 'Post', post })
+  }
+
+  // ── SignalR: push new shared post to top ──────────────────────────────────
+
+  function prependSharedPost(sharedPost: SharedPostFeedItemDto) {
+    if (items.value.some(item => item.sharedPost?.id === sharedPost.id)) return
+    items.value.unshift({ itemType: 'SharedPost', sharedPost })
   }
 
   function reset() {
-    posts.value = []
+    items.value = []
     page.value = 1
     hasMore.value = true
     loading.value = false
@@ -80,7 +93,12 @@ export const useFeedStore = defineStore('feed', () => {
     error.value = null
   }
 
+  // Backward-compat: expose flat list of PostDtos for components that only care about posts
+  // (e.g. WallView post subscription loop — it iterates all posts)
+  const posts = items
+
   return {
+    items,
     posts,
     page,
     hasMore,
@@ -92,6 +110,7 @@ export const useFeedStore = defineStore('feed', () => {
     createPost,
     deletePost,
     prependPost,
+    prependSharedPost,
     reset,
   }
 })

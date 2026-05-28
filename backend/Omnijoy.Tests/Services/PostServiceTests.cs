@@ -147,7 +147,8 @@ public class PostServiceTests : IDisposable
         var feed = await _sut.GetFeedAsync(user.Id, 1, 20);
 
         feed.Items.Should().HaveCount(1);
-        feed.Items[0].Content.Should().Be("My post");
+        feed.Items[0].Post!.Content.Should().Be("My post");
+        feed.Items[0].ItemType.Should().Be("Post");
     }
 
     [Fact]
@@ -172,7 +173,7 @@ public class PostServiceTests : IDisposable
 
         var feed = await _sut.GetFeedAsync(alice.Id, 1, 20);
 
-        feed.Items.Should().Contain(p => p.Content == "Bob's public post");
+        feed.Items.Should().Contain(item => item.Post != null && item.Post.Content == "Bob's public post");
     }
 
     [Fact]
@@ -197,7 +198,7 @@ public class PostServiceTests : IDisposable
 
         var feed = await _sut.GetFeedAsync(alice.Id, 1, 20);
 
-        feed.Items.Should().NotContain(p => p.Content == "Bob's private post");
+        feed.Items.Should().NotContain(item => item.Post != null && item.Post.Content == "Bob's private post");
     }
 
     [Fact]

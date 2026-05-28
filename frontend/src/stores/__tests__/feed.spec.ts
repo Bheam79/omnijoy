@@ -29,6 +29,10 @@ function makePost(id: string, content = `Post ${id}`) {
   }
 }
 
+function makeFeedItem(post: ReturnType<typeof makePost>) {
+  return { itemType: 'Post' as const, post }
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('useFeedStore', () => {
@@ -39,14 +43,14 @@ describe('useFeedStore', () => {
 
   // ── loadFeed ───────────────────────────────────────────────────────────────
 
-  it('loadFeed — sets posts on success', async () => {
-    const posts = [makePost('1'), makePost('2')]
-    mockPostService.getFeed.mockResolvedValue({ items: posts, page: 1, pageSize: 20, hasMore: false })
+  it('loadFeed — sets items on success', async () => {
+    const feedItems = [makePost('1'), makePost('2')].map(makeFeedItem)
+    mockPostService.getFeed.mockResolvedValue({ items: feedItems, page: 1, pageSize: 20, hasMore: false })
 
     const store = useFeedStore()
     await store.loadFeed()
 
-    expect(store.posts).toEqual(posts)
+    expect(store.items).toEqual(feedItems)
     expect(store.hasMore).toBe(false)
     expect(store.loading).toBe(false)
     expect(store.error).toBeNull()
@@ -58,15 +62,15 @@ describe('useFeedStore', () => {
     const store = useFeedStore()
     await store.loadFeed()
 
-    expect(store.posts).toHaveLength(0)
+    expect(store.items).toHaveLength(0)
     expect(store.error).toBeTruthy()
   })
 
   // ── loadMore ───────────────────────────────────────────────────────────────
 
-  it('loadMore — appends posts to existing list', async () => {
-    const page1 = [makePost('1'), makePost('2')]
-    const page2 = [makePost('3'), makePost('4')]
+  it('loadMore — appends items to existing list', async () => {
+    const page1 = [makePost('1'), makePost('2')].map(makeFeedItem)
+    const page2 = [makePost('3'), makePost('4')].map(makeFeedItem)
 
     mockPostService.getFeed
       .mockResolvedValueOnce({ items: page1, page: 1, pageSize: 20, hasMore: true })
@@ -76,8 +80,8 @@ describe('useFeedStore', () => {
     await store.loadFeed()
     await store.loadMore()
 
-    expect(store.posts).toHaveLength(4)
-    expect(store.posts[2].id).toBe('3')
+    expect(store.items).toHaveLength(4)
+    expect(store.items[2].post?.id).toBe('3')
     expect(store.hasMore).toBe(false)
     expect(store.page).toBe(2)
   })
@@ -101,7 +105,7 @@ describe('useFeedStore', () => {
 
     store.prependPost(post)
 
-    expect(store.posts[0].id).toBe('new-post')
+    expect(store.items[0].post?.id).toBe('new-post')
   })
 
   it('prependPost — deduplicates by id', () => {
@@ -111,7 +115,7 @@ describe('useFeedStore', () => {
     store.prependPost(post)
     store.prependPost(post) // second call should not add another
 
-    expect(store.posts).toHaveLength(1)
+    expect(store.items).toHaveLength(1)
   })
 
   // ── createPost ─────────────────────────────────────────────────────────────
@@ -128,34 +132,40 @@ describe('useFeedStore', () => {
     })
 
     expect(result.id).toBe('created')
-    expect(store.posts[0].id).toBe('created')
+    expect(store.items[0].post?.id).toBe('created')
   })
 
   // ── deletePost ─────────────────────────────────────────────────────────────
 
   it('deletePost — removes post from list', async () => {
     mockPostService.deletePost.mockResolvedValue(undefined)
-    mockPostService.getFeed.mockResolvedValue({ items: [makePost('1'), makePost('2')], page: 1, pageSize: 20, hasMore: false })
+    mockPostService.getFeed.mockResolvedValue({
+      items: [makePost('1'), makePost('2')].map(makeFeedItem),
+      page: 1, pageSize: 20, hasMore: false,
+    })
 
     const store = useFeedStore()
     await store.loadFeed()
     await store.deletePost('1')
 
-    expect(store.posts).toHaveLength(1)
-    expect(store.posts[0].id).toBe('2')
+    expect(store.items).toHaveLength(1)
+    expect(store.items[0].post?.id).toBe('2')
   })
 
   // ── reset ──────────────────────────────────────────────────────────────────
 
   it('reset — restores initial state', async () => {
-    mockPostService.getFeed.mockResolvedValue({ items: [makePost('1')], page: 1, pageSize: 20, hasMore: false })
+    mockPostService.getFeed.mockResolvedValue({
+      items: [makePost('1')].map(makeFeedItem),
+      page: 1, pageSize: 20, hasMore: false,
+    })
 
     const store = useFeedStore()
     await store.loadFeed()
 
     store.reset()
 
-    expect(store.posts).toHaveLength(0)
+    expect(store.items).toHaveLength(0)
     expect(store.page).toBe(1)
     expect(store.hasMore).toBe(true)
     expect(store.error).toBeNull()

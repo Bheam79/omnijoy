@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useFeedStore } from '@/stores/feed'
 import PostReactionBar from './PostReactionBar.vue'
 import CommentThread from './CommentThread.vue'
+import ShareModal from './ShareModal.vue'
 
 const props = defineProps<{ post: PostDto }>()
 const emit = defineEmits<{ deleted: [id: string] }>()
@@ -15,8 +16,21 @@ const feed = useFeedStore()
 const isLoggedIn = computed(() => !!auth.user)
 
 const isOwn = computed(() => auth.user?.id === props.post.author.id)
-const shareUrl = computed(() => `${window.location.origin}/share/posts/${props.post.id}`)
+
+// ── Share ─────────────────────────────────────────────────────────────────────
+const shareModalOpen = ref(false)
 const shareCopied = ref(false)
+
+function openShareModal() {
+  if (isLoggedIn.value) {
+    shareModalOpen.value = true
+  } else {
+    // Not logged in: fall back to copying the public share link
+    copyShareLink()
+  }
+}
+
+const shareUrl = computed(() => `${window.location.origin}/share/posts/${props.post.id}`)
 
 async function copyShareLink() {
   try {
@@ -24,7 +38,6 @@ async function copyShareLink() {
     shareCopied.value = true
     setTimeout(() => { shareCopied.value = false }, 1800)
   } catch {
-    // Fallback: prompt the user with the URL so they can copy manually.
     window.prompt('Copy share link:', shareUrl.value)
   }
 }
@@ -243,8 +256,8 @@ const tobStyle = computed(() => {
       </button>
       <button
         class="flex items-center gap-1.5 text-gray-500 hover:text-blue-600 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-blue-50 transition flex-1 justify-center"
-        :title="shareCopied ? 'Link copied!' : 'Copy share link'"
-        @click="copyShareLink"
+        :title="shareCopied ? 'Link copied!' : 'Share this post'"
+        @click="openShareModal"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -259,6 +272,13 @@ const tobStyle = computed(() => {
       ref="threadRef"
       :post-id="post.id"
       v-model:expanded="threadExpanded"
+    />
+
+    <!-- Share modal -->
+    <ShareModal
+      v-if="isLoggedIn"
+      v-model="shareModalOpen"
+      :post="post"
     />
   </article>
 </template>

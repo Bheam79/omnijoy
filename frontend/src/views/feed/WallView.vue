@@ -5,10 +5,11 @@ import { useFeedStore } from '@/stores/feed'
 import { useAuthStore } from '@/stores/auth'
 import { useReactionsStore } from '@/stores/reactions'
 import { useCommentsStore } from '@/stores/comments'
-import type { PostDto } from '@/services/postService'
+import type { PostDto, FeedItemDto } from '@/services/postService'
 import type { ReactionCountsUpdatedEvent } from '@/services/reactionService'
 import type { CommentDto } from '@/services/commentService'
 import PostCard from '@/components/post/PostCard.vue'
+import SharedPostCard from '@/components/post/SharedPostCard.vue'
 import PostComposer from '@/components/post/PostComposer.vue'
 
 const feed = useFeedStore()
@@ -56,8 +57,13 @@ function connectSignalR() {
 
   hubConnection.on('NewPost', (post: PostDto) => {
     feed.prependPost(post)
-    // Subscribe to reaction updates for the newly-arrived post
     subscribeToPost(post.id)
+  })
+
+  hubConnection.on('NewSharedPost', (item: FeedItemDto) => {
+    if (item.sharedPost) {
+      feed.prependSharedPost(item.sharedPost)
+    }
   })
 
   hubConnection.on('ReactionCountsUpdated', (event: ReactionCountsUpdatedEvent) => {
@@ -86,13 +92,13 @@ function subscribeToPost(postId: string) {
 }
 
 function subscribeToVisiblePosts() {
-  for (const post of feed.posts) {
-    subscribeToPost(post.id)
+  for (const item of feed.items) {
+    if (item.post) subscribeToPost(item.post.id)
   }
 }
 
-// Re-subscribe whenever the posts list grows (e.g. infinite scroll loads more)
-watch(() => feed.posts.length, () => {
+// Re-subscribe whenever the items list grows (e.g. infinite scroll loads more)
+watch(() => feed.items.length, () => {
   if (hubConnection?.state === signalR.HubConnectionState.Connected) {
     subscribeToVisiblePosts()
   }
@@ -162,7 +168,7 @@ function setupInfiniteScroll() {
 
     <!-- Empty state -->
     <div
-      v-else-if="!feed.loading && feed.posts.length === 0"
+      v-else-if="!feed.loading && feed.items.length === 0"
       class="bg-white rounded-xl shadow-sm border border-gray-100 p-10 text-center"
     >
       <p class="text-4xl mb-3">👋</p>
@@ -178,13 +184,18 @@ function setupInfiniteScroll() {
       </button>
     </div>
 
-    <!-- Posts -->
+    <!-- Feed items (posts + shared posts) -->
     <template v-else>
-      <PostCard
-        v-for="post in feed.posts"
-        :key="post.id"
-        :post="post"
-      />
+      <template v-for="item in feed.items" :key="item.post?.id ?? item.sharedPost?.id">
+        <PostCard
+          v-if="item.itemType === 'Post' && item.post"
+          :post="item.post"
+        />
+        <SharedPostCard
+          v-else-if="item.itemType === 'SharedPost' && item.sharedPost"
+          :shared-post="item.sharedPost"
+        />
+      </template>
 
       <!-- Infinite-scroll sentinel -->
       <div ref="sentinelRef" class="py-2 flex justify-center">
@@ -195,7 +206,7 @@ function setupInfiniteScroll() {
           </svg>
           Loading more…
         </div>
-        <p v-else-if="!feed.hasMore && feed.posts.length > 0" class="text-xs text-gray-400">
+        <p v-else-if="!feed.hasMore && feed.items.length > 0" class="text-xs text-gray-400">
           You've reached the end
         </p>
       </div>

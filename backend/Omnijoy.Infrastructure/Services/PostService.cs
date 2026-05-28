@@ -108,41 +108,95 @@ public class PostService : IPostService
         var friendIds = await GetFriendIdsAsync(userId);
 
         // IDs of users that have a block relationship with the requesting user
-        // (blocked by me OR they blocked me — neither can see the other's content)
         var blockedIds = await GetBlockedUserIdsAsync(userId);
 
-        // Posts visible to this user:
-        //   1. Own posts (all privacy levels)
-        //   2. Friend posts where Privacy is Everyone or Friends (and not blocked)
-        //   3. Non-friend posts where Privacy is Everyone (and not blocked)
-        var query = _db.Posts
+        // ── Regular posts visible to this user ────────────────────────────────
+        var postQuery = _db.Posts
             .AsNoTracking()
-            .Include(p => p.Author)
-            .Include(p => p.Media)
             .Where(p => p.DeletedAt == null)
-            // Never show posts from blocked users
             .Where(p => !blockedIds.Contains(p.AuthorUserId))
             .Where(p =>
-                // Own posts
                 p.AuthorUserId == userId ||
-                // Friends' posts visible to friends
                 (friendIds.Contains(p.AuthorUserId) &&
                  (p.Privacy == PrivacyLevel.Everyone || p.Privacy == PrivacyLevel.Friends || p.Privacy == PrivacyLevel.FriendsOfFriends)) ||
-                // Public posts from anyone
                 (p.Privacy == PrivacyLevel.Everyone && !friendIds.Contains(p.AuthorUserId) && p.AuthorUserId != userId)
-            )
-            .OrderByDescending(p => p.CreatedAt);
+            );
 
-        var totalVisible = await query.CountAsync();
-        var items = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+        // ── Shared posts visible to this user ─────────────────────────────────
+        // A share appears in the feed when:
+        //   a) Sharer is the user themselves
+        //   b) Sharer is a friend (OwnWall or FriendWall where target is user)
+        //   c) The share targets the user's wall (TargetType == FriendWall, TargetId == userId)
+        var shareQuery = _db.SharedPosts
+            .AsNoTracking()
+            .Where(s => !blockedIds.Contains(s.SharerId))
+            .Where(s =>
+                s.SharerId == userId ||
+                (friendIds.Contains(s.SharerId) &&
+                 (s.TargetType == ShareTargetType.OwnWall ||
+                  (s.TargetType == ShareTargetType.FriendWall && s.TargetId == userId))) ||
+                (s.TargetType == ShareTargetType.FriendWall && s.TargetId == userId)
+            );
+
+        // ── Lightweight merge: get ID + date for all visible items ─────────────
+        var postRows  = await postQuery
+            .Select(p => new { p.Id, Date = p.CreatedAt, Type = "Post" })
             .ToListAsync();
 
-        var dtos = items.Select(MapToDto).ToArray();
+        var shareRows = await shareQuery
+            .Select(s => new { s.Id, Date = s.CreatedAt, Type = "SharedPost" })
+            .ToListAsync();
+
+        var allRows = postRows.Select(r => (r.Date, r.Type, r.Id))
+            .Concat(shareRows.Select(r => (r.Date, r.Type, r.Id)))
+            .OrderByDescending(r => r.Date)
+            .ToList();
+
+        var totalVisible = allRows.Count;
+        var pageRows = allRows
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        // ── Load full data for page items only ─────────────────────────────────
+        var postIds  = pageRows.Where(r => r.Type == "Post")       .Select(r => r.Id).ToHashSet();
+        var shareIds = pageRows.Where(r => r.Type == "SharedPost") .Select(r => r.Id).ToHashSet();
+
+        var postsData = postIds.Count > 0
+            ? await _db.Posts.AsNoTracking()
+                .Include(p => p.Author)
+                .Include(p => p.Media)
+                .Where(p => postIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id)
+            : new Dictionary<Guid, Post>();
+
+        var sharesData = shareIds.Count > 0
+            ? await _db.SharedPosts.AsNoTracking()
+                .Include(s => s.Sharer)
+                .Include(s => s.OriginalPost).ThenInclude(p => p.Author)
+                .Include(s => s.OriginalPost).ThenInclude(p => p.Media)
+                .Where(s => shareIds.Contains(s.Id))
+                .ToDictionaryAsync(s => s.Id)
+            : new Dictionary<Guid, SharedPost>();
+
+        // ── Build FeedItemDto list in original sorted order ────────────────────
+        var items = pageRows
+            .Select(row =>
+            {
+                if (row.Type == "Post" && postsData.TryGetValue(row.Id, out var post))
+                    return new FeedItemDto("Post", MapToDto(post), null);
+
+                if (row.Type == "SharedPost" && sharesData.TryGetValue(row.Id, out var share))
+                    return new FeedItemDto("SharedPost", null,
+                        ShareService.MapToDto(share, share.Sharer, share.OriginalPost));
+
+                return null;
+            })
+            .OfType<FeedItemDto>()
+            .ToArray();
 
         return new FeedPageResult(
-            Items: dtos,
+            Items: items,
             Page: page,
             PageSize: pageSize,
             HasMore: (page * pageSize) < totalVisible

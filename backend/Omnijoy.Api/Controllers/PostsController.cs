@@ -18,17 +18,20 @@ public class PostsController : ControllerBase
     private readonly IReactionService _reactions;
     private readonly IHubContext<FeedHub> _feedHub;
     private readonly INotificationService _notifications;
+    private readonly IShareService _shares;
 
     public PostsController(
         IPostService posts,
         IReactionService reactions,
         IHubContext<FeedHub> feedHub,
-        INotificationService notifications)
+        INotificationService notifications,
+        IShareService shares)
     {
         _posts         = posts;
         _reactions     = reactions;
         _feedHub       = feedHub;
         _notifications = notifications;
+        _shares        = shares;
     }
 
     private Guid? CurrentUserId =>
@@ -262,6 +265,71 @@ public class PostsController : ControllerBase
         catch (KeyNotFoundException ex)
         {
             return NotFound(new { error = ex.Message });
+        }
+    }
+
+    // ── POST /api/posts/{id}/share ────────────────────────────────────────────
+
+    /// <summary>
+    /// Share an existing post to own wall, a friend's wall, or a company page.
+    /// Body: { "targetType": "OwnWall" | "FriendWall" | "CompanyPage", "targetId": guid?, "message": string? }
+    /// </summary>
+    [HttpPost("{id:guid}/share")]
+    public async Task<IActionResult> SharePost(Guid id, [FromBody] CreateShareRequest request)
+    {
+        if (CurrentUserId is not { } userId)
+            return Unauthorized(new { error = "Not authenticated." });
+
+        try
+        {
+            var sharedPost = await _shares.CreateShareAsync(userId, id, request);
+
+            // Push NewSharedPost to relevant users via FeedHub
+            var recipientIds = await _shares.GetShareRecipientIdsAsync(userId, sharedPost);
+            var feedItem = new FeedItemDto("SharedPost", null, sharedPost);
+
+            foreach (var recipientId in recipientIds)
+            {
+                await _feedHub.Clients
+                    .Group($"user:{recipientId}")
+                    .SendAsync("NewSharedPost", feedItem);
+            }
+
+            // Notify the original post author that their post was shared (if not the sharer)
+            if (sharedPost.OriginalPost.Author.Id != userId)
+            {
+                await _notifications.CreateAsync(
+                    recipientUserId: sharedPost.OriginalPost.Author.Id,
+                    type:            NotificationType.PostShare,
+                    referenceId:     id.ToString(),
+                    actorUserId:     userId);
+            }
+
+            // For FriendWall: notify the target user
+            if (request.TargetType.Equals("FriendWall", StringComparison.OrdinalIgnoreCase) &&
+                request.TargetId.HasValue &&
+                request.TargetId.Value != userId)
+            {
+                await _notifications.CreateAsync(
+                    recipientUserId: request.TargetId.Value,
+                    type:            NotificationType.PostShare,
+                    referenceId:     id.ToString(),
+                    actorUserId:     userId);
+            }
+
+            return Created($"/api/posts/{id}/share", sharedPost);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
         }
     }
 

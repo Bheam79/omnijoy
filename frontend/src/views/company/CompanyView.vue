@@ -50,7 +50,9 @@ async function fetchData() {
     // Load page's posts (reuse postService.getFeed with a filter would be ideal;
     // for now fetch all posts and client-filter — a dedicated endpoint is out of scope)
     const feedResult = await postService.getFeed(1, 50)
-    posts.value = feedResult.items.filter(p => p.companyPageId === id)
+    posts.value = feedResult.items
+      .filter(item => item.itemType === 'Post' && item.post?.companyPageId === id)
+      .map(item => item.post!)
   } catch (e: unknown) {
     error.value = extractError(e)
   } finally {

@@ -39,8 +39,29 @@ export interface PostDto {
   updatedAt: string
 }
 
+/** A shared post as it appears in the feed. */
+export interface SharedPostFeedItemDto {
+  id: string
+  sharer: PostAuthor
+  message?: string
+  targetType: 'OwnWall' | 'FriendWall' | 'CompanyPage'
+  targetId?: string
+  originalPost: PostDto
+  createdAt: string
+}
+
+/**
+ * A discriminated-union feed item — either a regular post or a shared post.
+ * Check `itemType` to determine which field is populated.
+ */
+export interface FeedItemDto {
+  itemType: 'Post' | 'SharedPost'
+  post?: PostDto
+  sharedPost?: SharedPostFeedItemDto
+}
+
 export interface FeedPageResult {
-  items: PostDto[]
+  items: FeedItemDto[]
   page: number
   pageSize: number
   hasMore: boolean

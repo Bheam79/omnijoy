@@ -13,6 +13,7 @@ public class OmnijoyDbContext : DbContext
     public DbSet<UserPrivacySettings> UserPrivacySettings => Set<UserPrivacySettings>();
     public DbSet<AuthProvider> AuthProviders => Set<AuthProvider>();
     public DbSet<Post> Posts => Set<Post>();
+    public DbSet<SharedPost> SharedPosts => Set<SharedPost>();
     public DbSet<PostMedia> PostMedia => Set<PostMedia>();
     public DbSet<PostReaction> PostReactions => Set<PostReaction>();
     public DbSet<Comment> Comments => Set<Comment>();

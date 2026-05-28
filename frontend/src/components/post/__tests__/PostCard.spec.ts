@@ -9,8 +9,33 @@ import { useAuthStore } from '@/stores/auth'
 
 vi.mock('@/stores/feed', () => ({
   useFeedStore: () => ({
-    deletePost: vi.fn().mockResolvedValue(undefined),
+    deletePost:         vi.fn().mockResolvedValue(undefined),
+    prependSharedPost:  vi.fn(),
   }),
+}))
+
+// ── Mock friendsStore (used by ShareModal) ────────────────────────────────────
+
+vi.mock('@/stores/friends', () => ({
+  useFriendsStore: () => ({
+    friends:        [],
+    loadingFriends: false,
+    loadFriends:    vi.fn().mockResolvedValue(undefined),
+  }),
+}))
+
+// ── Mock shareService (used by ShareModal) ────────────────────────────────────
+
+vi.mock('@/services/shareService', () => ({
+  shareService: {
+    sharePost: vi.fn().mockResolvedValue({
+      id:           'share-1',
+      sharer:       { id: 'author-1', displayName: 'Alice' },
+      targetType:   'OwnWall',
+      originalPost: {},
+      createdAt:    '2024-06-01T12:00:00Z',
+    }),
+  },
 }))
 
 // ── Mock reactionsStore (PostCard → PostReactionBar → useReactionsStore) ──────
@@ -73,7 +98,15 @@ function mountCard(post: ReturnType<typeof makePost>, currentUserId = 'other-use
     props:  { post },
     global: {
       plugins: [pinia],
-      stubs:   { RouterLink: RouterLinkStub },
+      stubs:   {
+        RouterLink: RouterLinkStub,
+        // Stub ShareModal to a simple div so Teleport issues don't surface here.
+        // ShareModal is tested independently in ShareModal.spec.ts.
+        ShareModal: {
+          template: '<div class="share-modal-stub" />',
+          props:    ['post', 'modelValue'],
+        },
+      },
     },
   })
 }
@@ -145,16 +178,21 @@ describe('PostCard', () => {
     expect(wrapper.text()).toContain('Friends')
   })
 
-  // ── Share link ────────────────────────────────────────────────────────────
+  // ── Share modal ───────────────────────────────────────────────────────────
 
-  it('copies share link to clipboard on Share click', async () => {
+  it('renders ShareModal stub for logged-in user', () => {
+    const wrapper = mountCard(makePost())
+    // ShareModal is stubbed to .share-modal-stub in tests
+    expect(wrapper.find('.share-modal-stub').exists()).toBe(true)
+  })
+
+  it('clicking Share button does not copy to clipboard for logged-in user (opens modal instead)', async () => {
     const wrapper = mountCard(makePost())
     const buttons  = wrapper.findAll('button')
     const shareBtn = buttons.find(b => b.text().includes('Share'))
     await shareBtn!.trigger('click')
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      expect.stringContaining('/share/posts/post-1'),
-    )
+    // Modal-based share — clipboard should NOT be called for logged-in users
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalled()
   })
 
   // ── TextOnBackground post ─────────────────────────────────────────────────

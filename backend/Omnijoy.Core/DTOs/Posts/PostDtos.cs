@@ -67,13 +67,55 @@ public record UpdatePostRequest(
     string? Privacy
 );
 
+// ── Shared-post feed item ─────────────────────────────────────────────────────
+
+/// <summary>
+/// Represents a shared post as it appears in the feed.
+/// </summary>
+public record SharedPostFeedItemDto(
+    Guid Id,
+    PostAuthorDto Sharer,
+    string? Message,
+    /// <summary>"OwnWall" | "FriendWall" | "CompanyPage"</summary>
+    string TargetType,
+    Guid? TargetId,
+    PostDto OriginalPost,
+    DateTime CreatedAt
+);
+
+// ── Discriminated union feed item ─────────────────────────────────────────────
+
+/// <summary>
+/// A single item in the feed, which is either a regular post or a shared post.
+/// <c>ItemType</c> is "Post" or "SharedPost".
+/// </summary>
+public record FeedItemDto(
+    /// <summary>"Post" | "SharedPost"</summary>
+    string ItemType,
+    PostDto? Post,
+    SharedPostFeedItemDto? SharedPost
+);
+
 // ── Feed pagination ───────────────────────────────────────────────────────────
 
 public record FeedPageResult(
-    PostDto[] Items,
+    FeedItemDto[] Items,
     int Page,
     int PageSize,
     bool HasMore
+);
+
+// ── Share request ─────────────────────────────────────────────────────────────
+
+/// <summary>
+/// JSON body for POST /api/posts/{id}/share.
+/// </summary>
+public record CreateShareRequest(
+    /// <summary>"OwnWall" | "FriendWall" | "CompanyPage"</summary>
+    string TargetType,
+    /// <summary>Friend user ID (FriendWall) or company page ID (CompanyPage). Null for OwnWall.</summary>
+    Guid? TargetId,
+    string? Message
 );
 
 // ── Media upload helper (used by controller → service) ────────────────────────
