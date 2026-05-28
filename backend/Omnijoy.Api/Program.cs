@@ -159,6 +159,11 @@ else
 builder.Services.AddScoped<IPrivacyService, PrivacyService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPostService, PostService>();
+// Feed cache (per-user page-1 + trending list). Uses IDistributedCache —
+// Redis when configured, in-memory otherwise. Trade-offs documented on
+// DistributedFeedCache + TrendingFeedRefreshService.
+builder.Services.AddScoped<IFeedCache, DistributedFeedCache>();
+builder.Services.AddHostedService<TrendingFeedRefreshService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IReactionService, ReactionService>();
 builder.Services.AddScoped<IFriendService, FriendService>();

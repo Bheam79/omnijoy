@@ -40,4 +40,11 @@ public interface IPostService
     /// the controller to push NewPost SignalR events to the right connections.
     /// </summary>
     Task<List<Guid>> GetFriendIdsAsync(Guid userId);
+
+    /// <summary>
+    /// Returns the currently-trending public posts (Privacy=Everyone, recent
+    /// window, sorted by reaction count). Used by the trending cache refresher
+    /// — callers should normally read from <see cref="IFeedCache.GetTrendingPostsAsync"/>.
+    /// </summary>
+    Task<IReadOnlyList<PostDto>> GetTrendingPostsAsync(int take = 20, CancellationToken ct = default);
 }

@@ -21,19 +21,22 @@ public class PostsController : ControllerBase
     private readonly IHubContext<FeedHub> _feedHub;
     private readonly INotificationService _notifications;
     private readonly IShareService _shares;
+    private readonly IFeedCache _feedCache;
 
     public PostsController(
         IPostService posts,
         IReactionService reactions,
         IHubContext<FeedHub> feedHub,
         INotificationService notifications,
-        IShareService shares)
+        IShareService shares,
+        IFeedCache feedCache)
     {
         _posts         = posts;
         _reactions     = reactions;
         _feedHub       = feedHub;
         _notifications = notifications;
         _shares        = shares;
+        _feedCache     = feedCache;
     }
 
     private Guid? CurrentUserId =>
@@ -90,13 +93,19 @@ public class PostsController : ControllerBase
 
             // ── Push NewPost to author + friends via FeedHub ──────────────────
             var friendIds = await _posts.GetFriendIdsAsync(userId);
-            var recipientIds = friendIds.Append(userId);
+            var recipientIds = friendIds.Append(userId).ToList();
             foreach (var recipientId in recipientIds)
             {
                 await _feedHub.Clients
                     .Group($"user:{recipientId}")
                     .SendAsync("NewPost", post);
             }
+
+            // ── Cache invalidation (push, not pull) ───────────────────────────
+            // A new post invalidates page-1 feed for the author *and* every
+            // friend (recipients of NewPost). The TTL is a fallback for users
+            // we miss here (e.g. company-page followers).
+            await _feedCache.InvalidateUserFeedsAsync(recipientIds);
 
             // ── Persist + push NewPostFromFriend notifications to friends ─────
             // Skipped for OnlyMe posts (which only the author sees).
@@ -131,6 +140,27 @@ public class PostsController : ControllerBase
 
         var result = await _posts.GetFeedAsync(userId, page, pageSize);
         return Ok(result);
+    }
+
+    // ── GET /api/feed/trending ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the currently-trending public posts. Served from the cache
+    /// maintained by <c>TrendingFeedRefreshService</c>; falls back to a live
+    /// query on cache miss (e.g. first hit after deploy / Redis restart).
+    /// </summary>
+    [HttpGet("/api/feed/trending")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetTrending(CancellationToken ct)
+    {
+        var cached = await _feedCache.GetTrendingPostsAsync(ct);
+        if (cached is not null) return Ok(cached);
+
+        // Cache miss → compute now AND prime the cache so subsequent callers
+        // benefit until the next scheduled refresh.
+        var live = await _posts.GetTrendingPostsAsync(20, ct);
+        await _feedCache.SetTrendingPostsAsync(live, ct);
+        return Ok(live);
     }
 
     // ── GET /api/posts/{id} ───────────────────────────────────────────────────

@@ -216,6 +216,23 @@ dotnet ef database update \
   --startup-project backend/Omnijoy.Api
 ```
 
+### Feed cache
+
+- `IFeedCache` (Core) + `DistributedFeedCache` (Infrastructure) wrap
+  `IDistributedCache` (Redis in prod, in-memory in dev) with JSON serialization.
+- Keys: `feed:{userId:N}:p1` (per-user page-1 only, 60s TTL),
+  `trending:posts` (global trending list, refreshed every 5 min by
+  `TrendingFeedRefreshService` — `BackgroundService`).
+- `PostService.GetFeedAsync` only caches `page==1 && pageSize==20`. Custom
+  page sizes and pages 2+ always hit the DB.
+- Invalidation is push-style: `PostsController.CreatePost` calls
+  `IFeedCache.InvalidateUserFeedsAsync(author + friends)`. Stale data
+  bound = 60s TTL for users we miss (e.g. company-page followers).
+- Cache failures (Redis down, JSON corruption) are logged and degrade to
+  cache-miss; feed reads never fail because of caching.
+- `GET /api/feed/trending` serves the cached list; falls back to a live
+  `PostService.GetTrendingPostsAsync` query on cache miss.
+
 ### Rate limiting
 
 Implemented via `Microsoft.AspNetCore.RateLimiting` (built-in .NET 8+) with Redis-backed

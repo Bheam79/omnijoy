@@ -12,12 +12,23 @@ public class PostService : IPostService
     private readonly OmnijoyDbContext _db;
     private readonly IMediaStorageService _storage;
     private readonly IPrivacyService _privacy;
+    private readonly IFeedCache? _feedCache;
 
     public PostService(OmnijoyDbContext db, IMediaStorageService storage, IPrivacyService privacy)
+        : this(db, storage, privacy, null)
+    {
+    }
+
+    public PostService(
+        OmnijoyDbContext db,
+        IMediaStorageService storage,
+        IPrivacyService privacy,
+        IFeedCache? feedCache)
     {
         _db = db;
         _storage = storage;
         _privacy = privacy;
+        _feedCache = feedCache;
     }
 
     // ── Create ────────────────────────────────────────────────────────────────
@@ -103,6 +114,18 @@ public class PostService : IPostService
     {
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 50) pageSize = 20;
+
+        // ── Cache: page 1 only, with the canonical default page size ──────────
+        // We intentionally don't cache custom page sizes — keeps the key scheme
+        // simple (feed:{userId}:p1) and avoids cache explosion. Callers asking
+        // for non-default sizes always hit the DB.
+        const int DefaultPageSize = 20;
+        var useCache = _feedCache is not null && page == 1 && pageSize == DefaultPageSize;
+        if (useCache)
+        {
+            var cached = await _feedCache!.GetUserFeedPage1Async(userId);
+            if (cached is not null) return cached;
+        }
 
         // Accepted friend IDs
         var friendIds = await GetFriendIdsAsync(userId);
@@ -206,12 +229,69 @@ public class PostService : IPostService
             .OfType<FeedItemDto>()
             .ToArray();
 
-        return new FeedPageResult(
+        var result = new FeedPageResult(
             Items: items,
             Page: page,
             PageSize: pageSize,
             HasMore: (page * pageSize) < totalVisible
         );
+
+        if (useCache)
+        {
+            await _feedCache!.SetUserFeedPage1Async(userId, result);
+        }
+
+        return result;
+    }
+
+    // ── Trending posts ────────────────────────────────────────────────────────
+
+    public async Task<IReadOnlyList<PostDto>> GetTrendingPostsAsync(int take = 20, CancellationToken ct = default)
+    {
+        if (take < 1) take = 1;
+        if (take > 100) take = 100;
+
+        // Trending = public posts from the last 7 days, ordered by reaction
+        // count (desc). Deleted posts and posts from deactivated authors are
+        // excluded. This is per-instance (not per-user) so it's safe to cache
+        // globally.
+        var since = DateTime.UtcNow.AddDays(-7);
+
+        var topPostIds = await _db.Posts
+            .AsNoTracking()
+            .Where(p => p.DeletedAt == null
+                     && p.Privacy == PrivacyLevel.Everyone
+                     && p.CreatedAt >= since
+                     && p.Author.IsActive)
+            .Select(p => new
+            {
+                p.Id,
+                ReactionCount = p.Reactions.Count,
+                p.CreatedAt,
+            })
+            .OrderByDescending(x => x.ReactionCount)
+            .ThenByDescending(x => x.CreatedAt)
+            .Take(take)
+            .Select(x => x.Id)
+            .ToListAsync(ct);
+
+        if (topPostIds.Count == 0) return Array.Empty<PostDto>();
+
+        var posts = await _db.Posts
+            .AsNoTracking()
+            .Include(p => p.Author)
+            .Include(p => p.Media)
+            .Where(p => topPostIds.Contains(p.Id))
+            .ToListAsync(ct);
+
+        // Preserve the ordering established by the ranking query.
+        var ordered = topPostIds
+            .Select(id => posts.FirstOrDefault(p => p.Id == id))
+            .Where(p => p is not null)
+            .Select(p => MapToDto(p!))
+            .ToArray();
+
+        return ordered;
     }
 
     // ── Get single post ───────────────────────────────────────────────────────
