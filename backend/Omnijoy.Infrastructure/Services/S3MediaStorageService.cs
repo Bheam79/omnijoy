@@ -72,7 +72,8 @@ public class S3MediaStorageService : IMediaStorageService
             Key = key,
             BucketName = _bucketName,
             ContentType = contentType,
-            CannedACL = S3CannedACL.PublicRead,
+            // Do NOT set CannedACL — MinIO rejects per-object ACL operations.
+            // Public read access is handled by the bucket-level anonymous download policy.
         };
 
         await transferUtility.UploadAsync(uploadRequest);
