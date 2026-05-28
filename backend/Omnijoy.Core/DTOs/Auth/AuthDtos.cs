@@ -31,6 +31,10 @@ public record RefreshTokenRequest(string RefreshToken);
 
 public record LogoutRequest(string RefreshToken);
 
+public record ChangeEmailRequest(string NewEmail, string CurrentPassword);
+
+public record ChangePasswordRequest(string CurrentPassword, string NewPassword, string ConfirmNewPassword);
+
 // ── Responses ─────────────────────────────────────────────────────────────────
 
 public record UserDto(

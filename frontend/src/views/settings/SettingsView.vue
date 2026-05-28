@@ -55,7 +55,10 @@ const auth = useAuthStore()
       </RouterLink>
 
       <!-- Account security -->
-      <div class="flex items-center justify-between bg-white rounded-xl border border-gray-100 px-5 py-4 opacity-60">
+      <RouterLink
+        to="/settings/account"
+        class="flex items-center justify-between bg-white rounded-xl border border-gray-100 px-5 py-4 hover:border-indigo-200 transition-colors group"
+      >
         <div class="flex items-center gap-4">
           <div class="h-10 w-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600">
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,11 +66,14 @@ const auth = useAuthStore()
             </svg>
           </div>
           <div>
-            <p class="text-sm font-medium text-gray-900">Security</p>
-            <p class="text-xs text-gray-500">Change password, active sessions — coming soon</p>
+            <p class="text-sm font-medium text-gray-900">Account</p>
+            <p class="text-xs text-gray-500">Change email address and password</p>
           </div>
         </div>
-      </div>
+        <svg class="h-4 w-4 text-gray-400 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </RouterLink>
 
     </div>
   </div>

@@ -88,6 +88,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAccountService, AccountService>();
 
 // ── User / media services ─────────────────────────────────────────────────────
 // Storage: "local" (default) saves to wwwroot/uploads/.
