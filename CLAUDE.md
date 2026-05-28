@@ -124,9 +124,24 @@ $EDITOR docker/.env          # Set MYSQL_PASSWORD, JWT_SECRET_KEY, PUBLIC_PORT, 
 make prod-up                 # Build image + start all services
 make prod-migrate            # Apply DB migrations (runs via Docker, no host DB access needed)
 
-# Updates:
+# Updates (normal flow — source-code change):
 git pull
-make prod-up                 # Rebuilds image from source and restarts
+make prod-up                 # Rebuilds backend image; ONLY recreates containers whose image/config changed
+make prod-migrate            # Only if a new EF migration landed in this pull
+
+# What 'make prod-up' actually restarts:
+#   - backend  → recreated if backend or frontend source changed (image hash differs)
+#   - nginx    → recreated only if docker-compose.prod.yml changed
+#                (nginx.prod.conf is a bind mount — the file is updated live, but the running
+#                 nginx process still uses the old config. Run `make prod-nginx-reload` or
+#                 `$(DOCKER) compose -f docker/docker-compose.prod.yml restart nginx` after
+#                 editing nginx.prod.conf.)
+#   - mysql / redis / minio / mediamtx → NOT restarted (external images, not rebuilt).
+#     Use `$(DOCKER) compose -f docker/docker-compose.prod.yml pull` to update them.
+#
+# If `make prod-up` shows no "Recreated" lines, that's expected when the rebuilt
+# backend image is bit-for-bit identical to the running one (e.g. you only pulled
+# docs / non-source changes). To force a full restart: `make prod-down && make prod-up`.
 
 # Day-to-day:
 make prod-status             # Show running containers
@@ -134,6 +149,7 @@ make prod-logs               # Tail all logs  (SVC=backend for one service)
 make prod-logs SVC=backend
 make prod-shell              # Shell into running backend container
 make prod-restart            # Rebuild + restart backend only (fastest deploy)
+make prod-nginx-reload       # Reload nginx after editing nginx.prod.conf
 make prod-down               # Tear down the stack (volumes preserved)
 
 # Persist across reboots via systemd --user:

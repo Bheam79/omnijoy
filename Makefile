@@ -63,7 +63,7 @@ endif
         migrate clean status logs \
         prod-up prod-start prod-stop prod-down prod-restart \
         prod-build prod-migrate prod-logs prod-status prod-shell \
-        prod-install prod-uninstall _check-env
+        prod-nginx-reload prod-install prod-uninstall _check-env
 
 # ── Default target ────────────────────────────────────────────────────────────
 help:
@@ -111,6 +111,7 @@ help:
 	@echo "    make prod-logs       Tail logs (all services; pass SVC=backend to filter)"
 	@echo "    make prod-status     Show production container status"
 	@echo "    make prod-shell      Open a shell inside the backend container"
+	@echo "    make prod-nginx-reload  Reload nginx after editing nginx.prod.conf"
 	@echo "    make prod-install    Install systemd user service (auto-start on boot)"
 	@echo "    make prod-uninstall  Remove systemd user service"
 	@echo ""
@@ -396,6 +397,16 @@ prod-status:
 # Open an interactive shell inside the running backend container.
 prod-shell:
 	$(DOCKER) exec -it 07ad0b82_omnijoy_backend /bin/bash
+
+# nginx.prod.conf is bind-mounted into the nginx container, so edits land
+# immediately on disk but the running nginx process keeps using the loaded
+# config. This target signals nginx to re-read the file without dropping
+# active connections (graceful reload).
+prod-nginx-reload:
+	@echo ">> Reloading nginx config..."
+	$(DOCKER) exec $(PREFIX)_nginx nginx -t
+	$(DOCKER) exec $(PREFIX)_nginx nginx -s reload
+	@echo ">> nginx reloaded."
 
 # Install a systemd user service so the stack starts automatically on boot/login.
 # After running this, also run:  loginctl enable-linger $$USER
