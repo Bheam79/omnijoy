@@ -53,6 +53,63 @@ services:
     networks:
       - omnijoy_net
 
+  # ── MinIO (S3-compatible object store for media) ─────────────────────────────
+  # In dev the API ports (9000) and console (9001) are published to the host so
+  # the backend running outside the container can reach the store at
+  # localhost:9000 when Storage:Type=s3 is configured.
+  minio:
+    image: minio/minio:latest
+    container_name: 07ad0b82_omnijoy_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER:     ${MINIO_ROOT_USER:-omnijoy}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-omnijoy_minio_pass}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - omnijoy_net
+    # curl is no longer shipped in the minio image; mc is bundled and
+    # `mc ready local` is the upstream-recommended healthcheck.
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # One-shot init: creates the bucket on first run (idempotent) and opens it
+  # for anonymous public read so that object URLs work without signed requests.
+  minio-init:
+    image: minio/mc:latest
+    container_name: 07ad0b82_omnijoy_minio_init
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - omnijoy_net
+    environment:
+      MINIO_ROOT_USER:     ${MINIO_ROOT_USER:-omnijoy}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-omnijoy_minio_pass}
+      MINIO_BUCKET:        ${MINIO_BUCKET:-omnijoy}
+    # mc rejects hostnames with underscores, so we use the compose service
+    # name "minio" (a clean DNS alias on the omnijoy_net network) instead
+    # of the container_name 07ad0b82_omnijoy_minio.
+    entrypoint: >
+      /bin/sh -c "
+      set -e;
+      until mc alias set omnijoy http://minio:9000 \"$$MINIO_ROOT_USER\" \"$$MINIO_ROOT_PASSWORD\" >/dev/null 2>&1; do
+        echo 'waiting for minio...'; sleep 1;
+      done;
+      mc mb --ignore-existing omnijoy/\"$$MINIO_BUCKET\";
+      mc anonymous set download omnijoy/\"$$MINIO_BUCKET\";
+      echo 'minio bucket ready';
+      "
+    restart: "no"
+
 networks:
   omnijoy_net:
     name: 07ad0b82_omnijoy_net
@@ -61,3 +118,5 @@ networks:
 volumes:
   mysql_data:
     name: 07ad0b82_omnijoy_mysql_data
+  minio_data:
+    name: 07ad0b82_omnijoy_minio_data

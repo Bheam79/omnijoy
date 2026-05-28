@@ -65,8 +65,23 @@ services:
       # CORS — set to your public domain in .env, e.g. https://omnijoy.example.com
       Cors__AllowedOrigins__0: ${CORS_ORIGINS:-}
 
-      # Media storage inside the container (mounted to a named volume)
+      # Media storage inside the container (mounted to a named volume).
+      # Used only when Storage__Type is left as "local". Kept as a fallback path.
       Media__StoragePath: /var/omnijoy/media
+
+      # ── Object storage (S3 / MinIO) ─────────────────────────────────────────
+      # Production stores media in the bundled MinIO container, exposed
+      # publicly through nginx at /media/ (see nginx.prod.conf).
+      # ServiceUrl uses the compose service name "minio" rather than the
+      # container_name 07ad0b82_omnijoy_minio because some S3 clients reject
+      # hostnames containing underscores per RFC 952/1123.
+      Storage__Type:               s3
+      Storage__S3__ServiceUrl:     http://minio:9000
+      Storage__S3__BucketName:     ${MINIO_BUCKET:-omnijoy}
+      Storage__S3__AccessKey:      ${MINIO_ROOT_USER}
+      Storage__S3__SecretKey:      ${MINIO_ROOT_PASSWORD}
+      # Object URLs returned to clients are relative — served by nginx at /media/.
+      Storage__S3__PublicBaseUrl:  /media
 
       # OAuth (optional)
       OAuth__Google__ClientId:     ${OAUTH_GOOGLE_CLIENT_ID:-}
@@ -95,6 +110,8 @@ services:
       mysql:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      minio:
         condition: service_healthy
 
   # ── Nginx reverse proxy (the only public-facing container) ──────────────────
@@ -126,6 +143,60 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── MinIO (S3-compatible object store for media) ────────────────────────────
+  # No host port is published — nginx proxies /media/* to this container
+  # internally over the omnijoy_net network.
+  minio:
+    image: minio/minio:latest
+    container_name: 07ad0b82_omnijoy_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER:     ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    networks:
+      - omnijoy_net
+    # curl is no longer shipped in the minio image; mc is bundled and
+    # `mc ready local` is the upstream-recommended healthcheck.
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # One-shot init: creates the bucket on first run (idempotent) and opens it
+  # for anonymous public read so that object URLs proxied by nginx work
+  # without signed requests.
+  minio-init:
+    image: minio/mc:latest
+    container_name: 07ad0b82_omnijoy_minio_init
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - omnijoy_net
+    environment:
+      MINIO_ROOT_USER:     ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET:        ${MINIO_BUCKET:-omnijoy}
+    # mc rejects hostnames with underscores, so we use the compose service
+    # name "minio" (a clean DNS alias on the omnijoy_net network) instead
+    # of the container_name 07ad0b82_omnijoy_minio.
+    entrypoint: >
+      /bin/sh -c "
+      set -e;
+      until mc alias set omnijoy http://minio:9000 \"$$MINIO_ROOT_USER\" \"$$MINIO_ROOT_PASSWORD\" >/dev/null 2>&1; do
+        echo 'waiting for minio...'; sleep 1;
+      done;
+      mc mb --ignore-existing omnijoy/\"$$MINIO_BUCKET\";
+      mc anonymous set download omnijoy/\"$$MINIO_BUCKET\";
+      echo 'minio bucket ready';
+      "
+    restart: "no"
+
   # ── MediaMTX (RTMP ingest / HLS delivery for live streams) ──────────────────
   mediamtx:
     image: bluenviron/mediamtx:latest
@@ -152,3 +223,5 @@ volumes:
     name: 07ad0b82_omnijoy_mysql_data
   media_data:
     name: 07ad0b82_omnijoy_media_data
+  minio_data:
+    name: 07ad0b82_omnijoy_minio_data

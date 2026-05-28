@@ -67,6 +67,8 @@ The frontend Vite dev server proxies `/api` and `/hubs` to `http://localhost:500
 | 5001 | (local) | .NET backend green slot |
 | 5173 | (local) | Vite frontend dev server |
 | 3306 | (internal) | MariaDB (only accessible inside Docker network) |
+| 9000 | :9000 | MinIO S3 API (dev only — internal-only in prod, proxied via `/media/`) |
+| 9001 | :9001 | MinIO web console (dev only) |
 
 ---
 
@@ -80,11 +82,13 @@ All containers use the prefix **`07ad0b82_omnijoy`**:
 | `07ad0b82_omnijoy_backend` | .NET API (production stack) |
 | `07ad0b82_omnijoy_nginx` | Nginx reverse proxy |
 | `07ad0b82_omnijoy_mediamtx` | RTMP/HLS live streaming |
+| `07ad0b82_omnijoy_minio` | MinIO S3-compatible object store (user-uploaded media) |
+| `07ad0b82_omnijoy_minio_init` | One-shot bucket creator (idempotent) — exits after bootstrap |
 | `07ad0b82_omnijoy_blue` | Blue slot (legacy blue/green targets) |
 | `07ad0b82_omnijoy_green` | Green slot (legacy blue/green targets) |
 
 Docker network: `07ad0b82_omnijoy_net`
-Volumes: `07ad0b82_omnijoy_mysql_data`, `07ad0b82_omnijoy_media_data`
+Volumes: `07ad0b82_omnijoy_mysql_data`, `07ad0b82_omnijoy_media_data`, `07ad0b82_omnijoy_minio_data`
 
 ---
 
@@ -232,6 +236,31 @@ dotnet ef database update \
   cache-miss; feed reads never fail because of caching.
 - `GET /api/feed/trending` serves the cached list; falls back to a live
   `PostService.GetTrendingPostsAsync` query on cache miss.
+
+### Media storage (MinIO / S3)
+
+- `Storage:Type` switches `IMediaStorageService` between `local`
+  (`LocalMediaStorageService` → `wwwroot/uploads/`) and `s3`
+  (`S3MediaStorageService` → MinIO / AWS S3 / R2). Dev defaults to
+  `local`; the prod compose sets `Storage__Type=s3`.
+- Prod stack ships a `07ad0b82_omnijoy_minio` container plus a one-shot
+  `07ad0b82_omnijoy_minio_init` (`minio/mc`) that creates the bucket and
+  sets the `download` anonymous policy. The init container is idempotent
+  and exits with status 0 — its `Exited (0)` state in `docker ps -a` is
+  expected.
+- Backend reaches MinIO internally at `http://07ad0b82_omnijoy_minio:9000`.
+  Public URLs are returned as **relative** paths under `/media/…` —
+  `nginx.prod.conf` has a `/media/` `location` that `proxy_pass`es to
+  the `omnijoy` bucket and stamps a 1-year immutable `Cache-Control`
+  header on every response. Objects are content-addressed (UUID keys),
+  so caching forever is safe.
+- The bucket name in `nginx.prod.conf` (`http://minio/omnijoy/`) must
+  match `MINIO_BUCKET` in `docker/.env`. Change them together.
+- Required env vars: `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`,
+  `MINIO_BUCKET` (see `docker/.env.example`). The root user/password
+  double as the S3 access key/secret for the backend.
+- Dev compose publishes ports 9000 (API) and 9001 (web console) so a
+  host-side backend can hit the store when `Storage__Type=s3` is set.
 
 ### Vanity URL slugs
 
