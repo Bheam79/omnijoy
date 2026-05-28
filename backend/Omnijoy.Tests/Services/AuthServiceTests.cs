@@ -17,6 +17,7 @@ public class AuthServiceTests : IDisposable
     private readonly Mock<ITokenService> _tokensMock;
     private readonly Mock<IEmailService> _emailMock;
     private readonly Mock<IHttpClientFactory> _httpFactoryMock;
+    private readonly Mock<ITokenBlacklist> _blacklistMock;
     private readonly IConfiguration _config;
     private readonly AuthService _sut;
 
@@ -39,6 +40,14 @@ public class AuthServiceTests : IDisposable
 
         _httpFactoryMock = new Mock<IHttpClientFactory>();
 
+        _blacklistMock = new Mock<ITokenBlacklist>();
+        _blacklistMock
+            .Setup(b => b.BlacklistAsync(It.IsAny<string>(), It.IsAny<TimeSpan>()))
+            .Returns(Task.CompletedTask);
+        _blacklistMock
+            .Setup(b => b.IsBlacklistedAsync(It.IsAny<string>()))
+            .ReturnsAsync(false);
+
         _config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -46,7 +55,7 @@ public class AuthServiceTests : IDisposable
             })
             .Build();
 
-        _sut = new AuthService(_db, _tokensMock.Object, _emailMock.Object, _config, _httpFactoryMock.Object);
+        _sut = new AuthService(_db, _tokensMock.Object, _emailMock.Object, _config, _httpFactoryMock.Object, _blacklistMock.Object);
     }
 
     public void Dispose() => _db.Dispose();

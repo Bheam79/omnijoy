@@ -36,7 +36,7 @@ COMPOSE       ?= $(DOCKER) compose
 REPO_PATH     := $(shell pwd)
 
 .PHONY: help build build-backend build-frontend \
-        start-db stop-db \
+        start-db stop-db start-redis stop-redis \
         deploy-blue deploy-green switch rollback \
         dev dev-backend dev-frontend \
         test test-backend test-frontend test-e2e test-e2e-api test-e2e-browser \
@@ -56,6 +56,8 @@ help:
 	@echo "    make dev-frontend    Run Vite dev server (port 5173)"
 	@echo "    make start-db        Start MariaDB Docker container"
 	@echo "    make stop-db         Stop MariaDB Docker container"
+	@echo "    make start-redis     Start Redis Docker container"
+	@echo "    make stop-redis      Stop Redis Docker container"
 	@echo ""
 	@echo "  Build:"
 	@echo "    make build           Build backend + frontend (production)"
@@ -99,7 +101,7 @@ help:
 	@echo ""
 
 # ── Development ───────────────────────────────────────────────────────────────
-dev: start-db
+dev: start-db start-redis
 	@echo ">> Starting dev servers..."
 	@$(MAKE) -j2 dev-backend dev-frontend
 
@@ -124,6 +126,18 @@ start-db:
 
 stop-db:
 	$(COMPOSE) -f docker/docker-compose.yml stop mysql
+
+start-redis:
+	@echo ">> Starting Redis..."
+	$(COMPOSE) -f docker/docker-compose.yml --env-file docker/.env up -d redis
+	@echo ">> Waiting for Redis to be healthy..."
+	@until $(DOCKER) inspect --format='{{.State.Health.Status}}' $(PREFIX)_redis 2>/dev/null | grep -q healthy; do \
+	  sleep 2; \
+	done
+	@echo ">> Redis is ready."
+
+stop-redis:
+	$(COMPOSE) -f docker/docker-compose.yml stop redis
 
 migrate:
 	@echo ">> Running EF Core migrations..."

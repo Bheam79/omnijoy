@@ -6,6 +6,7 @@ using Omnijoy.Core.Interfaces;
 using Omnijoy.Infrastructure.Data;
 using Omnijoy.Infrastructure.Services;
 using System.Text;
+using System.IdentityModel.Tokens.Jwt;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,26 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContext<OmnijoyDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+
+// ── Redis ─────────────────────────────────────────────────────────────────────
+var redisConnectionString = builder.Configuration["Redis:ConnectionString"];
+var redisEnabled = !string.IsNullOrWhiteSpace(redisConnectionString);
+
+if (redisEnabled)
+{
+    // Distributed cache backed by Redis (token blacklist, rate-limit counters,
+    // presence data for multi-node deployments).
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = redisConnectionString;
+        options.InstanceName   = "omnijoy:";
+    });
+}
+else
+{
+    // Fallback for single-node dev / test: in-memory distributed cache.
+    builder.Services.AddDistributedMemoryCache();
+}
 
 // ── Authentication (JWT) ──────────────────────────────────────────────────────
 var jwtKey = builder.Configuration["Jwt:Key"]
@@ -35,9 +56,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ClockSkew = TimeSpan.Zero
         };
 
-        // Support JWT in SignalR query string
         options.Events = new JwtBearerEvents
         {
+            // Support JWT in SignalR query string
             OnMessageReceived = context =>
             {
                 var accessToken = context.Request.Query["access_token"];
@@ -45,6 +66,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
                     context.Token = accessToken;
                 return Task.CompletedTask;
+            },
+
+            // Reject tokens whose JTI appears in the blacklist (post-logout)
+            OnTokenValidated = async context =>
+            {
+                var blacklist = context.HttpContext.RequestServices
+                    .GetService<ITokenBlacklist>();
+                if (blacklist is null) return;
+
+                var jti = context.Principal?
+                    .FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+                if (!string.IsNullOrEmpty(jti) && await blacklist.IsBlacklistedAsync(jti))
+                    context.Fail("Token has been revoked.");
             }
         };
     });
@@ -52,15 +86,31 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // ── SignalR ───────────────────────────────────────────────────────────────────
-builder.Services.AddSignalR();
+var signalRBuilder = builder.Services.AddSignalR();
+if (redisEnabled)
+{
+    // Redis backplane: routes hub messages across multiple backend instances.
+    signalRBuilder.AddStackExchangeRedis(redisConnectionString!, options =>
+    {
+        options.Configuration.ChannelPrefix =
+            StackExchange.Redis.RedisChannel.Literal("omnijoy");
+    });
+}
 
 // ── Presence + notifications ──────────────────────────────────────────────────
-// PresenceTracker is a singleton so connection state is shared across requests.
-// NotificationService is scoped (it uses DbContext); its dispatcher wraps
-// IHubContext<NotificationHub> to push real-time events.
-builder.Services.AddSingleton<IPresenceTracker, InMemoryPresenceTracker>();
+// PresenceTracker: Redis-backed when Redis is available (multi-node); falls
+// back to in-memory for single-node dev. NotificationService is scoped
+// (it uses DbContext); its dispatcher wraps IHubContext<NotificationHub>.
+if (redisEnabled)
+    builder.Services.AddSingleton<IPresenceTracker, RedisPresenceTracker>();
+else
+    builder.Services.AddSingleton<IPresenceTracker, InMemoryPresenceTracker>();
+
 builder.Services.AddScoped<IHubContextDispatcher, NotificationHubDispatcher>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+
+// ── Token blacklist (JWT revocation on logout) ────────────────────────────────
+builder.Services.AddSingleton<ITokenBlacklist, RedisTokenBlacklist>();
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 builder.Services.AddCors(options =>

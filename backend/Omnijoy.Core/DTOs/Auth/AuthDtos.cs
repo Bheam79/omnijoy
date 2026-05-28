@@ -29,7 +29,12 @@ public record OAuthRequest(string Token);
 
 public record RefreshTokenRequest(string RefreshToken);
 
-public record LogoutRequest(string RefreshToken);
+/// <summary>
+/// Send <see cref="AccessToken"/> alongside <see cref="RefreshToken"/> so the
+/// server can immediately blacklist the access token in Redis, preventing its
+/// use for the remainder of its lifetime even though JWTs are stateless.
+/// </summary>
+public record LogoutRequest(string RefreshToken, string? AccessToken = null);
 
 public record ChangeEmailRequest(string NewEmail, string CurrentPassword);
 

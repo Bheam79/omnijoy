@@ -80,6 +80,9 @@ services:
       Email__FromAddress:    ${SMTP_FROM_ADDRESS:-noreply@omnijoy.local}
       Email__FromName:       ${SMTP_FROM_NAME:-Omnijoy}
 
+      # Redis (SignalR backplane + distributed cache)
+      Redis__ConnectionString: 07ad0b82_omnijoy_redis:6379
+
       # Live streaming
       Live__RtmpHost:    07ad0b82_omnijoy_mediamtx
       Live__HlsBaseUrl:  http://07ad0b82_omnijoy_mediamtx:8888
@@ -90,6 +93,8 @@ services:
     # No ports: section — backend only reachable via nginx inside the network.
     depends_on:
       mysql:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   # ── Nginx reverse proxy (the only public-facing container) ──────────────────
@@ -105,6 +110,21 @@ services:
       - omnijoy_net
     depends_on:
       - backend
+
+  # ── Redis (SignalR backplane + distributed cache) ────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: 07ad0b82_omnijoy_redis
+    restart: unless-stopped
+    command: redis-server --save "" --appendonly no
+    networks:
+      - omnijoy_net
+    # No ports: section — Redis is only reachable inside the Docker network.
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # ── MediaMTX (RTMP ingest / HLS delivery for live streams) ──────────────────
   mediamtx:

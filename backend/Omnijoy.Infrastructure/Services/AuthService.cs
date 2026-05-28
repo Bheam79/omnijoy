@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
@@ -19,6 +20,7 @@ public class AuthService : IAuthService
     private readonly IEmailService _email;
     private readonly IConfiguration _config;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ITokenBlacklist _blacklist;
 
     private const int OtpExpiryMinutes = 10;
 
@@ -27,13 +29,15 @@ public class AuthService : IAuthService
         ITokenService tokens,
         IEmailService email,
         IConfiguration config,
-        IHttpClientFactory httpClientFactory)
+        IHttpClientFactory httpClientFactory,
+        ITokenBlacklist blacklist)
     {
         _db = db;
         _tokens = tokens;
         _email = email;
         _config = config;
         _httpClientFactory = httpClientFactory;
+        _blacklist = blacklist;
     }
 
     // ── Register ─────────────────────────────────────────────────────────────
@@ -256,14 +260,38 @@ public class AuthService : IAuthService
 
     // ── Logout ────────────────────────────────────────────────────────────────
 
-    public async Task LogoutAsync(string refreshToken)
+    public async Task LogoutAsync(string refreshToken, string? accessToken = null)
     {
+        // Revoke the refresh token in the database.
         var hash = TokenService.HashToken(refreshToken);
         var stored = await _db.RefreshTokens.FirstOrDefaultAsync(rt => rt.TokenHash == hash);
         if (stored is not null)
         {
             stored.IsRevoked = true;
             await _db.SaveChangesAsync();
+        }
+
+        // Blacklist the access token so it cannot be reused for the remainder
+        // of its lifetime even though it is a stateless JWT.
+        if (!string.IsNullOrWhiteSpace(accessToken))
+        {
+            try
+            {
+                var handler = new JwtSecurityTokenHandler();
+                if (handler.CanReadToken(accessToken))
+                {
+                    var parsed  = handler.ReadJwtToken(accessToken);
+                    var jti     = parsed.Id;
+                    var remaining = parsed.ValidTo.ToUniversalTime() - DateTime.UtcNow;
+
+                    if (!string.IsNullOrEmpty(jti) && remaining > TimeSpan.Zero)
+                        await _blacklist.BlacklistAsync(jti, remaining);
+                }
+            }
+            catch
+            {
+                // Invalid / malformed token — nothing to blacklist.
+            }
         }
     }
 
