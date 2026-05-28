@@ -29,6 +29,7 @@ public class User
     public ICollection<EventAttendee> EventAttendances { get; set; } = [];
     public ICollection<CompanyPage> CreatedCompanyPages { get; set; } = [];
     public ICollection<CompanyPageAdmin> CompanyPageAdminships { get; set; } = [];
+    public ICollection<CompanyPageFollow> CompanyPageFollows { get; set; } = [];
     public ICollection<ConversationParticipant> ConversationParticipants { get; set; } = [];
     public ICollection<Message> SentMessages { get; set; } = [];
     public ICollection<Notification> Notifications { get; set; } = [];

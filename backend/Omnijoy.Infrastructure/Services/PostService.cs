@@ -31,10 +31,20 @@ public class PostService : IPostService
         if (!Enum.TryParse<PrivacyLevel>(request.Privacy, ignoreCase: true, out var privacy))
             throw new ArgumentException($"Invalid Privacy: '{request.Privacy}'.");
 
+        // Validate company page access if posting on behalf of a page
+        if (request.CompanyPageId.HasValue)
+        {
+            var isPageAdmin = await _db.CompanyPageAdmins.AnyAsync(a =>
+                a.CompanyPageId == request.CompanyPageId.Value && a.UserId == authorId);
+            if (!isPageAdmin)
+                throw new UnauthorizedAccessException("You are not an admin of that company page.");
+        }
+
         var post = new Post
         {
             Id = Guid.NewGuid(),
             AuthorUserId = authorId,
+            CompanyPageId = request.CompanyPageId,
             Content = request.Content ?? string.Empty,
             BackgroundImageUrl = request.BackgroundImageUrl,
             PostType = postType,

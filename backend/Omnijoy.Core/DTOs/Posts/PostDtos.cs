@@ -38,7 +38,9 @@ public record CreatePostRequest(
     string PostType,
     /// <summary>"Everyone" | "Friends" | "OnlyMe"</summary>
     string Privacy,
-    string? BackgroundImageUrl
+    string? BackgroundImageUrl,
+    /// <summary>Optional: post on behalf of a company page the user administers.</summary>
+    Guid? CompanyPageId = null
 );
 
 public record UpdatePostRequest(

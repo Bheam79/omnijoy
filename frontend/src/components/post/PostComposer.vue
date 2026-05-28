@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import type { PostDto } from '@/services/postService'
 import { useFeedStore } from '@/stores/feed'
 import { useAuthStore } from '@/stores/auth'
+import { companyPageService, type CompanyPageDto } from '@/services/companyPageService'
 
 const emit = defineEmits<{ created: [post: PostDto] }>()
 
@@ -23,6 +24,16 @@ const mediaFiles = ref<File[]>([])
 const mediaPreviewUrls = ref<string[]>([])
 const submitting = ref(false)
 const error = ref<string | null>(null)
+
+// "Posting as" — company pages where user is admin
+const myAdminPages = ref<CompanyPageDto[]>([])
+const postingAsPageId = ref<string | null>(null)
+
+onMounted(async () => {
+  try {
+    myAdminPages.value = await companyPageService.getMyAdminPages()
+  } catch { /* non-critical */ }
+})
 
 // Predefined backgrounds for TextOnBackground
 const backgrounds = [
@@ -87,6 +98,7 @@ function reset() {
   mediaPreviewUrls.value = []
   error.value = null
   submitting.value = false
+  postingAsPageId.value = null
 }
 
 function handleFileInput(event: Event) {
@@ -117,6 +129,7 @@ async function submit() {
       privacy: privacy.value,
       background: postType.value === 'TextOnBackground' ? background.value : undefined,
       mediaFiles: mediaFiles.value.length > 0 ? mediaFiles.value : undefined,
+      companyPageId: postingAsPageId.value ?? undefined,
     })
     emit('created', post)
     close()
@@ -189,7 +202,21 @@ defineExpose({ open, close })
                 {{ auth.user?.displayName?.charAt(0)?.toUpperCase() ?? '?' }}
               </div>
               <div>
-                <p class="font-semibold text-gray-900 text-sm">{{ auth.user?.displayName }}</p>
+                <!-- "Posting as" selector -->
+                <div v-if="myAdminPages.length > 0" class="mb-0.5">
+                  <select
+                    v-model="postingAsPageId"
+                    class="text-xs bg-indigo-50 border border-indigo-200 rounded-md px-2 py-0.5 text-indigo-700 focus:ring-2 focus:ring-indigo-400 cursor-pointer font-medium"
+                  >
+                    <option :value="null">👤 {{ auth.user?.displayName }}</option>
+                    <option
+                      v-for="pg in myAdminPages"
+                      :key="pg.id"
+                      :value="pg.id"
+                    >🏢 {{ pg.name }}</option>
+                  </select>
+                </div>
+                <p v-else class="font-semibold text-gray-900 text-sm">{{ auth.user?.displayName }}</p>
                 <!-- Privacy selector -->
                 <select
                   v-model="privacy"

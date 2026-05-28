@@ -13,6 +13,7 @@ public class CompanyPage
     // Navigation properties
     public User CreatedByUser { get; set; } = null!;
     public ICollection<CompanyPageAdmin> Admins { get; set; } = [];
+    public ICollection<CompanyPageFollow> Followers { get; set; } = [];
     public ICollection<Post> Posts { get; set; } = [];
     public ICollection<Event> Events { get; set; } = [];
 }

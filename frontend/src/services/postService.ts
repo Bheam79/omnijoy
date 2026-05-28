@@ -42,6 +42,8 @@ export interface CreatePostPayload {
   privacy: 'Everyone' | 'Friends' | 'OnlyMe'
   background?: string
   mediaFiles?: File[]
+  /** Post on behalf of this company page (user must be admin). */
+  companyPageId?: string
 }
 
 export interface UpdatePostPayload {
@@ -63,6 +65,7 @@ export const postService = {
         form.append('media', file)
       }
     }
+    if (payload.companyPageId) form.append('companyPageId', payload.companyPageId)
     const { data } = await api.post<PostDto>('/api/posts', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })

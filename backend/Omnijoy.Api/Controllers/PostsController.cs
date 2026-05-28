@@ -62,7 +62,8 @@ public class PostsController : ControllerBase
                 Content:           input.Content ?? string.Empty,
                 PostType:          input.PostType ?? "Text",
                 Privacy:           input.Privacy  ?? "Friends",
-                BackgroundImageUrl: input.Background
+                BackgroundImageUrl: input.Background,
+                CompanyPageId:     input.CompanyPageId
             );
 
             var post = await _posts.CreatePostAsync(userId, request, mediaItems.Count > 0 ? mediaItems : null);
@@ -82,6 +83,10 @@ public class PostsController : ControllerBase
         catch (ArgumentException ex)
         {
             return BadRequest(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
         }
     }
 
@@ -181,5 +186,7 @@ public class CreatePostFormInput
     public string? Privacy    { get; set; }
     /// <summary>Background color / image URL for TextOnBackground posts.</summary>
     public string? Background { get; set; }
+    /// <summary>Optional: ID of a company page to post on behalf of.</summary>
+    public Guid?   CompanyPageId { get; set; }
     public IFormFileCollection? Media { get; set; }
 }

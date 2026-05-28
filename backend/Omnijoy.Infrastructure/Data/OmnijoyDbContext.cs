@@ -20,6 +20,7 @@ public class OmnijoyDbContext : DbContext
     public DbSet<EventAttendee> EventAttendees => Set<EventAttendee>();
     public DbSet<CompanyPage> CompanyPages => Set<CompanyPage>();
     public DbSet<CompanyPageAdmin> CompanyPageAdmins => Set<CompanyPageAdmin>();
+    public DbSet<CompanyPageFollow> CompanyPageFollows => Set<CompanyPageFollow>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<ConversationParticipant> ConversationParticipants => Set<ConversationParticipant>();
     public DbSet<Message> Messages => Set<Message>();
