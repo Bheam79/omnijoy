@@ -52,8 +52,12 @@ public interface INotificationService
 
     // ── Inbox queries ─────────────────────────────────────────────────────────
 
-    /// <summary>Returns a paginated list of notifications for the given user (newest first).</summary>
-    Task<NotificationPageResult> GetNotificationsAsync(Guid userId, int page, int pageSize);
+    /// <summary>
+    /// Returns a paginated list of notifications for the given user (newest first).
+    /// When <paramref name="types"/> is non-empty only notifications matching one of
+    /// the given type names are returned.
+    /// </summary>
+    Task<NotificationPageResult> GetNotificationsAsync(Guid userId, int page, int pageSize, string[]? types = null);
 
     /// <summary>Returns the count of unread notifications for the bell-badge.</summary>
     Task<int> GetUnreadCountAsync(Guid userId);

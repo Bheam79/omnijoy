@@ -22,14 +22,19 @@ public class NotificationsController : ControllerBase
 
     // ── GET /api/notifications ────────────────────────────────────────────────
 
-    /// <summary>Paginated notification inbox (newest first).</summary>
+    /// <summary>
+    /// Paginated notification inbox (newest first).
+    /// Optionally filter by one or more notification type names, e.g.
+    /// <c>?type=FriendRequest&amp;type=PostLike</c>.
+    /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetNotifications(
-        [FromQuery] int page     = 1,
-        [FromQuery] int pageSize = 20)
+        [FromQuery(Name = "type")] string[]? types    = null,
+        [FromQuery] int                      page     = 1,
+        [FromQuery] int                      pageSize = 20)
     {
         if (CurrentUserId is not { } userId) return Unauthorized();
-        var result = await _notifications.GetNotificationsAsync(userId, page, pageSize);
+        var result = await _notifications.GetNotificationsAsync(userId, page, pageSize, types);
         return Ok(result);
     }
 
@@ -53,9 +58,10 @@ public class NotificationsController : ControllerBase
         return NoContent();
     }
 
-    // ── POST /api/notifications/read-all ──────────────────────────────────────
+    // ── POST|PATCH /api/notifications/read-all ────────────────────────────────
 
     [HttpPost("read-all")]
+    [HttpPatch("read-all")]
     public async Task<IActionResult> MarkAllRead()
     {
         if (CurrentUserId is not { } userId) return Unauthorized();

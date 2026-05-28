@@ -35,6 +35,13 @@ export const useNotificationsStore = defineStore('notifications', () => {
   const hasMore       = ref(true)
   const page          = ref(1)
 
+  /**
+   * The most-recently received notification from SignalR.
+   * The /notifications page watches this to prepend real-time items to its
+   * own filtered list without duplicating store state.
+   */
+  const lastReceived  = ref<Notification | null>(null)
+
   let hubConnection: signalR.HubConnection | null = null
 
   // ── Computed ────────────────────────────────────────────────────────────────
@@ -137,6 +144,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
 
     // Persisted notification — surfaces in the bell dropdown
     hubConnection.on('NotificationReceived', (n: Notification) => {
+      lastReceived.value = n
       prependNotification(n)
       if (!n.isRead) unreadCount.value++
       // Side-channel updates for related stores
@@ -233,6 +241,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
     loading,
     hasMore,
     hasUnread,
+    lastReceived,
     loadFirstPage,
     loadMore,
     refreshUnreadCount,

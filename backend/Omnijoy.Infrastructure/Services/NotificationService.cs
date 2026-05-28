@@ -142,15 +142,33 @@ public class NotificationService : INotificationService
 
     // ── Inbox queries ─────────────────────────────────────────────────────────
 
-    public async Task<NotificationPageResult> GetNotificationsAsync(Guid userId, int page, int pageSize)
+    public async Task<NotificationPageResult> GetNotificationsAsync(
+        Guid userId, int page, int pageSize, string[]? types = null)
     {
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 100) pageSize = 20;
 
+        // Parse optional type filter — unrecognised type names are silently ignored.
+        NotificationType[]? parsedTypes = null;
+        if (types is { Length: > 0 })
+        {
+            parsedTypes = types
+                .Select(t => Enum.TryParse<NotificationType>(t, ignoreCase: true, out var v)
+                    ? (NotificationType?)v : null)
+                .Where(t => t.HasValue)
+                .Select(t => t!.Value)
+                .Distinct()
+                .ToArray();
+        }
+
         var query = _db.Notifications
             .AsNoTracking()
-            .Where(n => n.UserId == userId)
-            .OrderByDescending(n => n.CreatedAt);
+            .Where(n => n.UserId == userId);
+
+        if (parsedTypes is { Length: > 0 })
+            query = query.Where(n => parsedTypes.Contains(n.Type));
+
+        query = query.OrderByDescending(n => n.CreatedAt);
 
         var total = await query.CountAsync();
 

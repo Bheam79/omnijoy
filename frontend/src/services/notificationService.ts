@@ -18,10 +18,18 @@ export interface NotificationsPage {
 }
 
 export const notificationService = {
-  /** Fetch a paginated list of notifications (newest first). */
-  async list(page = 1, pageSize = 20): Promise<NotificationsPage> {
+  /**
+   * Fetch a paginated list of notifications (newest first).
+   * Pass `types` to filter by one or more notification type names, e.g.
+   * `['FriendRequest', 'FriendRequestAccepted']`.
+   */
+  async list(page = 1, pageSize = 20, types?: string[]): Promise<NotificationsPage> {
+    const params: Record<string, unknown> = { page, pageSize }
+    if (types && types.length > 0) params.type = types
     const { data } = await api.get<NotificationsPage>('/api/notifications', {
-      params: { page, pageSize },
+      params,
+      // Serialize arrays as repeated keys: ?type=A&type=B (not type[]=A&type[]=B)
+      paramsSerializer: { indexes: null },
     })
     return data
   },
@@ -37,7 +45,7 @@ export const notificationService = {
   },
 
   async markAllRead(): Promise<void> {
-    await api.post('/api/notifications/read-all')
+    await api.patch('/api/notifications/read-all')
   },
 
   /** Batch-fetch presence for a list of user IDs. */
