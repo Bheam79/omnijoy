@@ -129,6 +129,26 @@ make clean            # Remove build artifacts
 All hubs require JWT authentication. The token is passed via the `access_token`
 query parameter (SignalR WebSocket convention).
 
+### Notifications + presence
+
+- **`INotificationService`** (Infrastructure) persists rows to the
+  `Notifications` table and pushes them in real time via `NotificationHub`.
+  Inject it into controllers for both "create + push" (`CreateAsync`,
+  `CreateForManyAsync`) and pure transient pushes (`PushTransientAsync`).
+- The Infrastructure project must not reference the API project; the
+  bridge is `IHubContextDispatcher` (declared in Infrastructure, implemented
+  by `NotificationHubDispatcher` in `Omnijoy.Api/Hubs`).
+- **`IPresenceTracker`** is registered as a singleton
+  (`InMemoryPresenceTracker`). The `NotificationHub` calls
+  `ConnectedAsync` / `DisconnectedAsync` on every hub-connection lifecycle
+  event and broadcasts `UserOnline` / `UserOffline` to every accepted
+  friend's `user:{friendId}` group.
+- Frontend: `useNotificationsStore` owns the single connection to
+  `/hubs/notifications`, forwards events to `useFriendsStore` /
+  `usePresenceStore`. Connect on login from `TopNav.vue`, disconnect on
+  logout. `<PresenceDot :user-id />` reads from the presence store and
+  lazy-fetches via `GET /api/users/presence?userIds=…`.
+
 ### EF Core / database
 
 - Provider: **Pomelo.EntityFrameworkCore.MySql** (EF Core 9.x — latest version that Pomelo supports)

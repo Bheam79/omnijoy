@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Omnijoy.Api.Hubs;
+using Omnijoy.Core.DTOs.Chat;
 using Omnijoy.Core.DTOs.Posts;
 using Omnijoy.Core.Interfaces;
 
@@ -15,11 +16,16 @@ public class MessagesController : ControllerBase
 {
     private readonly IChatService _chat;
     private readonly IHubContext<ChatHub> _hub;
+    private readonly INotificationService _notifications;
 
-    public MessagesController(IChatService chat, IHubContext<ChatHub> hub)
+    public MessagesController(
+        IChatService chat,
+        IHubContext<ChatHub> hub,
+        INotificationService notifications)
     {
-        _chat = chat;
-        _hub  = hub;
+        _chat          = chat;
+        _hub           = hub;
+        _notifications = notifications;
     }
 
     private Guid? CurrentUserId =>
@@ -61,6 +67,25 @@ public class MessagesController : ControllerBase
             await _hub.Clients
                 .Group($"conversation:{conversationId}")
                 .SendAsync("ReceiveMessage", message);
+
+            // ── Push MessageReceived badge update to participants *other* than
+            //    the sender via NotificationHub so the bell/badge updates even
+            //    when their chat window is closed.
+            var participants = await _chat.GetParticipantUserIdsAsync(conversationId);
+            var recipients   = participants.Where(id => id != userId).ToArray();
+            if (recipients.Length > 0)
+            {
+                await _notifications.PushTransientToManyAsync(
+                    recipients,
+                    "MessageReceived",
+                    new
+                    {
+                        conversationId = conversationId.ToString(),
+                        messageId      = message.Id.ToString(),
+                        senderId       = userId.ToString(),
+                        sentAt         = message.CreatedAt,
+                    });
+            }
 
             return Created($"/api/messages/{message.Id}", message);
         }

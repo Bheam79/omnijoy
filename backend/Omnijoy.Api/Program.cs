@@ -54,6 +54,14 @@ builder.Services.AddAuthorization();
 // ── SignalR ───────────────────────────────────────────────────────────────────
 builder.Services.AddSignalR();
 
+// ── Presence + notifications ──────────────────────────────────────────────────
+// PresenceTracker is a singleton so connection state is shared across requests.
+// NotificationService is scoped (it uses DbContext); its dispatcher wraps
+// IHubContext<NotificationHub> to push real-time events.
+builder.Services.AddSingleton<IPresenceTracker, InMemoryPresenceTracker>();
+builder.Services.AddScoped<IHubContextDispatcher, NotificationHubDispatcher>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+
 // ── CORS ──────────────────────────────────────────────────────────────────────
 builder.Services.AddCors(options =>
 {

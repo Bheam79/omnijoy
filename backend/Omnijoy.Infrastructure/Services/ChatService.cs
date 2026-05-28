@@ -285,6 +285,13 @@ public class ChatService : IChatService
         => await _db.ConversationParticipants
             .AnyAsync(cp => cp.ConversationId == conversationId && cp.UserId == userId);
 
+    public Task<Guid[]> GetParticipantUserIdsAsync(Guid conversationId)
+        => _db.ConversationParticipants
+            .AsNoTracking()
+            .Where(cp => cp.ConversationId == conversationId)
+            .Select(cp => cp.UserId)
+            .ToArrayAsync();
+
     // ── Private helpers ───────────────────────────────────────────────────────
 
     private async Task<Message?> GetLastMessageAsync(Guid conversationId)

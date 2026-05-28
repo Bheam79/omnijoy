@@ -153,14 +153,37 @@ export interface LiveStream {
 
 // ── Notifications ────────────────────────────────────────────────────────────
 
+/**
+ * Strings match the backend NotificationType enum exactly
+ * (see backend/Omnijoy.Core/Models/Enums/NotificationType.cs).
+ */
 export type NotificationType =
-  | 'FriendRequestReceived'
+  | 'FriendRequest'
   | 'FriendRequestAccepted'
+  | 'PostLike'
+  | 'PostComment'
+  | 'PostShare'
+  | 'CommentLike'
+  | 'CommentReply'
+  | 'EventInvite'
+  | 'EventReminder'
+  | 'NewMessage'
+  | 'NewFollower'
+  | 'LiveStreamStarted'
+  | 'TaggedInPost'
+  | 'FamilyRelationRequest'
+  | 'CompanyPageInvite'
   | 'NewPostFromFriend'
   | 'EventCreatedByFriend'
-  | 'LiveStreamStarted'
   | 'MentionInPost'
+  | 'MentionInComment'
   | 'MessageReceived'
+
+export interface NotificationActor {
+  id: string
+  displayName: string
+  avatarUrl?: string
+}
 
 export interface Notification {
   id: string
@@ -168,6 +191,15 @@ export interface Notification {
   referenceId?: string
   isRead: boolean
   createdAt: string
+  actor?: NotificationActor
+  title?: string
+  body?: string
+}
+
+export interface UserPresence {
+  userId: string
+  isOnline: boolean
+  lastSeenAt?: string
 }
 
 // ── Shared ───────────────────────────────────────────────────────────────────

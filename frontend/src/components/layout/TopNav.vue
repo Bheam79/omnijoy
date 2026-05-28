@@ -5,51 +5,44 @@ import { useAuthStore } from '@/stores/auth'
 import { useFriendsStore } from '@/stores/friends'
 import { useChatStore } from '@/stores/chat'
 import { useLiveStore } from '@/stores/live'
-import * as signalR from '@microsoft/signalr'
+import { useNotificationsStore } from '@/stores/notifications'
+import { usePresenceStore } from '@/stores/presence'
+import NotificationBell from './NotificationBell.vue'
 
 defineProps<{ sidebarOpen: boolean }>()
 const emit = defineEmits<{ 'toggle-sidebar': [] }>()
 
-const auth = useAuthStore()
-const friendsStore = useFriendsStore()
-const chatStore = useChatStore()
-const liveStore = useLiveStore()
-const router = useRouter()
+const auth          = useAuthStore()
+const friendsStore  = useFriendsStore()
+const chatStore     = useChatStore()
+const liveStore     = useLiveStore()
+const notifications = useNotificationsStore()
+const presence      = usePresenceStore()
+const router        = useRouter()
 
 const profileOpen = ref(false)
 const hasLiveStreams = computed(() => liveStore.streams.length > 0)
-let hubConnection: signalR.HubConnection | null = null
 
 onMounted(async () => {
   if (auth.isAuthenticated) {
-    await friendsStore.refreshPendingCount()
-    connectSignalR()
+    // Connect to the centralised NotificationHub (also delivers presence +
+    // friend-request events to their respective stores).
+    notifications.connect()
+    await Promise.all([
+      friendsStore.refreshPendingCount(),
+      notifications.refreshUnreadCount(),
+    ])
   }
 })
 
 onUnmounted(() => {
-  hubConnection?.stop()
+  notifications.disconnect()
 })
-
-function connectSignalR() {
-  if (!auth.accessToken) return
-
-  hubConnection = new signalR.HubConnectionBuilder()
-    .withUrl('/hubs/notifications', { accessTokenFactory: () => auth.accessToken ?? '' })
-    .withAutomaticReconnect()
-    .configureLogging(signalR.LogLevel.Warning)
-    .build()
-
-  hubConnection.on('FriendRequestReceived', () => {
-    friendsStore.pendingCount++
-  })
-
-  hubConnection.start().catch(() => { /* silent fail during dev */ })
-}
 
 async function logout() {
   profileOpen.value = false
-  hubConnection?.stop()
+  notifications.disconnect()
+  presence.reset()
   await auth.logout()
   router.push('/')
 }
@@ -135,15 +128,8 @@ async function logout() {
         </span>
       </RouterLink>
 
-      <!-- Notifications bell -->
-      <button
-        class="relative p-2 rounded-full text-gray-600 hover:bg-gray-100 transition-colors"
-        aria-label="Notifications"
-      >
-        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-        </svg>
-      </button>
+      <!-- Notifications bell + dropdown -->
+      <NotificationBell />
 
       <!-- Messenger / chat -->
       <button

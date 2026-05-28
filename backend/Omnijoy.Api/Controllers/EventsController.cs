@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 using Omnijoy.Api.Hubs;
 using Omnijoy.Core.DTOs.Events;
 using Omnijoy.Core.Interfaces;
+using Omnijoy.Core.Models.Enums;
 
 namespace Omnijoy.Api.Controllers;
 
@@ -15,11 +16,16 @@ public class EventsController : ControllerBase
 {
     private readonly IEventService _events;
     private readonly IHubContext<FeedHub> _feedHub;
+    private readonly INotificationService _notifications;
 
-    public EventsController(IEventService events, IHubContext<FeedHub> feedHub)
+    public EventsController(
+        IEventService events,
+        IHubContext<FeedHub> feedHub,
+        INotificationService notifications)
     {
-        _events = events;
-        _feedHub = feedHub;
+        _events        = events;
+        _feedHub       = feedHub;
+        _notifications = notifications;
     }
 
     private Guid? CurrentUserId =>
@@ -73,6 +79,16 @@ public class EventsController : ControllerBase
             await _feedHub.Clients
                 .Group($"user:{userId}")
                 .SendAsync("EventCreated", ev);
+
+            // ── Persist + push EventCreatedByFriend notifications to friends ──
+            if (friendIds.Count > 0)
+            {
+                await _notifications.CreateForManyAsync(
+                    recipientUserIds: friendIds,
+                    type:             NotificationType.EventCreatedByFriend,
+                    referenceId:      ev.Id.ToString(),
+                    actorUserId:      userId);
+            }
 
             return Created($"/api/events/{ev.Id}", ev);
         }

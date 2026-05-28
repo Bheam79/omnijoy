@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
+import { usePresenceStore } from '@/stores/presence'
+import PresenceDot from '@/components/shared/PresenceDot.vue'
 import type { Conversation } from '@/types'
 
-const auth = useAuthStore()
-const chat = useChatStore()
+const auth     = useAuthStore()
+const chat     = useChatStore()
+const presence = usePresenceStore()
 
 const searchQuery = ref('')
 
@@ -14,6 +17,19 @@ onMounted(() => {
     chat.loadConversations()
   }
 })
+
+// Batch-load presence for every other participant once conversations arrive.
+watch(
+  () => chat.conversations,
+  (list) => {
+    const ids = list
+      .flatMap((c) => c.participants)
+      .filter((p) => p.id !== auth.user?.id)
+      .map((p) => p.id)
+    if (ids.length > 0) presence.ensurePresence(ids).catch(() => {})
+  },
+  { immediate: true, deep: true },
+)
 
 function otherParticipant(conv: Conversation) {
   return conv.participants.find((p) => p.id !== auth.user?.id)
@@ -124,6 +140,14 @@ import { computed } from 'vue'
               {{ otherParticipant(conv)?.displayName?.[0]?.toUpperCase() ?? '?' }}
             </span>
           </div>
+          <!-- Presence dot (online only) -->
+          <span class="absolute bottom-0 right-0">
+            <PresenceDot
+              v-if="otherParticipant(conv)"
+              :user-id="otherParticipant(conv)!.id"
+              size="sm"
+            />
+          </span>
           <!-- Unread dot -->
           <span
             v-if="conv.unreadCount > 0"

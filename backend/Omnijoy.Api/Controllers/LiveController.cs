@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 using Omnijoy.Api.Hubs;
 using Omnijoy.Core.DTOs.Live;
 using Omnijoy.Core.Interfaces;
+using Omnijoy.Core.Models.Enums;
 
 namespace Omnijoy.Api.Controllers;
 
@@ -15,17 +16,20 @@ public class LiveController : ControllerBase
 {
     private readonly ILiveStreamService _live;
     private readonly IHubContext<LiveHub> _liveHub;
+    private readonly INotificationService _notifications;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _config;
 
     public LiveController(
         ILiveStreamService live,
         IHubContext<LiveHub> liveHub,
+        INotificationService notifications,
         IHttpClientFactory httpClientFactory,
         IConfiguration config)
     {
         _live              = live;
         _liveHub           = liveHub;
+        _notifications     = notifications;
         _httpClientFactory = httpClientFactory;
         _config            = config;
     }
@@ -62,6 +66,16 @@ public class LiveController : ControllerBase
                         hostId   = userId,
                         hlsUrl   = response.HlsUrl,
                     });
+            }
+
+            // ── Persist + push LiveStreamStarted notifications to friends ─────
+            if (friendIds.Count > 0)
+            {
+                await _notifications.CreateForManyAsync(
+                    recipientUserIds: friendIds,
+                    type:             NotificationType.LiveStreamStarted,
+                    referenceId:      response.Id.ToString(),
+                    actorUserId:      userId);
             }
 
             return Ok(response);

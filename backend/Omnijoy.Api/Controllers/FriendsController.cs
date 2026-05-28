@@ -1,10 +1,9 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
-using Omnijoy.Api.Hubs;
 using Omnijoy.Core.DTOs.Friends;
 using Omnijoy.Core.Interfaces;
+using Omnijoy.Core.Models.Enums;
 
 namespace Omnijoy.Api.Controllers;
 
@@ -14,12 +13,12 @@ namespace Omnijoy.Api.Controllers;
 public class FriendsController : ControllerBase
 {
     private readonly IFriendService _friends;
-    private readonly IHubContext<NotificationHub> _notificationHub;
+    private readonly INotificationService _notifications;
 
-    public FriendsController(IFriendService friends, IHubContext<NotificationHub> notificationHub)
+    public FriendsController(IFriendService friends, INotificationService notifications)
     {
-        _friends = friends;
-        _notificationHub = notificationHub;
+        _friends       = friends;
+        _notifications = notifications;
     }
 
     private Guid? CurrentUserId =>
@@ -36,13 +35,18 @@ public class FriendsController : ControllerBase
         {
             var dto = await _friends.SendRequestAsync(me, userId);
 
-            // Push real-time notification to the target user
-            await _notificationHub.Clients
-                .Group($"user:{userId}")
-                .SendAsync("FriendRequestReceived", new
-                {
-                    from = new { id = me.ToString(), displayName = User.FindFirstValue(ClaimTypes.Name) }
-                });
+            // Persist + push notification (NotificationReceived event).
+            await _notifications.CreateAsync(
+                recipientUserId: userId,
+                type:            NotificationType.FriendRequest,
+                referenceId:     me.ToString(),
+                actorUserId:     me);
+
+            // Legacy event — kept so existing client handlers keep firing.
+            await _notifications.PushTransientAsync(
+                userId,
+                "FriendRequestReceived",
+                new { from = new { id = me.ToString(), displayName = User.FindFirstValue(ClaimTypes.Name) } });
 
             return Ok(dto);
         }
@@ -62,13 +66,16 @@ public class FriendsController : ControllerBase
         {
             var dto = await _friends.AcceptRequestAsync(me, userId);
 
-            // Push notification back to the requester
-            await _notificationHub.Clients
-                .Group($"user:{userId}")
-                .SendAsync("FriendRequestAccepted", new
-                {
-                    by = new { id = me.ToString(), displayName = User.FindFirstValue(ClaimTypes.Name) }
-                });
+            await _notifications.CreateAsync(
+                recipientUserId: userId,
+                type:            NotificationType.FriendRequestAccepted,
+                referenceId:     me.ToString(),
+                actorUserId:     me);
+
+            await _notifications.PushTransientAsync(
+                userId,
+                "FriendRequestAccepted",
+                new { by = new { id = me.ToString(), displayName = User.FindFirstValue(ClaimTypes.Name) } });
 
             return Ok(dto);
         }

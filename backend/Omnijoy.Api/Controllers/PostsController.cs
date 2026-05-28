@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 using Omnijoy.Api.Hubs;
 using Omnijoy.Core.DTOs.Posts;
 using Omnijoy.Core.Interfaces;
+using Omnijoy.Core.Models.Enums;
 
 namespace Omnijoy.Api.Controllers;
 
@@ -15,11 +16,16 @@ public class PostsController : ControllerBase
 {
     private readonly IPostService _posts;
     private readonly IHubContext<FeedHub> _feedHub;
+    private readonly INotificationService _notifications;
 
-    public PostsController(IPostService posts, IHubContext<FeedHub> feedHub)
+    public PostsController(
+        IPostService posts,
+        IHubContext<FeedHub> feedHub,
+        INotificationService notifications)
     {
-        _posts = posts;
-        _feedHub = feedHub;
+        _posts         = posts;
+        _feedHub       = feedHub;
+        _notifications = notifications;
     }
 
     private Guid? CurrentUserId =>
@@ -81,6 +87,17 @@ public class PostsController : ControllerBase
                 await _feedHub.Clients
                     .Group($"user:{recipientId}")
                     .SendAsync("NewPost", post);
+            }
+
+            // ── Persist + push NewPostFromFriend notifications to friends ─────
+            // Skipped for OnlyMe posts (which only the author sees).
+            if (friendIds.Count > 0 && post.Privacy != "OnlyMe")
+            {
+                await _notifications.CreateForManyAsync(
+                    recipientUserIds: friendIds,
+                    type:             NotificationType.NewPostFromFriend,
+                    referenceId:      post.Id.ToString(),
+                    actorUserId:      userId);
             }
 
             return Created($"/api/posts/{post.Id}", post);

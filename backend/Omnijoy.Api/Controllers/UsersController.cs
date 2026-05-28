@@ -13,11 +13,16 @@ public class UsersController : ControllerBase
 {
     private readonly IUserService _users;
     private readonly IFriendService _friends;
+    private readonly IPresenceTracker _presence;
 
-    public UsersController(IUserService users, IFriendService friends)
+    public UsersController(
+        IUserService users,
+        IFriendService friends,
+        IPresenceTracker presence)
     {
-        _users = users;
-        _friends = friends;
+        _users    = users;
+        _friends  = friends;
+        _presence = presence;
     }
 
     /// <summary>Returns the currently authenticated user's ID, or null if anonymous.</summary>
@@ -166,6 +171,29 @@ public class UsersController : ControllerBase
 
         var settings = await _users.GetPrivacySettingsAsync(userId);
         return Ok(settings);
+    }
+
+    // ── GET /api/users/presence ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns presence (online + last-seen) for a batch of user IDs.
+    /// Use a comma-separated <c>userIds</c> query parameter.
+    /// </summary>
+    [HttpGet("presence")]
+    public async Task<IActionResult> GetPresence([FromQuery] string? userIds)
+    {
+        if (CurrentUserId is null) return Unauthorized();
+        if (string.IsNullOrWhiteSpace(userIds)) return Ok(Array.Empty<object>());
+
+        var ids = userIds
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(s => Guid.TryParse(s, out var g) ? g : Guid.Empty)
+            .Where(g => g != Guid.Empty)
+            .Distinct()
+            .ToArray();
+
+        var presence = await _presence.GetPresenceAsync(ids);
+        return Ok(presence);
     }
 
     // ── PUT /api/users/me/privacy ─────────────────────────────────────────────

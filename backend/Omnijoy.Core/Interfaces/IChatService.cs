@@ -41,4 +41,10 @@ public interface IChatService
 
     /// <summary>Returns true when the given user is a participant in the conversation.</summary>
     Task<bool> IsParticipantAsync(Guid conversationId, Guid userId);
+
+    /// <summary>
+    /// Returns the user IDs of every participant in the conversation
+    /// (used to fan out MessageReceived notifications via SignalR).
+    /// </summary>
+    Task<Guid[]> GetParticipantUserIdsAsync(Guid conversationId);
 }
