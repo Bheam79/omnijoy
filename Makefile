@@ -32,8 +32,28 @@ PROD_ENV_EX   := docker/.env.example
 DOCKER        ?= docker
 COMPOSE       ?= $(DOCKER) compose
 
-# Absolute path to this repo (used by prod-install for the systemd unit)
+# Absolute path to this repo — resolves to the HOST-visible path so that
+# volume mounts in sibling Docker containers work correctly when running
+# inside a dev-container (Docker-from-Docker / DinD setup).
+#
+# Inside a dev-container the workspace is a bind-mount from the host, e.g.:
+#   /home/user/projects/omnijoy  →  /workspace  (inside the container)
+# A sibling container started via the host Docker socket needs the HOST path,
+# not the in-container path.  We detect this by inspecting our own container.
+#
+# Two-step: capture hostname first (avoids $$(hostname) quoting issues in
+# $(shell ...)), then use it to look up the mount source via docker inspect.
+_SELF_HOSTNAME    := $(shell hostname)
+_HOST_WORKSPACE   := $(shell docker inspect $(_SELF_HOSTNAME) 2>/dev/null \
+  | python3 -c "import sys,json;d=json.load(sys.stdin);[print(m['Source']) for m in d[0].get('Mounts',[]) if m.get('Destination')=='/workspace']" \
+  2>/dev/null)
+ifneq ($(_HOST_WORKSPACE),)
+# Running inside a dev-container: translate /workspace → host source path.
+REPO_PATH     := $(_HOST_WORKSPACE)/repo
+else
+# Running directly on the host or in CI: use the current directory.
 REPO_PATH     := $(shell pwd)
+endif
 
 .PHONY: help build build-backend build-frontend \
         start-db stop-db start-redis stop-redis \
