@@ -257,6 +257,17 @@ dotnet ef database update \
 
 ### Media storage (MinIO / S3)
 
+- **MinIO compatibility (AWSSDK.S3 ≥ 3.7.412):** the SDK now auto-attaches
+  `x-amz-sdk-checksum-algorithm` + `x-amz-checksum-crc32` headers to
+  every PutObject, which MinIO rejects with **`Access Denied`**.
+  `S3MediaStorageService` opts out via
+  `RequestChecksumCalculation = WHEN_REQUIRED` and
+  `ResponseChecksumValidation = WHEN_REQUIRED` on `AmazonS3Config`,
+  plus `DisableDefaultChecksumValidation = true` on the upload request.
+  Don't remove either guard when bumping the SDK.
+- MinIO also rejects per-object ACLs — never set `CannedACL` on
+  `TransferUtilityUploadRequest`. Public read is bucket-policy only
+  (`mc anonymous set download …`).
 - `Storage:Type` switches `IMediaStorageService` between `local`
   (`LocalMediaStorageService` → `wwwroot/uploads/`) and `s3`
   (`S3MediaStorageService` → MinIO / AWS S3 / R2). Dev defaults to
