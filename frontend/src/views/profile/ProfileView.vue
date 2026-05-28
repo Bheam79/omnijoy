@@ -9,6 +9,7 @@ import {
   type PrivacySettings,
   type UpdatePrivacyPayload,
 } from '@/services/userService'
+import FriendButton from '@/components/friends/FriendButton.vue'
 
 const route = useRoute()
 const auth = useAuthStore()
@@ -291,12 +292,7 @@ const privacyFields: Array<{ key: keyof PrivacySettings; label: string }> = [
             </button>
           </template>
           <template v-else>
-            <button class="flex items-center gap-1.5 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg transition-colors">
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
-              </svg>
-              {{ profile.isFriend ? 'Friends' : 'Add friend' }}
-            </button>
+            <FriendButton :user-id="(route.params.userId as string)" />
             <button class="flex items-center gap-1.5 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition-colors">
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 8a9 9 0 11-18 0 9 9 0 0118 0z"/>
