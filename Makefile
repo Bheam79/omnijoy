@@ -27,7 +27,7 @@ GREEN_DIR   := $(PUBLISH_DIR)/green
         start-db stop-db \
         deploy-blue deploy-green switch rollback \
         dev dev-backend dev-frontend \
-        test test-backend test-frontend \
+        test test-backend test-frontend test-e2e test-e2e-api test-e2e-browser \
         migrate clean status logs
 
 # ── Default target ────────────────────────────────────────────────────────────
@@ -60,6 +60,9 @@ help:
 	@echo "    make test            Run all tests (backend + frontend)"
 	@echo "    make test-backend    Run xUnit tests"
 	@echo "    make test-frontend   Run Vitest tests"
+	@echo "    make test-e2e        Run all E2E tests (Playwright)"
+	@echo "    make test-e2e-api    Run E2E API tests only (no browser)"
+	@echo "    make test-e2e-browser Run E2E browser tests only"
 	@echo ""
 	@echo "  Misc:"
 	@echo "    make status          Show running containers and active slot"
@@ -213,6 +216,18 @@ test-backend:
 test-frontend:
 	@echo ">> Running frontend tests..."
 	cd frontend && npm run test -- --coverage
+
+test-e2e:
+	@echo ">> Running E2E tests (Playwright)..."
+	cd e2e && npm ci && npx playwright test
+
+test-e2e-api:
+	@echo ">> Running E2E API tests only..."
+	cd e2e && npm ci && npx playwright test tests/api
+
+test-e2e-browser:
+	@echo ">> Running E2E browser tests only..."
+	cd e2e && npm ci && npx playwright test tests/browser
 
 # ── Misc ──────────────────────────────────────────────────────────────────────
 status:

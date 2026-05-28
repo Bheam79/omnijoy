@@ -3,8 +3,17 @@ import { ref, computed } from 'vue'
 import type { User } from '@/types'
 import { authService, type RegisterPayload } from '@/services/authService'
 
+function loadUserFromStorage(): User | null {
+  try {
+    const raw = localStorage.getItem('auth_user')
+    return raw ? (JSON.parse(raw) as User) : null
+  } catch {
+    return null
+  }
+}
+
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<User | null>(null)
+  const user = ref<User | null>(loadUserFromStorage())
   const accessToken = ref<string | null>(localStorage.getItem('access_token'))
   const refreshToken = ref<string | null>(localStorage.getItem('refresh_token'))
   const loading = ref(false)
@@ -21,6 +30,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   function setUser(u: User) {
     user.value = u
+    localStorage.setItem('auth_user', JSON.stringify(u))
   }
 
   function clearError() {
@@ -33,7 +43,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const result = await authService.register(payload)
       setTokens(result.accessToken, result.refreshToken)
-      user.value = result.user
+      setUser(result.user)
     } catch (e: unknown) {
       error.value = extractError(e)
       throw e
@@ -48,7 +58,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const result = await authService.loginPassword(email, password)
       setTokens(result.accessToken, result.refreshToken)
-      user.value = result.user
+      setUser(result.user)
     } catch (e: unknown) {
       error.value = extractError(e)
       throw e
@@ -76,7 +86,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const result = await authService.verifyOtp(email, code)
       setTokens(result.accessToken, result.refreshToken)
-      user.value = result.user
+      setUser(result.user)
     } catch (e: unknown) {
       error.value = extractError(e)
       throw e
@@ -91,7 +101,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const result = await authService.loginGoogle(idToken)
       setTokens(result.accessToken, result.refreshToken)
-      user.value = result.user
+      setUser(result.user)
     } catch (e: unknown) {
       error.value = extractError(e)
       throw e
@@ -106,7 +116,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const result = await authService.loginFacebook(fbAccessToken)
       setTokens(result.accessToken, result.refreshToken)
-      user.value = result.user
+      setUser(result.user)
     } catch (e: unknown) {
       error.value = extractError(e)
       throw e
@@ -122,6 +132,7 @@ export const useAuthStore = defineStore('auth', () => {
     refreshToken.value = null
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
+    localStorage.removeItem('auth_user')
     if (rt) await authService.logout(rt)
   }
 
