@@ -3,12 +3,15 @@ import { computed, ref } from 'vue'
 import type { PostDto } from '@/services/postService'
 import { useAuthStore } from '@/stores/auth'
 import { useFeedStore } from '@/stores/feed'
+import PostReactionBar from './PostReactionBar.vue'
 
 const props = defineProps<{ post: PostDto }>()
 const emit = defineEmits<{ deleted: [id: string] }>()
 
 const auth = useAuthStore()
 const feed = useFeedStore()
+
+const isLoggedIn = computed(() => !!auth.user)
 
 const isOwn = computed(() => auth.user?.id === props.post.author.id)
 const shareUrl = computed(() => `${window.location.origin}/share/posts/${props.post.id}`)
@@ -214,19 +217,11 @@ const tobStyle = computed(() => {
       </div>
     </template>
 
-    <!-- Actions bar -->
-    <div class="flex items-center gap-1 px-4 py-2 border-t border-gray-100 mt-1">
-      <button
-        class="flex items-center gap-1.5 text-gray-500 hover:text-blue-600 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-blue-50 transition flex-1 justify-center"
-        disabled
-        title="Like (coming soon)"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/>
-        </svg>
-        Like
-      </button>
+    <!-- Reaction bar (picker + counts) -->
+    <PostReactionBar :post-id="post.id" :logged-in="isLoggedIn" />
+
+    <!-- Actions bar (Comment + Share) -->
+    <div class="flex items-center gap-1 px-4 py-2 border-t border-gray-100">
       <button
         class="flex items-center gap-1.5 text-gray-500 hover:text-blue-600 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-blue-50 transition flex-1 justify-center"
         disabled

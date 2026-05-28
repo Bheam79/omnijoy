@@ -13,6 +13,31 @@ vi.mock('@/stores/feed', () => ({
   }),
 }))
 
+// ── Mock reactionsStore (PostCard → PostReactionBar → useReactionsStore) ──────
+
+vi.mock('@/stores/reactions', () => ({
+  useReactionsStore: () => ({
+    byPost:        {},
+    fetchReactions: vi.fn().mockResolvedValue(undefined),
+    addOrUpdate:   vi.fn().mockResolvedValue(undefined),
+    remove:        vi.fn().mockResolvedValue(undefined),
+  }),
+}))
+
+// ── Mock reactionService ──────────────────────────────────────────────────────
+
+vi.mock('@/services/reactionService', async () => {
+  const actual = await vi.importActual<typeof import('@/services/reactionService')>(
+    '@/services/reactionService',
+  )
+  return {
+    ...actual,
+    reactionService: {
+      getReactions: vi.fn().mockResolvedValue({ counts: [], totalCount: 0, currentUserReaction: null }),
+    },
+  }
+})
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function makePost(overrides: Record<string, unknown> = {}) {
@@ -83,8 +108,9 @@ describe('PostCard', () => {
     expect(shareButton).toBeTruthy()
   })
 
-  it('renders the Like button', () => {
+  it('renders the reaction (Like) button via PostReactionBar', () => {
     const wrapper = mountCard(makePost())
+    // PostReactionBar renders a ReactionPicker which shows "Like" by default
     expect(wrapper.text()).toContain('Like')
   })
 

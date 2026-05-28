@@ -1,19 +1,25 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import * as signalR from '@microsoft/signalr'
 import { useFeedStore } from '@/stores/feed'
 import { useAuthStore } from '@/stores/auth'
+import { useReactionsStore } from '@/stores/reactions'
 import type { PostDto } from '@/services/postService'
+import type { ReactionCountsUpdatedEvent } from '@/services/reactionService'
 import PostCard from '@/components/post/PostCard.vue'
 import PostComposer from '@/components/post/PostComposer.vue'
 
 const feed = useFeedStore()
 const auth = useAuthStore()
+const reactionsStore = useReactionsStore()
 
 const composer = ref<InstanceType<typeof PostComposer> | null>(null)
 const sentinelRef = ref<HTMLElement | null>(null)
 let hubConnection: signalR.HubConnection | null = null
 let intersectionObserver: IntersectionObserver | null = null
+
+// Track which post IDs we've subscribed to on the hub
+const subscribedPostIds = new Set<string>()
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -27,6 +33,8 @@ onUnmounted(() => {
   hubConnection?.stop()
   intersectionObserver?.disconnect()
   feed.reset()
+  reactionsStore.reset()
+  subscribedPostIds.clear()
 })
 
 // ── SignalR ───────────────────────────────────────────────────────────────────
@@ -44,10 +52,43 @@ function connectSignalR() {
 
   hubConnection.on('NewPost', (post: PostDto) => {
     feed.prependPost(post)
+    // Subscribe to reaction updates for the newly-arrived post
+    subscribeToPost(post.id)
   })
 
-  hubConnection.start().catch(console.error)
+  hubConnection.on('ReactionCountsUpdated', (event: ReactionCountsUpdatedEvent) => {
+    reactionsStore.applyUpdate(event)
+  })
+
+  hubConnection.start()
+    .then(() => {
+      // Subscribe to all posts currently in the feed
+      subscribeToVisiblePosts()
+    })
+    .catch(console.error)
 }
+
+function subscribeToPost(postId: string) {
+  if (subscribedPostIds.has(postId) || !hubConnection) return
+  subscribedPostIds.add(postId)
+  hubConnection.invoke('SubscribeToPost', postId).catch(() => {
+    // Non-fatal: if it fails, we simply won't get real-time updates for this post
+    subscribedPostIds.delete(postId)
+  })
+}
+
+function subscribeToVisiblePosts() {
+  for (const post of feed.posts) {
+    subscribeToPost(post.id)
+  }
+}
+
+// Re-subscribe whenever the posts list grows (e.g. infinite scroll loads more)
+watch(() => feed.posts.length, () => {
+  if (hubConnection?.state === signalR.HubConnectionState.Connected) {
+    subscribeToVisiblePosts()
+  }
+})
 
 // ── Infinite scroll via IntersectionObserver ──────────────────────────────────
 
