@@ -19,11 +19,16 @@ public class LocalMediaStorageService : IMediaStorageService
             ".jpg", ".jpeg", ".png", ".gif", ".webp",
             // Videos
             ".mp4", ".webm", ".mov", ".avi", ".mkv",
+            // Documents / archives (chat file attachments)
+            ".pdf", ".doc", ".docx", ".xls", ".xlsx",
+            ".ppt", ".pptx", ".txt", ".csv",
+            ".zip", ".rar", ".7z", ".tar", ".gz",
         };
 
-    // 5 MB for images; 200 MB for videos — differentiated at call site via folder prefix
-    private const long MaxImageSizeBytes  = 5  * 1024 * 1024;
-    private const long MaxVideoSizeBytes  = 200 * 1024 * 1024;
+    // 5 MB for images; 200 MB for videos; 50 MB for document files
+    private const long MaxImageSizeBytes    = 5   * 1024 * 1024;
+    private const long MaxVideoSizeBytes    = 200 * 1024 * 1024;
+    private const long MaxDocumentSizeBytes = 50  * 1024 * 1024;
 
     public LocalMediaStorageService(IWebHostEnvironment env)
     {
@@ -36,8 +41,11 @@ public class LocalMediaStorageService : IMediaStorageService
         if (content.Length == 0)
             throw new ArgumentException("Uploaded file is empty.");
 
-        bool isVideo = folder.Contains("video", StringComparison.OrdinalIgnoreCase);
-        long maxSize = isVideo ? MaxVideoSizeBytes : MaxImageSizeBytes;
+        bool isVideo    = folder.Contains("video", StringComparison.OrdinalIgnoreCase);
+        bool isDocument = folder.Contains("file",  StringComparison.OrdinalIgnoreCase);
+        long maxSize = isVideo    ? MaxVideoSizeBytes
+                     : isDocument ? MaxDocumentSizeBytes
+                     :              MaxImageSizeBytes;
 
         if (content.Length > maxSize)
             throw new ArgumentException($"File exceeds the maximum allowed size of {maxSize / (1024 * 1024)} MB.");

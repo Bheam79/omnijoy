@@ -63,29 +63,39 @@ export interface Friend {
 
 // ── Messages & Conversations ─────────────────────────────────────────────────
 
-export type MessageType = 'Text' | 'Image' | 'Video' | 'File' | 'Url'
+export type MessageType = 'Text' | 'Image' | 'Video' | 'File'
 export type ConversationType = 'Direct' | 'Group'
+
+/** Minimal user info returned in chat responses (subset of User). */
+export interface ChatUser {
+  id: string
+  displayName: string
+  avatarUrl?: string
+}
+
+export interface MessageMedia {
+  id: string
+  mediaType: 'Image' | 'Video' | 'File'
+  url: string
+  fileName?: string
+  fileSizeBytes?: number
+}
 
 export interface Message {
   id: string
   conversationId: string
-  sender: User
+  sender: ChatUser
   content?: string
   messageType: MessageType
-  media?: {
-    url: string
-    fileName?: string
-    fileSizeBytes?: number
-  }
-  ogPreview?: OgPreview
+  media?: MessageMedia
   createdAt: string
-  deletedAt?: string
+  isDeleted: boolean
 }
 
 export interface Conversation {
   id: string
   type: ConversationType
-  participants: User[]
+  participants: ChatUser[]
   lastMessage?: Message
   unreadCount: number
   createdAt: string

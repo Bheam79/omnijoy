@@ -93,6 +93,7 @@ else
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<IFriendService, FriendService>();
+builder.Services.AddScoped<IChatService, ChatService>();
 
 var app = builder.Build();
 

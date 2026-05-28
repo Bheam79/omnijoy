@@ -14,6 +14,9 @@ public class ConversationParticipantConfiguration : IEntityTypeConfiguration<Con
         builder.Property(cp => cp.JoinedAt)
                .IsRequired();
 
+        builder.Property(cp => cp.LastReadAt)
+               .IsRequired(false);
+
         builder.HasOne(cp => cp.Conversation)
                .WithMany(c => c.Participants)
                .HasForeignKey(cp => cp.ConversationId)

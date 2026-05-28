@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useFriendsStore } from '@/stores/friends'
+import { useChatStore } from '@/stores/chat'
 import * as signalR from '@microsoft/signalr'
 
 defineProps<{ sidebarOpen: boolean }>()
@@ -10,6 +11,7 @@ const emit = defineEmits<{ 'toggle-sidebar': [] }>()
 
 const auth = useAuthStore()
 const friendsStore = useFriendsStore()
+const chatStore = useChatStore()
 const router = useRouter()
 
 const profileOpen = ref(false)
@@ -129,12 +131,18 @@ async function logout() {
       <button
         class="relative p-2 rounded-full text-gray-600 hover:bg-gray-100 transition-colors"
         aria-label="Messages"
+        @click="chatStore.toggleList()"
       >
         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 8a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
-        <!-- Unread badge placeholder -->
-        <!-- <span class="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" /> -->
+        <!-- Unread badge -->
+        <span
+          v-if="chatStore.totalUnread > 0"
+          class="absolute top-0.5 right-0.5 min-w-[1.1rem] h-[1.1rem] rounded-full bg-red-500 ring-2 ring-white flex items-center justify-center text-white text-[10px] font-bold px-0.5"
+        >
+          {{ chatStore.totalUnread > 9 ? '9+' : chatStore.totalUnread }}
+        </span>
       </button>
 
       <!-- Profile dropdown trigger -->

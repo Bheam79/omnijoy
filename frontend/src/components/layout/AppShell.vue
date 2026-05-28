@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import TopNav from './TopNav.vue'
 import Sidebar from './Sidebar.vue'
+import MessengerPopup from '@/components/chat/MessengerPopup.vue'
 
 const sidebarOpen = ref(false)
 const route = useRoute()
@@ -35,5 +36,8 @@ watch(() => route.path, () => {
         <slot />
       </div>
     </main>
+
+    <!-- Messenger popup (fixed bottom-right, always present when authenticated) -->
+    <MessengerPopup />
   </div>
 </template>
