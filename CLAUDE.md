@@ -319,8 +319,8 @@ dotnet ef database update \
 
 Implemented via `Microsoft.AspNetCore.RateLimiting` (built-in .NET 8+) with Redis-backed
 counters when Redis is available, falling back gracefully to per-instance in-memory limiters.
-Registration: `services.AddOmnijoyRateLimiting(redisConnectionString)` in `Program.cs`.
-Middleware: `app.UseRateLimiter()` (after `UseAuthorization()`).
+Registration: `services.AddOmnijoyRateLimiting(redisConnectionString, builder.Configuration)`
+in `Program.cs`. Middleware: `app.UseRateLimiter()` (after `UseAuthorization()`).
 
 | Policy | Key | Limit | Applied to |
 |--------|-----|-------|-----------|
@@ -336,6 +336,17 @@ All rejections return **429 Too Many Requests** with a `Retry-After` header (sec
 Package: `RedisRateLimiting` 1.2.1 (cristipufu) — use `RedisRateLimitPartition.GetFixedWindowRateLimiter`
 with `options.AddPolicy<string>(name, ctx => ...)` for per-user/IP partitioned Redis policies.
 The `.AddRedisFixedWindowLimiter` extension only supports global (non-partitioned) counters.
+
+**Per-environment overrides.** Every numeric limit can be overridden from
+configuration via the `RateLimiting:*` section — production keeps the
+constants above; `appsettings.Development.json` ships an E2E-friendly
+profile (1000 uploads/hr, 200 strict/min) so the Playwright suite isn't
+cascade-failed by the 20/hour upload bucket. Keys: `RateLimiting:Upload:PermitLimit`,
+`RateLimiting:Upload:WindowSeconds` (`WindowMinutes` also accepted),
+plus `Strict:` and `Global:Ip|UserPermitLimit` siblings. For
+`make test-e2e-prod`, set `RATELIMIT_UPLOAD_PERMITS=1000` (etc.) in
+`docker/.env` — `docker-compose.prod.yml` already plumbs them into
+the backend container as `RateLimiting__Upload__PermitLimit`.
 
 ---
 

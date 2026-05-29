@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Configuration;
 using RedisRateLimiting;
 using StackExchange.Redis;
 using System.Security.Claims;
@@ -46,8 +47,17 @@ public static class RateLimitingExtensions
     /// </summary>
     public static IServiceCollection AddOmnijoyRateLimiting(
         this IServiceCollection services,
-        string? redisConnectionString)
+        string? redisConnectionString,
+        IConfiguration? configuration = null)
     {
+        // Resolve the numeric limits — production defaults come from
+        // RateLimitConstants, but every value can be overridden via
+        // configuration ("RateLimiting:Upload:PermitLimit",
+        // "RateLimiting:Upload:WindowSeconds", etc.) so non-prod
+        // environments (Development / E2E suites) can raise the bucket
+        // without recompiling the app.
+        var limits = ResolveLimits(configuration);
+
         // A single long-lived multiplexer shared by all rate-limit partitions.
         IConnectionMultiplexer? muxer = null;
         if (!string.IsNullOrWhiteSpace(redisConnectionString))
@@ -77,16 +87,16 @@ public static class RateLimitingExtensions
                     var userId = ctx.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anon";
                     return CreatePartition(
                         $"global:user:{userId}",
-                        RateLimitConstants.GlobalUserPermitLimit,
-                        RateLimitConstants.GlobalWindow,
+                        limits.GlobalUserPermitLimit,
+                        limits.GlobalWindow,
                         muxer);
                 }
 
                 var ip = GetClientIp(ctx);
                 return CreatePartition(
                     $"global:ip:{ip}",
-                    RateLimitConstants.GlobalIpPermitLimit,
-                    RateLimitConstants.GlobalWindow,
+                    limits.GlobalIpPermitLimit,
+                    limits.GlobalWindow,
                     muxer);
             });
 
@@ -97,8 +107,8 @@ public static class RateLimitingExtensions
                 RateLimitConstants.StrictPolicy,
                 ctx => CreatePartition(
                     $"strict:{GetClientIp(ctx)}",
-                    RateLimitConstants.StrictPermitLimit,
-                    RateLimitConstants.StrictWindow,
+                    limits.StrictPermitLimit,
+                    limits.StrictWindow,
                     muxer));
 
             // ── Upload: 20 req/hour per userId ────────────────────────────────
@@ -114,8 +124,8 @@ public static class RateLimitingExtensions
                         : $"upload:user:{userId}";
                     return CreatePartition(
                         key,
-                        RateLimitConstants.UploadPermitLimit,
-                        RateLimitConstants.UploadWindow,
+                        limits.UploadPermitLimit,
+                        limits.UploadWindow,
                         muxer);
                 });
 
@@ -125,6 +135,60 @@ public static class RateLimitingExtensions
         });
 
         return services;
+    }
+
+    /// <summary>
+    /// Resolved (after-override) rate-limit values used by
+    /// <see cref="AddOmnijoyRateLimiting"/>.
+    /// </summary>
+    internal readonly record struct ResolvedRateLimits(
+        int GlobalIpPermitLimit,
+        int GlobalUserPermitLimit,
+        TimeSpan GlobalWindow,
+        int StrictPermitLimit,
+        TimeSpan StrictWindow,
+        int UploadPermitLimit,
+        TimeSpan UploadWindow);
+
+    /// <summary>
+    /// Reads <c>RateLimiting:*</c> overrides from <paramref name="configuration"/>
+    /// (if supplied) and falls back to <see cref="RateLimitConstants"/> for
+    /// anything not set. Window values can be specified as either
+    /// <c>WindowSeconds</c> (preferred) or <c>WindowMinutes</c>.
+    /// </summary>
+    internal static ResolvedRateLimits ResolveLimits(IConfiguration? configuration)
+    {
+        var section = configuration?.GetSection("RateLimiting");
+
+        return new ResolvedRateLimits(
+            GlobalIpPermitLimit:   ReadInt(section,   "Global:IpPermitLimit",   RateLimitConstants.GlobalIpPermitLimit),
+            GlobalUserPermitLimit: ReadInt(section,   "Global:UserPermitLimit", RateLimitConstants.GlobalUserPermitLimit),
+            GlobalWindow:          ReadWindow(section, "Global",                RateLimitConstants.GlobalWindow),
+            StrictPermitLimit:     ReadInt(section,   "Strict:PermitLimit",     RateLimitConstants.StrictPermitLimit),
+            StrictWindow:          ReadWindow(section, "Strict",                RateLimitConstants.StrictWindow),
+            UploadPermitLimit:     ReadInt(section,   "Upload:PermitLimit",     RateLimitConstants.UploadPermitLimit),
+            UploadWindow:          ReadWindow(section, "Upload",                RateLimitConstants.UploadWindow));
+    }
+
+    private static int ReadInt(IConfigurationSection? section, string key, int fallback)
+    {
+        var raw = section?[key];
+        return int.TryParse(raw, out var v) && v > 0 ? v : fallback;
+    }
+
+    private static TimeSpan ReadWindow(IConfigurationSection? section, string prefix, TimeSpan fallback)
+    {
+        // Prefer WindowSeconds (finer-grained); fall back to WindowMinutes
+        // so existing configs that pre-date the seconds variant keep working.
+        var seconds = section?[$"{prefix}:WindowSeconds"];
+        if (int.TryParse(seconds, out var s) && s > 0)
+            return TimeSpan.FromSeconds(s);
+
+        var minutes = section?[$"{prefix}:WindowMinutes"];
+        if (int.TryParse(minutes, out var m) && m > 0)
+            return TimeSpan.FromMinutes(m);
+
+        return fallback;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

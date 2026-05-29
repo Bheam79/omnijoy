@@ -101,6 +101,17 @@ services:
       # Live streaming
       Live__RtmpHost:    07ad0b82_omnijoy_mediamtx
       Live__HlsBaseUrl:  http://07ad0b82_omnijoy_mediamtx:8888
+
+      # ── Rate-limit overrides (optional) ────────────────────────────────────
+      # Leave these unset to use the production defaults from RateLimitConstants
+      # (20 uploads/hour per user, 10 strict-policy requests/min per IP). Set
+      # RATELIMIT_* in docker/.env when running `make test-e2e-prod` or when a
+      # particular deployment needs different thresholds. The variables expand
+      # to the empty string when unset, which the backend treats as "no override".
+      RateLimiting__Upload__PermitLimit:   ${RATELIMIT_UPLOAD_PERMITS:-}
+      RateLimiting__Upload__WindowSeconds: ${RATELIMIT_UPLOAD_WINDOW_SECONDS:-}
+      RateLimiting__Strict__PermitLimit:   ${RATELIMIT_STRICT_PERMITS:-}
+      RateLimiting__Strict__WindowSeconds: ${RATELIMIT_STRICT_WINDOW_SECONDS:-}
     volumes:
       - media_data:/var/omnijoy/media
     networks:

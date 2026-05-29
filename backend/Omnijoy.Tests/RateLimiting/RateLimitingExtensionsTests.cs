@@ -1,6 +1,8 @@
+using System.Collections.Generic;
 using System.Net;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.RateLimiting;
 using Omnijoy.Api.RateLimiting;
@@ -158,6 +160,76 @@ public class RateLimitingExtensionsTests
         var act = () => services.AddOmnijoyRateLimiting(string.Empty);
 
         act.Should().NotThrow();
+    }
+
+    // ── ResolveLimits (configuration overrides) ──────────────────────────────
+
+    [Fact]
+    public void ResolveLimits_NullConfiguration_UsesConstants()
+    {
+        var limits = RateLimitingExtensions.ResolveLimits(null);
+
+        limits.UploadPermitLimit.Should().Be(RateLimitConstants.UploadPermitLimit);
+        limits.UploadWindow.Should().Be(RateLimitConstants.UploadWindow);
+        limits.StrictPermitLimit.Should().Be(RateLimitConstants.StrictPermitLimit);
+        limits.StrictWindow.Should().Be(RateLimitConstants.StrictWindow);
+        limits.GlobalIpPermitLimit.Should().Be(RateLimitConstants.GlobalIpPermitLimit);
+        limits.GlobalUserPermitLimit.Should().Be(RateLimitConstants.GlobalUserPermitLimit);
+        limits.GlobalWindow.Should().Be(RateLimitConstants.GlobalWindow);
+    }
+
+    [Fact]
+    public void ResolveLimits_OverridesUploadPermitAndWindowSeconds()
+    {
+        var cfg = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["RateLimiting:Upload:PermitLimit"]   = "1000",
+                ["RateLimiting:Upload:WindowSeconds"] = "120",
+            })
+            .Build();
+
+        var limits = RateLimitingExtensions.ResolveLimits(cfg);
+
+        limits.UploadPermitLimit.Should().Be(1000);
+        limits.UploadWindow.Should().Be(TimeSpan.FromSeconds(120));
+        // Untouched policies stay on the constants.
+        limits.StrictPermitLimit.Should().Be(RateLimitConstants.StrictPermitLimit);
+    }
+
+    [Fact]
+    public void ResolveLimits_PrefersWindowSecondsOverWindowMinutes()
+    {
+        var cfg = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["RateLimiting:Strict:WindowSeconds"] = "30",
+                ["RateLimiting:Strict:WindowMinutes"] = "5",
+            })
+            .Build();
+
+        var limits = RateLimitingExtensions.ResolveLimits(cfg);
+
+        limits.StrictWindow.Should().Be(TimeSpan.FromSeconds(30));
+    }
+
+    [Fact]
+    public void ResolveLimits_InvalidOrNonPositiveValues_FallBackToConstants()
+    {
+        var cfg = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["RateLimiting:Upload:PermitLimit"]   = "not-a-number",
+                ["RateLimiting:Upload:WindowSeconds"] = "0",
+                ["RateLimiting:Strict:PermitLimit"]   = "-5",
+            })
+            .Build();
+
+        var limits = RateLimitingExtensions.ResolveLimits(cfg);
+
+        limits.UploadPermitLimit.Should().Be(RateLimitConstants.UploadPermitLimit);
+        limits.UploadWindow.Should().Be(RateLimitConstants.UploadWindow);
+        limits.StrictPermitLimit.Should().Be(RateLimitConstants.StrictPermitLimit);
     }
 
     [Fact]

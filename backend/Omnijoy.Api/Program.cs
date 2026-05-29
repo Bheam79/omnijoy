@@ -127,7 +127,12 @@ builder.Services.AddSingleton<ITokenBlacklist, RedisTokenBlacklist>();
 // GlobalLimiter: 200 req/min per IP (unauth) | 600 req/min per userId (auth)
 // "strict":  10 req/min per IP  — applied to auth endpoints via [EnableRateLimiting]
 // "upload":  20 req/hour per userId — applied to upload endpoints
-builder.Services.AddOmnijoyRateLimiting(redisConnectionString);
+//
+// All numeric limits can be overridden via the "RateLimiting:*" config section
+// (see appsettings.Development.json for the E2E-friendly overrides). Production
+// uses the defaults from RateLimitConstants unless RateLimiting__Upload__PermitLimit
+// (etc.) is set in the environment.
+builder.Services.AddOmnijoyRateLimiting(redisConnectionString, builder.Configuration);
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 builder.Services.AddCors(options =>
