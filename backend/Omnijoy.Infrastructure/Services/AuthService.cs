@@ -397,7 +397,8 @@ public class AuthService : IAuthService
         Gender: u.Gender.ToString(),
         BirthDate: u.BirthDate?.ToString("yyyy-MM-dd"),
         ShowBirthDate: u.ShowBirthDate,
-        CreatedAt: u.CreatedAt
+        CreatedAt: u.CreatedAt,
+        Role: u.Role.ToString()
     );
 
     private static string HashCode(string code)
