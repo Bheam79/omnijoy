@@ -287,6 +287,7 @@ const reportModalOpen = ref(false)
               Privacy
             </button>
             <button
+              data-testid="profile-edit-button"
               class="flex items-center gap-1.5 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg transition-colors"
               @click="openEdit"
             >
@@ -297,7 +298,9 @@ const reportModalOpen = ref(false)
             </button>
           </template>
           <template v-else>
-            <FriendButton :user-id="(route.params.userId as string)" />
+            <div data-testid="friend-status">
+              <FriendButton :user-id="(route.params.userId as string)" />
+            </div>
             <button class="flex items-center gap-1.5 text-sm font-medium bg-slate-700 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg transition-colors">
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
@@ -323,8 +326,8 @@ const reportModalOpen = ref(false)
 
         <!-- Name + info -->
         <div class="mt-14 pb-4 border-b border-slate-700">
-          <h1 class="text-2xl font-bold text-slate-100">{{ profile.displayName }}</h1>
-          <p v-if="profile.bio" class="mt-1 text-sm text-slate-400 leading-relaxed">{{ profile.bio }}</p>
+          <h1 data-testid="profile-display-name" class="text-2xl font-bold text-slate-100">{{ profile.displayName }}</h1>
+          <p v-if="profile.bio" data-testid="profile-bio" class="mt-1 text-sm text-slate-400 leading-relaxed">{{ profile.bio }}</p>
 
           <div class="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-500">
             <span class="flex items-center gap-1.5">

@@ -16,13 +16,13 @@ export class ProfilePage {
 
   constructor(page: Page) {
     this.page = page
-    this.editProfileButton = page.getByRole('button', { name: /edit profile|edit/i })
+    this.editProfileButton = page.locator('[data-testid="profile-edit-button"]')
     this.bioInput = page.locator('textarea[name*="bio"], textarea[placeholder*="bio" i]')
     this.saveButton = page.getByRole('button', { name: /save/i })
     this.avatarUploadInput = page.locator('input[type="file"][accept*="image"]').first()
-    this.displayName = page.locator('h1, [data-testid="display-name"]').first()
-    this.bio = page.locator('[data-testid="bio"], .bio, p.bio')
-    this.addFriendButton = page.getByRole('button', { name: /add friend|send request/i })
+    this.displayName = page.locator('[data-testid="profile-display-name"]')
+    this.bio = page.locator('[data-testid="profile-bio"]')
+    this.addFriendButton = page.locator('[data-testid="friend-button"]')
     this.friendStatusText = page.locator('[data-testid="friend-status"]')
   }
 

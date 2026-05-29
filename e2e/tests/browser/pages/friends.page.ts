@@ -12,10 +12,10 @@ export class FriendsPage {
 
   constructor(page: Page) {
     this.page = page
-    this.pendingRequestsList = page.locator('[data-testid="pending-requests"], .friend-requests')
-    this.acceptButtons = page.getByRole('button', { name: /accept/i })
-    this.declineButtons = page.getByRole('button', { name: /decline|reject/i })
-    this.friendCards = page.locator('[data-testid="friend-card"], .friend-item')
+    this.pendingRequestsList = page.locator('[data-testid="pending-requests"]')
+    this.acceptButtons = page.locator('[data-testid="accept-button"]')
+    this.declineButtons = page.locator('[data-testid="decline-button"]')
+    this.friendCards = page.locator('[data-testid="friend-card"]')
   }
 
   async goto() {

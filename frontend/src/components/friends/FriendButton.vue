@@ -66,6 +66,7 @@ function unblockUser() {
     <!-- No relationship yet -->
     <button
       v-else-if="status === 'None'"
+      data-testid="friend-button"
       class="flex items-center gap-1.5 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg transition-colors"
       :disabled="loading"
       @click="sendRequest"
@@ -80,6 +81,7 @@ function unblockUser() {
     <!-- Request sent — can cancel -->
     <button
       v-else-if="status === 'RequestSent'"
+      data-testid="friend-button"
       class="flex items-center gap-1.5 text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-lg transition-colors"
       :disabled="loading"
       @click="cancelRequest"
@@ -93,7 +95,7 @@ function unblockUser() {
     </button>
 
     <!-- Request received — accept / decline -->
-    <div v-else-if="status === 'RequestReceived'" class="flex items-center gap-2">
+    <div v-else-if="status === 'RequestReceived'" data-testid="friend-button" class="flex items-center gap-2">
       <button
         class="flex items-center gap-1.5 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg transition-colors"
         :disabled="loading"
@@ -113,6 +115,7 @@ function unblockUser() {
     <!-- Already friends — dropdown for Unfriend / Block -->
     <div v-else-if="status === 'Accepted'" class="relative">
       <button
+        data-testid="friend-button"
         class="flex items-center gap-1.5 text-sm font-medium bg-slate-700 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg transition-colors"
         @click.stop="menuOpen = !menuOpen"
       >
@@ -146,6 +149,7 @@ function unblockUser() {
     <!-- Blocked by me -->
     <button
       v-else-if="status === 'BlockedByMe'"
+      data-testid="friend-button"
       class="flex items-center gap-1.5 text-sm font-medium bg-red-100 hover:bg-red-200 text-red-400 px-3 py-2 rounded-lg transition-colors"
       :disabled="loading"
       @click="unblockUser"

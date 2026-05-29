@@ -63,6 +63,7 @@ function formatDate(iso: string) {
           suggestions: 'Suggestions',
         } as Record<Tab, string>)"
         :key="tab"
+        :data-testid="`${tab}-tab`"
         :class="[
           'flex-1 py-1.5 px-2 rounded-lg font-medium transition',
           activeTab === tab
@@ -97,6 +98,7 @@ function formatDate(iso: string) {
         <div
           v-for="friend in store.friends"
           :key="friend.friendshipId"
+          data-testid="friend-card"
           class="bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-700 flex items-center gap-3"
         >
           <RouterLink :to="`/profile/${friend.user.id}`">
@@ -154,7 +156,7 @@ function formatDate(iso: string) {
         <p class="text-gray-500 text-sm">No pending friend requests</p>
       </div>
 
-      <div v-else class="space-y-3">
+      <div v-else data-testid="pending-requests" class="space-y-3">
         <div
           v-for="req in store.pendingRequests"
           :key="req.friendshipId || req.from.id"
@@ -175,8 +177,8 @@ function formatDate(iso: string) {
           </div>
 
           <div class="flex items-center gap-2 shrink-0">
-            <button class="text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition" @click="store.acceptRequest(req.from.id)">Accept</button>
-            <button class="text-sm font-medium bg-slate-700 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg transition" @click="store.declineRequest(req.from.id)">Decline</button>
+            <button data-testid="accept-button" class="text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition" @click="store.acceptRequest(req.from.id)">Accept</button>
+            <button data-testid="decline-button" class="text-sm font-medium bg-slate-700 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg transition" @click="store.declineRequest(req.from.id)">Decline</button>
           </div>
         </div>
       </div>
