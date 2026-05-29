@@ -21,7 +21,7 @@ export class LoginPage {
     this.emailInput = page.locator('input[type="email"]').first()
     this.passwordInput = page.locator('input[type="password"]').first()
     this.loginButton = page.getByRole('button', { name: /log in|sign in/i })
-    this.errorBanner = page.locator('div.bg-red-50')
+    this.errorBanner = page.locator('[data-testid="auth-error"]')
     // OTP tab — the login page uses a button switcher (not ARIA tabs)
     this.otpTabButton = page.getByRole('button', { name: /one-time code|otp/i })
     this.otpEmailInput = page.locator('input[type="email"]').last()

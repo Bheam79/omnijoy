@@ -227,10 +227,10 @@ onMounted(() => {
         </div>
 
         <!-- Error / success banners -->
-        <div v-if="localError || auth.error" class="mb-4 rounded-lg bg-red-950 border border-red-800 px-4 py-3 text-sm text-red-400">
+        <div v-if="localError || auth.error" data-testid="auth-error" class="mb-4 rounded-lg bg-red-950 border border-red-800 px-4 py-3 text-sm text-red-400">
           {{ localError || auth.error }}
         </div>
-        <div v-if="successMsg" class="mb-4 rounded-lg bg-green-950 border border-green-800 px-4 py-3 text-sm text-green-400">
+        <div v-if="successMsg" data-testid="auth-success" class="mb-4 rounded-lg bg-green-950 border border-green-800 px-4 py-3 text-sm text-green-400">
           {{ successMsg }}
         </div>
 

@@ -150,8 +150,8 @@ test.describe('OTP login flow', () => {
     const sendBtn = page.getByRole('button', { name: /send code|request/i })
     await sendBtn.click()
     // API always returns 200 to prevent email enumeration — expect the green success banner.
-    // The Vue template shows: "Check your email for a 6-digit code." inside a div.bg-green-50.
-    // Using the specific class avoids matching other elements that contain "code" or "email".
-    await expect(page.locator('div.bg-green-50')).toBeVisible({ timeout: 8_000 })
+    // The Vue template shows: "Check your email for a 6-digit code." inside [data-testid="auth-success"].
+    // Using data-testid avoids breakage when theme classes change.
+    await expect(page.locator('[data-testid="auth-success"]')).toBeVisible({ timeout: 8_000 })
   })
 })

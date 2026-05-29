@@ -23,7 +23,7 @@ export class RegisterPage {
     this.confirmPasswordInput = page.locator('input[type="password"]').last()
     this.genderSelect = page.locator('select[id*="gender"], select[name*="gender"]')
     this.submitButton = page.getByRole('button', { name: /create account|register|sign up/i })
-    this.errorBanner = page.locator('div.bg-red-50')
+    this.errorBanner = page.locator('[data-testid="auth-error"]')
     this.otpMethodButton = page.getByRole('button', { name: /email code|otp|magic link/i })
     this.passwordMethodButton = page.getByRole('button', { name: /password/i })
   }

@@ -64,7 +64,7 @@ async function submit() {
 
       <div class="bg-slate-800 rounded-2xl shadow-sm border border-slate-700 p-8">
         <!-- Error banner -->
-        <div v-if="localError || auth.error" class="mb-4 rounded-lg bg-red-950 border border-red-800 px-4 py-3 text-sm text-red-400">
+        <div v-if="localError || auth.error" data-testid="auth-error" class="mb-4 rounded-lg bg-red-950 border border-red-800 px-4 py-3 text-sm text-red-400">
           {{ localError || auth.error }}
         </div>
 
