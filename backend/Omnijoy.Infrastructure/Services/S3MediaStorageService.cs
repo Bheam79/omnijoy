@@ -2,6 +2,7 @@ using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Transfer;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Omnijoy.Core.Interfaces;
 
 namespace Omnijoy.Infrastructure.Services;
@@ -22,14 +23,16 @@ public class S3MediaStorageService : IMediaStorageService
     private readonly IAmazonS3 _s3;
     private readonly string _bucketName;
     private readonly string _publicBaseUrl;
+    private readonly ILogger<S3MediaStorageService> _logger;
 
     private static readonly HashSet<string> AllowedExtensions =
         new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
 
     private const long MaxFileSizeBytes = 5 * 1024 * 1024;
 
-    public S3MediaStorageService(IConfiguration config)
+    public S3MediaStorageService(IConfiguration config, ILogger<S3MediaStorageService> logger)
     {
+        _logger = logger;
         var serviceUrl = config["Storage:S3:ServiceUrl"]
             ?? throw new InvalidOperationException("Storage:S3:ServiceUrl is not configured.");
         _bucketName = config["Storage:S3:BucketName"]
@@ -94,7 +97,17 @@ public class S3MediaStorageService : IMediaStorageService
             DisableDefaultChecksumValidation = true,
         };
 
-        await transferUtility.UploadAsync(uploadRequest);
+        try
+        {
+            await transferUtility.UploadAsync(uploadRequest);
+        }
+        catch (AmazonS3Exception ex)
+        {
+            _logger.LogError(ex,
+                "S3 upload failed. ErrorCode={ErrorCode} StatusCode={StatusCode} RequestId={RequestId} ErrorType={ErrorType} ResponseMessage={Msg} Bucket={Bucket} Key={Key}",
+                ex.ErrorCode, ex.StatusCode, ex.RequestId, ex.ErrorType, ex.Message, _bucketName, key);
+            throw;
+        }
 
         return $"{_publicBaseUrl.TrimEnd('/')}/{key}";
     }
