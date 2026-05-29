@@ -119,6 +119,17 @@ export const test = base.extend<OmnijoyFixtures>({
 
     page.on('requestfailed', (request) => {
       const err = request.failure()?.errorText ?? 'unknown error'
+
+      // `net::ERR_ABORTED` is what Chromium reports when an in-flight
+      // request is cancelled — almost always because the user (or in
+      // our case the test) navigated to a different page while a
+      // component-mount fetch (e.g. the sidebar's
+      // `GET /api/events/public`) or a code-split chunk was still in
+      // flight.  These aborts are routine in SPA navigation and are
+      // not what the 5xx guard is meant to catch (server bugs, real
+      // network errors).  Ignore them.
+      if (err.includes('net::ERR_ABORTED')) return
+
       issues.push(`[NETWORK FAIL] ${request.url()} — ${err}`)
     })
 
