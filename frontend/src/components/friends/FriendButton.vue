@@ -61,7 +61,7 @@ function unblockUser() {
 <template>
   <div class="relative">
     <!-- Loading skeleton -->
-    <div v-if="status === null" class="h-9 w-28 rounded-lg bg-gray-200 animate-pulse" />
+    <div v-if="status === null" class="h-9 w-28 rounded-lg bg-slate-700 animate-pulse" />
 
     <!-- No relationship yet -->
     <button
@@ -80,7 +80,7 @@ function unblockUser() {
     <!-- Request sent — can cancel -->
     <button
       v-else-if="status === 'RequestSent'"
-      class="flex items-center gap-1.5 text-sm font-medium bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-lg transition-colors"
+      class="flex items-center gap-1.5 text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-lg transition-colors"
       :disabled="loading"
       @click="cancelRequest"
       title="Cancel friend request"
@@ -102,7 +102,7 @@ function unblockUser() {
         ✓ Accept
       </button>
       <button
-        class="flex items-center gap-1.5 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition-colors"
+        class="flex items-center gap-1.5 text-sm font-medium bg-slate-700 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg transition-colors"
         :disabled="loading"
         @click="declineRequest"
       >
@@ -113,7 +113,7 @@ function unblockUser() {
     <!-- Already friends — dropdown for Unfriend / Block -->
     <div v-else-if="status === 'Accepted'" class="relative">
       <button
-        class="flex items-center gap-1.5 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition-colors"
+        class="flex items-center gap-1.5 text-sm font-medium bg-slate-700 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg transition-colors"
         @click.stop="menuOpen = !menuOpen"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -126,16 +126,16 @@ function unblockUser() {
       <div v-if="menuOpen" class="fixed inset-0 z-10" @click="menuOpen = false" />
       <div
         v-if="menuOpen"
-        class="absolute left-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg w-44 py-1"
+        class="absolute left-0 top-full mt-1 z-20 bg-slate-800 border border-slate-700 rounded-xl shadow-lg w-44 py-1"
       >
         <button
-          class="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"
+          class="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-700 transition"
           @click="removeFriend"
         >
           Unfriend
         </button>
         <button
-          class="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition"
+          class="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-950 transition"
           @click="blockUser"
         >
           Block
@@ -146,7 +146,7 @@ function unblockUser() {
     <!-- Blocked by me -->
     <button
       v-else-if="status === 'BlockedByMe'"
-      class="flex items-center gap-1.5 text-sm font-medium bg-red-100 hover:bg-red-200 text-red-700 px-3 py-2 rounded-lg transition-colors"
+      class="flex items-center gap-1.5 text-sm font-medium bg-red-100 hover:bg-red-200 text-red-400 px-3 py-2 rounded-lg transition-colors"
       :disabled="loading"
       @click="unblockUser"
     >

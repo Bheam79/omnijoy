@@ -188,7 +188,7 @@ async function confirmDelete() {
     <div class="flex items-center gap-2 mb-6">
       <RouterLink
         to="/settings"
-        class="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+        class="flex items-center gap-1.5 text-sm text-gray-500 hover:text-slate-300 transition-colors"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -197,44 +197,44 @@ async function confirmDelete() {
       </RouterLink>
     </div>
 
-    <h1 class="text-2xl font-bold text-gray-900 mb-2">Account</h1>
+    <h1 class="text-2xl font-bold text-slate-100 mb-2">Account</h1>
     <p class="text-sm text-gray-500 mb-6">Manage your email address and password.</p>
 
     <!-- ── Change email ──────────────────────────────────────────────────────── -->
-    <section class="bg-white rounded-xl border border-gray-100 px-5 py-5 mb-5">
-      <h2 class="text-base font-semibold text-gray-900 mb-1">Email address</h2>
+    <section class="bg-slate-800 rounded-xl border border-slate-700 px-5 py-5 mb-5">
+      <h2 class="text-base font-semibold text-slate-100 mb-1">Email address</h2>
       <p class="text-xs text-gray-500 mb-4">Change the email used to sign in.</p>
 
-      <div v-if="emailError" class="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+      <div v-if="emailError" class="mb-4 rounded-lg bg-red-950 border border-red-800 px-4 py-3 text-sm text-red-400">
         {{ emailError }}
       </div>
       <div
         v-if="emailSuccess"
-        class="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700"
+        class="mb-4 rounded-lg bg-green-950 border border-green-800 px-4 py-3 text-sm text-green-400"
       >
         {{ emailSuccess }}
       </div>
 
       <form class="space-y-3" data-testid="email-form" @submit.prevent="saveEmail">
         <div>
-          <label for="new-email" class="block text-sm font-medium text-gray-700 mb-1">New email</label>
+          <label for="new-email" class="block text-sm font-medium text-slate-300 mb-1">New email</label>
           <input
             id="new-email"
             v-model="emailForm.newEmail"
             type="email"
             autocomplete="email"
             required
-            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             :class="{ 'border-red-400': emailForm.newEmail && !emailValid }"
             placeholder="you@example.com"
           />
-          <p v-if="emailForm.newEmail && !emailValid" class="mt-1 text-xs text-red-600">
+          <p v-if="emailForm.newEmail && !emailValid" class="mt-1 text-xs text-red-400">
             Enter a valid email address.
           </p>
         </div>
 
         <div>
-          <label for="email-current-password" class="block text-sm font-medium text-gray-700 mb-1">
+          <label for="email-current-password" class="block text-sm font-medium text-slate-300 mb-1">
             Current password
           </label>
           <input
@@ -243,7 +243,7 @@ async function confirmDelete() {
             type="password"
             autocomplete="current-password"
             required
-            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             placeholder="Enter your current password"
           />
         </div>
@@ -260,70 +260,70 @@ async function confirmDelete() {
     </section>
 
     <!-- ── Change password ───────────────────────────────────────────────────── -->
-    <section class="bg-white rounded-xl border border-gray-100 px-5 py-5">
-      <h2 class="text-base font-semibold text-gray-900 mb-1">Password</h2>
+    <section class="bg-slate-800 rounded-xl border border-slate-700 px-5 py-5">
+      <h2 class="text-base font-semibold text-slate-100 mb-1">Password</h2>
       <p class="text-xs text-gray-500 mb-4">Choose a strong password with at least 8 characters.</p>
 
-      <div v-if="pwError" class="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+      <div v-if="pwError" class="mb-4 rounded-lg bg-red-950 border border-red-800 px-4 py-3 text-sm text-red-400">
         {{ pwError }}
       </div>
       <div
         v-if="pwSuccess"
-        class="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700"
+        class="mb-4 rounded-lg bg-green-950 border border-green-800 px-4 py-3 text-sm text-green-400"
       >
         {{ pwSuccess }}
       </div>
 
       <form class="space-y-3" data-testid="password-form" @submit.prevent="savePassword">
         <div>
-          <label for="pw-current" class="block text-sm font-medium text-gray-700 mb-1">Current password</label>
+          <label for="pw-current" class="block text-sm font-medium text-slate-300 mb-1">Current password</label>
           <input
             id="pw-current"
             v-model="pwForm.currentPassword"
             type="password"
             autocomplete="current-password"
             required
-            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             placeholder="Enter your current password"
           />
         </div>
 
         <div>
-          <label for="pw-new" class="block text-sm font-medium text-gray-700 mb-1">New password</label>
+          <label for="pw-new" class="block text-sm font-medium text-slate-300 mb-1">New password</label>
           <input
             id="pw-new"
             v-model="pwForm.newPassword"
             type="password"
             autocomplete="new-password"
             required
-            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             :class="{ 'border-red-400': pwForm.newPassword && !pwLengthOk }"
             placeholder="Minimum 8 characters"
           />
-          <p v-if="pwForm.newPassword && !pwLengthOk" class="mt-1 text-xs text-red-600">
+          <p v-if="pwForm.newPassword && !pwLengthOk" class="mt-1 text-xs text-red-400">
             Password must be at least 8 characters.
           </p>
         </div>
 
         <div>
-          <label for="pw-confirm" class="block text-sm font-medium text-gray-700 mb-1">Confirm new password</label>
+          <label for="pw-confirm" class="block text-sm font-medium text-slate-300 mb-1">Confirm new password</label>
           <input
             id="pw-confirm"
             v-model="pwForm.confirmNewPassword"
             type="password"
             autocomplete="new-password"
             required
-            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             :class="{
               'border-red-400': pwForm.confirmNewPassword && !pwMatch,
               'border-green-400': pwForm.confirmNewPassword && pwMatch,
             }"
             placeholder="Re-enter new password"
           />
-          <p v-if="pwForm.confirmNewPassword && !pwMatch" class="mt-1 text-xs text-red-600">
+          <p v-if="pwForm.confirmNewPassword && !pwMatch" class="mt-1 text-xs text-red-400">
             Passwords do not match.
           </p>
-          <p v-if="pwForm.confirmNewPassword && pwMatch" class="mt-1 text-xs text-green-600">
+          <p v-if="pwForm.confirmNewPassword && pwMatch" class="mt-1 text-xs text-green-400">
             Passwords match.
           </p>
         </div>
@@ -342,16 +342,16 @@ async function confirmDelete() {
     <!-- ── Danger zone ────────────────────────────────────────────────────────── -->
     <section
       data-testid="danger-zone"
-      class="mt-8 bg-white rounded-xl border border-red-200 px-5 py-5"
+      class="mt-8 bg-slate-800 rounded-xl border border-red-800 px-5 py-5"
     >
-      <h2 class="text-base font-semibold text-red-700 mb-1">Danger zone</h2>
+      <h2 class="text-base font-semibold text-red-400 mb-1">Danger zone</h2>
       <p class="text-xs text-gray-500 mb-4">
         These actions affect your account permanently. Proceed with care.
       </p>
 
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-3 border-t border-gray-100">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-3 border-t border-slate-700">
         <div>
-          <p class="text-sm font-medium text-gray-900">Deactivate account</p>
+          <p class="text-sm font-medium text-slate-100">Deactivate account</p>
           <p class="text-xs text-gray-500">
             Temporarily disables your account. Your profile and posts are hidden until you log in again.
           </p>
@@ -359,16 +359,16 @@ async function confirmDelete() {
         <button
           type="button"
           data-testid="deactivate-btn"
-          class="self-start sm:self-auto px-4 py-2 text-sm rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 transition-colors"
+          class="self-start sm:self-auto px-4 py-2 text-sm rounded-lg border border-amber-300 text-amber-400 hover:bg-amber-950 transition-colors"
           @click="openDeactivateModal"
         >
           Deactivate account
         </button>
       </div>
 
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-3 border-t border-gray-100">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-3 border-t border-slate-700">
         <div>
-          <p class="text-sm font-medium text-gray-900">Delete account</p>
+          <p class="text-sm font-medium text-slate-100">Delete account</p>
           <p class="text-xs text-gray-500">
             Permanently removes your data after a 30-day grace period. This cannot be undone.
           </p>
@@ -393,16 +393,16 @@ async function confirmDelete() {
       aria-modal="true"
       @click.self="closeDeactivateModal"
     >
-      <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-        <h3 class="text-lg font-semibold text-gray-900">Deactivate your account?</h3>
-        <p class="mt-2 text-sm text-gray-600">
+      <div class="bg-slate-800 rounded-xl shadow-xl max-w-md w-full p-6">
+        <h3 class="text-lg font-semibold text-slate-100">Deactivate your account?</h3>
+        <p class="mt-2 text-sm text-slate-400">
           Your account will be hidden from search and feed, and active sessions will be signed out.
           You can re-activate it at any time by logging back in.
         </p>
 
         <div
           v-if="deactivateError"
-          class="mt-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700"
+          class="mt-4 rounded-lg bg-red-950 border border-red-800 px-3 py-2 text-sm text-red-400"
         >
           {{ deactivateError }}
         </div>
@@ -412,7 +412,7 @@ async function confirmDelete() {
             type="button"
             data-testid="deactivate-cancel"
             :disabled="deactivateSubmitting"
-            class="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+            class="px-4 py-2 text-sm rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 disabled:opacity-60"
             @click="closeDeactivateModal"
           >
             Cancel
@@ -440,16 +440,16 @@ async function confirmDelete() {
       aria-modal="true"
       @click.self="closeDeleteModal"
     >
-      <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-        <h3 class="text-lg font-semibold text-red-700">Permanently delete your account?</h3>
-        <p class="mt-2 text-sm text-gray-600">
+      <div class="bg-slate-800 rounded-xl shadow-xl max-w-md w-full p-6">
+        <h3 class="text-lg font-semibold text-red-400">Permanently delete your account?</h3>
+        <p class="mt-2 text-sm text-slate-400">
           This is irreversible. Your posts, messages, and profile will be removed after the 30-day grace period.
           To confirm, type your email address
-          <span class="font-medium text-gray-900">{{ accountEmail }}</span>
+          <span class="font-medium text-slate-100">{{ accountEmail }}</span>
           below.
         </p>
 
-        <label for="delete-confirm-email" class="block text-sm font-medium text-gray-700 mt-4 mb-1">
+        <label for="delete-confirm-email" class="block text-sm font-medium text-slate-300 mt-4 mb-1">
           Type your email to confirm
         </label>
         <input
@@ -458,7 +458,7 @@ async function confirmDelete() {
           type="email"
           autocomplete="off"
           data-testid="delete-confirm-email"
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
           :class="{
             'border-red-400': deleteConfirmEmail && !deleteConfirmMatches,
             'border-green-400': deleteConfirmEmail && deleteConfirmMatches,
@@ -467,7 +467,7 @@ async function confirmDelete() {
 
         <div
           v-if="deleteError"
-          class="mt-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700"
+          class="mt-4 rounded-lg bg-red-950 border border-red-800 px-3 py-2 text-sm text-red-400"
         >
           {{ deleteError }}
         </div>
@@ -477,7 +477,7 @@ async function confirmDelete() {
             type="button"
             data-testid="delete-cancel"
             :disabled="deleteSubmitting"
-            class="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+            class="px-4 py-2 text-sm rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 disabled:opacity-60"
             @click="closeDeleteModal"
           >
             Cancel

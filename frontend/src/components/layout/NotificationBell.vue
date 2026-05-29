@@ -109,7 +109,7 @@ function timeAgo(iso: string): string {
 
   <div class="relative z-50">
     <button
-      class="relative p-2 rounded-full text-gray-600 hover:bg-gray-100 transition-colors"
+      class="relative p-2 rounded-full text-slate-400 hover:bg-slate-700 transition-colors"
       :aria-label="`Notifications, ${store.unreadCount} unread`"
       :aria-expanded="store.dropdownOpen"
       @click.stop="store.toggleDropdown()"
@@ -120,7 +120,7 @@ function timeAgo(iso: string): string {
       </svg>
       <span
         v-if="store.unreadCount > 0"
-        class="absolute top-0.5 right-0.5 min-w-[1.1rem] h-[1.1rem] rounded-full bg-red-500 ring-2 ring-white flex items-center justify-center text-white text-[10px] font-bold px-0.5"
+        class="absolute top-0.5 right-0.5 min-w-[1.1rem] h-[1.1rem] rounded-full bg-red-500 ring-2 ring-slate-900 flex items-center justify-center text-white text-[10px] font-bold px-0.5"
       >
         {{ badge }}
       </span>
@@ -136,15 +136,15 @@ function timeAgo(iso: string): string {
     >
       <div
         v-if="store.dropdownOpen"
-        class="absolute right-0 top-full mt-1 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden flex flex-col"
+        class="absolute right-0 top-full mt-1 w-80 max-w-[calc(100vw-2rem)] bg-slate-800 rounded-xl shadow-lg border border-slate-700 overflow-hidden flex flex-col"
         style="max-height: min(70vh, 32rem)"
       >
         <!-- Header -->
-        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <p class="text-sm font-semibold text-gray-900">Notifications</p>
+        <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700">
+          <p class="text-sm font-semibold text-slate-100">Notifications</p>
           <button
             v-if="store.hasUnread"
-            class="text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+            class="text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
             @click.stop="store.markAllRead()"
           >
             Mark all read
@@ -162,12 +162,12 @@ function timeAgo(iso: string): string {
             </div>
           </template>
 
-          <ul v-else class="divide-y divide-gray-100">
+          <ul v-else class="divide-y divide-slate-700">
             <li
               v-for="n in store.notifications"
               :key="n.id"
-              class="px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors flex items-start gap-3"
-              :class="{ 'bg-indigo-50/40': !n.isRead }"
+              class="px-4 py-3 hover:bg-slate-700 cursor-pointer transition-colors flex items-start gap-3"
+              :class="{ 'bg-indigo-900/30': !n.isRead }"
               @click.stop="onClick(n)"
             >
               <!-- Avatar -->
@@ -179,14 +179,14 @@ function timeAgo(iso: string): string {
               </div>
               <div
                 v-else
-                class="h-9 w-9 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-bold flex-shrink-0"
+                class="h-9 w-9 rounded-full bg-indigo-900 text-indigo-400 flex items-center justify-center text-sm font-bold flex-shrink-0"
               >
                 {{ n.actor?.displayName?.[0]?.toUpperCase() ?? '?' }}
               </div>
 
               <!-- Body -->
               <div class="flex-1 min-w-0">
-                <p class="text-sm text-gray-900 truncate">{{ describe(n) }}</p>
+                <p class="text-sm text-slate-100 truncate">{{ describe(n) }}</p>
                 <p class="text-xs text-gray-500 mt-0.5">{{ timeAgo(n.createdAt) }}</p>
               </div>
 
@@ -201,7 +201,7 @@ function timeAgo(iso: string): string {
 
           <button
             v-if="store.hasMore && store.notifications.length > 0"
-            class="w-full px-4 py-2 text-sm text-indigo-600 hover:bg-gray-50 transition-colors disabled:text-gray-400"
+            class="w-full px-4 py-2 text-sm text-indigo-400 hover:bg-slate-700 transition-colors disabled:text-slate-500"
             :disabled="store.loading"
             @click.stop="store.loadMore()"
           >

@@ -46,34 +46,34 @@ function formatDate(iso: string) {
 </script>
 
 <template>
-  <main class="min-h-screen bg-gray-100 py-8 px-4">
+  <main class="min-h-screen bg-slate-700 py-8 px-4">
     <div class="max-w-xl mx-auto">
       <!-- Brand header -->
       <header class="flex items-center justify-between mb-6">
-        <RouterLink to="/" class="text-2xl font-extrabold text-blue-600">Omnijoy</RouterLink>
+        <RouterLink to="/" class="text-2xl font-extrabold text-blue-400">Omnijoy</RouterLink>
         <RouterLink
           v-if="!auth.isAuthenticated"
           to="/login"
-          class="text-sm font-semibold text-blue-600 hover:underline"
+          class="text-sm font-semibold text-blue-400 hover:underline"
         >Sign in</RouterLink>
         <RouterLink
           v-else
           to="/wall"
-          class="text-sm font-semibold text-blue-600 hover:underline"
+          class="text-sm font-semibold text-blue-400 hover:underline"
         >Open Omnijoy</RouterLink>
       </header>
 
       <!-- Loading -->
-      <div v-if="loading" class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center text-gray-500">
+      <div v-if="loading" class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 p-8 text-center text-gray-500">
         Loading…
       </div>
 
       <!-- Error state (not public, deleted, etc.) -->
       <div
         v-else-if="errorMessage"
-        class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center"
+        class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 p-8 text-center"
       >
-        <h1 class="text-xl font-semibold text-gray-900 mb-2">{{ errorTitle }}</h1>
+        <h1 class="text-xl font-semibold text-slate-100 mb-2">{{ errorTitle }}</h1>
         <p class="text-gray-500">{{ errorMessage }}</p>
         <RouterLink
           to="/"
@@ -84,7 +84,7 @@ function formatDate(iso: string) {
       <!-- Post body -->
       <article
         v-else-if="post"
-        class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+        class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 overflow-hidden"
       >
         <!-- Author header -->
         <div class="flex items-center gap-3 px-5 pt-5 pb-3">
@@ -99,7 +99,7 @@ function formatDate(iso: string) {
             class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold"
           >{{ post.author.displayName.charAt(0).toUpperCase() }}</div>
           <div>
-            <p class="font-semibold text-gray-900">{{ post.author.displayName }}</p>
+            <p class="font-semibold text-slate-100">{{ post.author.displayName }}</p>
             <p class="text-xs text-gray-500">{{ formatDate(post.createdAt) }} · 🌐 Public</p>
           </div>
         </div>
@@ -107,7 +107,7 @@ function formatDate(iso: string) {
         <!-- Content -->
         <div
           v-if="post.content"
-          class="px-5 pb-3 text-gray-800 leading-relaxed whitespace-pre-wrap"
+          class="px-5 pb-3 text-slate-200 leading-relaxed whitespace-pre-wrap"
         >{{ post.content }}</div>
 
         <!-- Link preview -->
@@ -116,25 +116,25 @@ function formatDate(iso: string) {
           :href="post.linkPreview.url"
           target="_blank"
           rel="noopener noreferrer"
-          class="block mx-5 mb-3 border border-gray-200 rounded-xl overflow-hidden hover:bg-gray-50 transition"
+          class="block mx-5 mb-3 border border-slate-700 rounded-xl overflow-hidden hover:bg-slate-700 transition"
         >
           <img
             v-if="post.linkPreview.imageUrl"
             :src="post.linkPreview.imageUrl"
             :alt="post.linkPreview.title ?? ''"
-            class="w-full max-h-72 object-cover bg-gray-100"
+            class="w-full max-h-72 object-cover bg-slate-700"
           />
           <div class="px-3 py-2">
-            <p v-if="post.linkPreview.siteName" class="text-xs uppercase tracking-wide text-gray-400">
+            <p v-if="post.linkPreview.siteName" class="text-xs uppercase tracking-wide text-slate-500">
               {{ post.linkPreview.siteName }}
             </p>
-            <p v-if="post.linkPreview.title" class="font-semibold text-sm text-gray-900">
+            <p v-if="post.linkPreview.title" class="font-semibold text-sm text-slate-100">
               {{ post.linkPreview.title }}
             </p>
             <p v-if="post.linkPreview.description" class="text-xs text-gray-500 mt-1">
               {{ post.linkPreview.description }}
             </p>
-            <p class="text-xs text-blue-600 mt-1 truncate">{{ post.linkPreview.url }}</p>
+            <p class="text-xs text-blue-400 mt-1 truncate">{{ post.linkPreview.url }}</p>
           </div>
         </a>
 
@@ -180,7 +180,7 @@ function formatDate(iso: string) {
         </div>
 
         <!-- CTA -->
-        <div class="border-t border-gray-100 px-5 py-4 text-center bg-gray-50">
+        <div class="border-t border-slate-700 px-5 py-4 text-center bg-slate-950">
           <p class="text-sm text-gray-500 mb-2">Join the conversation on Omnijoy.</p>
           <RouterLink
             :to="auth.isAuthenticated ? '/wall' : '/register'"

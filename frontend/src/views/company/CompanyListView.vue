@@ -134,7 +134,7 @@ function extractError(e: unknown): string {
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">Company Pages</h1>
+        <h1 class="text-2xl font-bold text-slate-100">Company Pages</h1>
         <p class="text-sm text-gray-500 mt-0.5">Discover and follow organization pages</p>
       </div>
       <button
@@ -149,42 +149,42 @@ function extractError(e: unknown): string {
     </div>
 
     <!-- Tabs -->
-    <div class="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 w-fit">
+    <div class="flex gap-1 mb-6 bg-slate-700 rounded-xl p-1 w-fit">
       <button
         class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all"
-        :class="activeTab === 'all' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-600 hover:text-gray-800'"
+        :class="activeTab === 'all' ? 'bg-slate-800 text-indigo-300 shadow-sm' : 'text-slate-400 hover:text-slate-200'"
         @click="setTab('all')"
       >All Pages</button>
       <button
         class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all"
-        :class="activeTab === 'mine' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-600 hover:text-gray-800'"
+        :class="activeTab === 'mine' ? 'bg-slate-800 text-indigo-300 shadow-sm' : 'text-slate-400 hover:text-slate-200'"
         @click="setTab('mine')"
       >My Pages</button>
     </div>
 
     <!-- Loading -->
     <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div v-for="i in 4" :key="i" class="bg-white rounded-xl border border-gray-100 overflow-hidden animate-pulse">
-        <div class="h-24 bg-gray-200"/>
+      <div v-for="i in 4" :key="i" class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden animate-pulse">
+        <div class="h-24 bg-slate-700"/>
         <div class="p-4 flex gap-3">
-          <div class="w-14 h-14 rounded-xl bg-gray-200 -mt-8 shrink-0"/>
+          <div class="w-14 h-14 rounded-xl bg-slate-700 -mt-8 shrink-0"/>
           <div class="space-y-2 pt-2 flex-1">
-            <div class="h-4 bg-gray-200 rounded w-2/3"/>
-            <div class="h-3 bg-gray-100 rounded w-1/2"/>
+            <div class="h-4 bg-slate-700 rounded w-2/3"/>
+            <div class="h-3 bg-slate-700 rounded w-1/2"/>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Error -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
+    <div v-else-if="error" class="bg-red-950 border border-red-800 rounded-xl p-4 text-red-400 text-sm">
       {{ error }}
     </div>
 
     <!-- Empty -->
     <div v-else-if="pages.length === 0" class="text-center py-16">
       <div class="text-5xl mb-3">🏢</div>
-      <h3 class="text-lg font-semibold text-gray-700 mb-1">
+      <h3 class="text-lg font-semibold text-slate-300 mb-1">
         {{ activeTab === 'mine' ? 'No pages yet' : 'No company pages' }}
       </h3>
       <p class="text-sm text-gray-500 mb-4">Create the first company page on Omnijoy!</p>
@@ -201,7 +201,7 @@ function extractError(e: unknown): string {
       <div
         v-for="p in pages"
         :key="p.id"
-        class="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
+        class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden hover:shadow-md transition-shadow"
       >
         <!-- Cover -->
         <RouterLink :to="`/company/${p.id}`">
@@ -214,7 +214,7 @@ function extractError(e: unknown): string {
           <!-- Logo + name -->
           <div class="flex items-end gap-3 -mt-7 mb-2">
             <RouterLink :to="`/company/${p.id}`">
-              <div class="w-14 h-14 rounded-xl border-2 border-white bg-white shadow overflow-hidden shrink-0">
+              <div class="w-14 h-14 rounded-xl border-2 border-slate-700 bg-slate-800 shadow overflow-hidden shrink-0">
                 <img v-if="p.logoUrl" :src="p.logoUrl" :alt="p.name" class="w-full h-full object-cover"/>
                 <div
                   v-else
@@ -225,7 +225,7 @@ function extractError(e: unknown): string {
               </div>
             </RouterLink>
             <div class="pb-1 min-w-0">
-              <RouterLink :to="`/company/${p.id}`" class="font-semibold text-gray-900 hover:text-indigo-700 transition text-sm block truncate">
+              <RouterLink :to="`/company/${p.id}`" class="font-semibold text-slate-100 hover:text-indigo-300 transition text-sm block truncate">
                 {{ p.name }}
               </RouterLink>
               <p class="text-xs text-gray-500">{{ p.followerCount }} follower{{ p.followerCount !== 1 ? 's' : '' }}</p>
@@ -233,15 +233,15 @@ function extractError(e: unknown): string {
           </div>
 
           <!-- Description -->
-          <p v-if="p.description" class="text-xs text-gray-600 line-clamp-2 mb-3">{{ p.description }}</p>
+          <p v-if="p.description" class="text-xs text-slate-400 line-clamp-2 mb-3">{{ p.description }}</p>
 
           <!-- Role badge + follow button -->
           <div class="flex items-center justify-between">
             <span v-if="p.myRole" class="text-xs font-medium px-2 py-0.5 rounded-full"
               :class="{
-                'bg-yellow-100 text-yellow-800': p.myRole === 'Owner',
-                'bg-blue-100 text-blue-800':   p.myRole === 'Admin',
-                'bg-gray-100 text-gray-700':   p.myRole === 'Editor',
+                'bg-yellow-900/50 text-yellow-300': p.myRole === 'Owner',
+                'bg-blue-900 text-blue-300':   p.myRole === 'Admin',
+                'bg-slate-700 text-slate-300':   p.myRole === 'Editor',
               }"
             >{{ p.myRole }}</span>
             <span v-else></span>
@@ -249,8 +249,8 @@ function extractError(e: unknown): string {
             <button
               class="text-xs font-medium px-3 py-1 rounded-full transition border"
               :class="p.isFollowing
-                ? 'border-gray-300 text-gray-600 hover:border-red-300 hover:text-red-600'
-                : 'border-indigo-300 text-indigo-600 hover:bg-indigo-50'"
+                ? 'border-slate-600 text-slate-400 hover:border-red-300 hover:text-red-400'
+                : 'border-indigo-300 text-indigo-400 hover:bg-indigo-900/50'"
               @click="toggleFollow(p)"
             >
               {{ p.isFollowing ? 'Unfollow' : 'Follow' }}
@@ -263,7 +263,7 @@ function extractError(e: unknown): string {
     <!-- Load more -->
     <div v-if="hasMore && !loading" class="mt-6 text-center">
       <button
-        class="px-6 py-2 text-sm font-medium text-indigo-600 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition"
+        class="px-6 py-2 text-sm font-medium text-indigo-400 border border-indigo-700 rounded-xl hover:bg-indigo-900/50 transition"
         :disabled="loadingMore"
         @click="loadPages(activeTab, page + 1)"
       >
@@ -280,11 +280,11 @@ function extractError(e: unknown): string {
       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
       @click.self="showCreateModal = false; resetCreateForm()"
     >
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
+      <div class="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
         <!-- Header -->
-        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 class="text-lg font-bold text-gray-900">Create Company Page</h2>
-          <button class="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition"
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+          <h2 class="text-lg font-bold text-slate-100">Create Company Page</h2>
+          <button class="text-slate-500 hover:text-slate-400 p-1 rounded-full hover:bg-slate-700 transition"
             @click="showCreateModal = false; resetCreateForm()"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -297,7 +297,7 @@ function extractError(e: unknown): string {
         <div class="overflow-y-auto flex-1 px-6 py-4 space-y-4">
           <!-- Cover -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Cover Image</label>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Cover Image</label>
             <div v-if="coverPreview" class="relative h-28 rounded-xl overflow-hidden">
               <img :src="coverPreview" class="w-full h-full object-cover"/>
               <button type="button" class="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1"
@@ -308,7 +308,7 @@ function extractError(e: unknown): string {
                 </svg>
               </button>
             </div>
-            <label v-else class="flex flex-col items-center justify-center h-20 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-indigo-400 transition">
+            <label v-else class="flex flex-col items-center justify-center h-20 border-2 border-dashed border-slate-600 rounded-xl cursor-pointer hover:border-indigo-400 transition">
               <span class="text-xs text-gray-500">Click to upload cover</span>
               <input type="file" class="hidden" accept="image/*" @change="onCoverChange"/>
             </label>
@@ -316,15 +316,15 @@ function extractError(e: unknown): string {
 
           <!-- Logo -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Logo</label>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Logo</label>
             <div class="flex items-center gap-3">
-              <div class="w-16 h-16 rounded-xl border-2 border-dashed border-gray-300 overflow-hidden flex items-center justify-center bg-gray-50">
+              <div class="w-16 h-16 rounded-xl border-2 border-dashed border-slate-600 overflow-hidden flex items-center justify-center bg-slate-950">
                 <img v-if="logoPreview" :src="logoPreview" class="w-full h-full object-cover"/>
-                <svg v-else class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg v-else class="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                 </svg>
               </div>
-              <label class="text-xs text-indigo-600 cursor-pointer hover:underline">
+              <label class="text-xs text-indigo-400 cursor-pointer hover:underline">
                 Upload logo
                 <input type="file" class="hidden" accept="image/*" @change="onLogoChange"/>
               </label>
@@ -333,30 +333,30 @@ function extractError(e: unknown): string {
 
           <!-- Name -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Name <span class="text-red-500">*</span></label>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Name <span class="text-red-500">*</span></label>
             <input v-model="createName" type="text" maxlength="256" placeholder="Company or organization name"
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
 
           <!-- Description -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Description</label>
             <textarea v-model="createDesc" rows="3" placeholder="What does this page represent?"
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+              class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
             />
           </div>
 
-          <div v-if="createError" class="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+          <div v-if="createError" class="text-sm text-red-400 bg-red-950 rounded-lg px-3 py-2">
             {{ createError }}
           </div>
         </div>
 
         <!-- Footer -->
-        <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+        <div class="px-6 py-4 border-t border-slate-700 flex justify-end gap-3">
           <button
             type="button"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+            class="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-800 border border-slate-600 rounded-lg hover:bg-slate-700 transition"
             @click="showCreateModal = false; resetCreateForm()"
           >Cancel</button>
           <button

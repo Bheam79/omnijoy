@@ -94,7 +94,7 @@ const tobStyle = computed(() => {
 </script>
 
 <template>
-  <article class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+  <article class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 overflow-hidden">
     <!-- Header -->
     <div class="flex items-center justify-between px-4 pt-4 pb-2">
       <div class="flex items-center gap-3">
@@ -118,7 +118,7 @@ const tobStyle = computed(() => {
         <div>
           <RouterLink
             :to="authorUrl"
-            class="font-semibold text-gray-900 hover:underline text-sm"
+            class="font-semibold text-slate-100 hover:underline text-sm"
           >
             {{ post.author.displayName }}
           </RouterLink>
@@ -127,7 +127,7 @@ const tobStyle = computed(() => {
             <span>·</span>
             <span :title="privacyLabel[post.privacy]">{{ privacyIcon[post.privacy] }}</span>
             <!-- Privacy badge only for own posts -->
-            <span v-if="isOwn" class="text-gray-400 italic">{{ privacyLabel[post.privacy] }}</span>
+            <span v-if="isOwn" class="text-slate-500 italic">{{ privacyLabel[post.privacy] }}</span>
           </div>
         </div>
       </div>
@@ -135,24 +135,24 @@ const tobStyle = computed(() => {
       <!-- Options menu (own posts: delete; others: report) -->
       <div v-if="isOwn || isLoggedIn" class="relative group">
         <button
-          class="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition"
+          class="text-slate-500 hover:text-slate-400 p-1 rounded-full hover:bg-slate-700 transition"
           aria-label="Post options"
         >
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
             <path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z"/>
           </svg>
         </button>
-        <div class="absolute right-0 top-7 z-10 hidden group-focus-within:block bg-white border border-gray-200 rounded-lg shadow-lg w-36 py-1">
+        <div class="absolute right-0 top-7 z-10 hidden group-focus-within:block bg-slate-800 border border-slate-700 rounded-lg shadow-lg w-36 py-1">
           <button
             v-if="isOwn"
-            class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
+            class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-950 transition"
             @click="handleDelete"
           >
             Delete post
           </button>
           <button
             v-if="!isOwn"
-            class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+            class="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 transition"
             @click="reportModalOpen = true"
           >
             Report post
@@ -164,7 +164,7 @@ const tobStyle = computed(() => {
     <!-- Content: Text -->
     <div
       v-if="post.postType === 'Text' && post.content"
-      class="px-4 pb-3 text-gray-800 leading-relaxed whitespace-pre-wrap"
+      class="px-4 pb-3 text-slate-200 leading-relaxed whitespace-pre-wrap"
     >
       {{ post.content }}
     </div>
@@ -175,28 +175,28 @@ const tobStyle = computed(() => {
       :href="post.linkPreview.url"
       target="_blank"
       rel="noopener noreferrer"
-      class="block mx-4 mb-3 border border-gray-200 rounded-xl overflow-hidden hover:bg-gray-50 transition"
+      class="block mx-4 mb-3 border border-slate-700 rounded-xl overflow-hidden hover:bg-slate-700 transition"
     >
       <img
         v-if="post.linkPreview.imageUrl"
         :src="post.linkPreview.imageUrl"
         :alt="post.linkPreview.title ?? ''"
-        class="w-full max-h-72 object-cover bg-gray-100"
+        class="w-full max-h-72 object-cover bg-slate-700"
         loading="lazy"
       />
       <div class="px-3 py-2">
-        <p v-if="post.linkPreview.siteName" class="text-xs uppercase tracking-wide text-gray-400">
+        <p v-if="post.linkPreview.siteName" class="text-xs uppercase tracking-wide text-slate-500">
           {{ post.linkPreview.siteName }}
         </p>
         <p
           v-if="post.linkPreview.title"
-          class="font-semibold text-sm text-gray-900 line-clamp-2"
+          class="font-semibold text-sm text-slate-100 line-clamp-2"
         >{{ post.linkPreview.title }}</p>
         <p
           v-if="post.linkPreview.description"
           class="text-xs text-gray-500 mt-1 line-clamp-2"
         >{{ post.linkPreview.description }}</p>
-        <p class="text-xs text-blue-600 mt-1 truncate">{{ post.linkPreview.url }}</p>
+        <p class="text-xs text-blue-400 mt-1 truncate">{{ post.linkPreview.url }}</p>
       </div>
     </a>
 
@@ -213,7 +213,7 @@ const tobStyle = computed(() => {
 
     <!-- Content: Image(s) -->
     <template v-else-if="post.postType === 'Image'">
-      <div class="px-4 pb-2 text-gray-800 leading-relaxed whitespace-pre-wrap" v-if="post.content">
+      <div class="px-4 pb-2 text-slate-200 leading-relaxed whitespace-pre-wrap" v-if="post.content">
         {{ post.content }}
       </div>
       <div
@@ -239,7 +239,7 @@ const tobStyle = computed(() => {
 
     <!-- Content: Video -->
     <template v-else-if="post.postType === 'Video'">
-      <div class="px-4 pb-2 text-gray-800 leading-relaxed whitespace-pre-wrap" v-if="post.content">
+      <div class="px-4 pb-2 text-slate-200 leading-relaxed whitespace-pre-wrap" v-if="post.content">
         {{ post.content }}
       </div>
       <div v-for="m in post.media" :key="m.id" class="relative bg-black">
@@ -257,10 +257,10 @@ const tobStyle = computed(() => {
     <PostReactionBar :post-id="post.id" :logged-in="isLoggedIn" />
 
     <!-- Actions bar (Comment + Share) -->
-    <div class="flex items-center gap-1 px-4 py-2 border-t border-gray-100">
+    <div class="flex items-center gap-1 px-4 py-2 border-t border-slate-700">
       <button
-        class="flex items-center gap-1.5 text-gray-500 hover:text-blue-600 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-blue-50 transition flex-1 justify-center"
-        :class="{ 'text-blue-600': threadExpanded }"
+        class="flex items-center gap-1.5 text-gray-500 hover:text-blue-400 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-blue-900/40 transition flex-1 justify-center"
+        :class="{ 'text-blue-400': threadExpanded }"
         @click="handleCommentClick"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -270,7 +270,7 @@ const tobStyle = computed(() => {
         Comment
       </button>
       <button
-        class="flex items-center gap-1.5 text-gray-500 hover:text-blue-600 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-blue-50 transition flex-1 justify-center"
+        class="flex items-center gap-1.5 text-gray-500 hover:text-blue-400 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-blue-900/40 transition flex-1 justify-center"
         :title="shareCopied ? 'Link copied!' : 'Share this post'"
         @click="openShareModal"
       >

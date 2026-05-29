@@ -36,31 +36,31 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-gray-100 py-8 px-4">
+  <main class="min-h-screen bg-slate-700 py-8 px-4">
     <div class="max-w-xl mx-auto">
       <header class="flex items-center justify-between mb-6">
-        <RouterLink to="/" class="text-2xl font-extrabold text-blue-600">Omnijoy</RouterLink>
+        <RouterLink to="/" class="text-2xl font-extrabold text-blue-400">Omnijoy</RouterLink>
         <RouterLink
           v-if="!auth.isAuthenticated"
           to="/login"
-          class="text-sm font-semibold text-blue-600 hover:underline"
+          class="text-sm font-semibold text-blue-400 hover:underline"
         >Sign in</RouterLink>
         <RouterLink
           v-else
           to="/wall"
-          class="text-sm font-semibold text-blue-600 hover:underline"
+          class="text-sm font-semibold text-blue-400 hover:underline"
         >Open Omnijoy</RouterLink>
       </header>
 
-      <div v-if="loading" class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center text-gray-500">
+      <div v-if="loading" class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 p-8 text-center text-gray-500">
         Loading…
       </div>
 
       <div
         v-else-if="errorMessage"
-        class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center"
+        class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 p-8 text-center"
       >
-        <h1 class="text-xl font-semibold text-gray-900 mb-2">{{ errorTitle }}</h1>
+        <h1 class="text-xl font-semibold text-slate-100 mb-2">{{ errorTitle }}</h1>
         <p class="text-gray-500">{{ errorMessage }}</p>
         <RouterLink
           to="/"
@@ -70,11 +70,11 @@ onMounted(async () => {
 
       <article
         v-else-if="profile"
-        class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+        class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 overflow-hidden"
       >
         <!-- Cover -->
         <div
-          class="h-40 bg-gray-200"
+          class="h-40 bg-slate-700"
           :style="profile.coverUrl ? {
             backgroundImage: `url(${profile.coverUrl})`,
             backgroundSize: 'cover',
@@ -88,19 +88,19 @@ onMounted(async () => {
             v-if="profile.avatarUrl"
             :src="profile.avatarUrl"
             :alt="profile.displayName"
-            class="w-24 h-24 rounded-full border-4 border-white object-cover bg-white"
+            class="w-24 h-24 rounded-full border-4 border-slate-700 object-cover bg-slate-800"
           />
           <div
             v-else
-            class="w-24 h-24 rounded-full border-4 border-white bg-blue-500 flex items-center justify-center text-white font-bold text-3xl"
+            class="w-24 h-24 rounded-full border-4 border-slate-700 bg-blue-500 flex items-center justify-center text-white font-bold text-3xl"
           >{{ profile.displayName.charAt(0).toUpperCase() }}</div>
 
-          <h1 class="mt-3 text-2xl font-bold text-gray-900">{{ profile.displayName }}</h1>
+          <h1 class="mt-3 text-2xl font-bold text-slate-100">{{ profile.displayName }}</h1>
           <p class="text-sm text-gray-500 mt-1">{{ profile.friendCount }} friends</p>
 
           <p
             v-if="profile.bio"
-            class="mt-4 text-gray-700 leading-relaxed whitespace-pre-wrap"
+            class="mt-4 text-slate-300 leading-relaxed whitespace-pre-wrap"
           >{{ profile.bio }}</p>
 
           <div class="mt-6 flex gap-3">

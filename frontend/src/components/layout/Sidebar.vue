@@ -64,7 +64,7 @@ function isActive(item: NavItem): boolean {
 
   <!-- Sidebar panel — always in DOM; CSS drives show/hide for smooth transitions -->
   <aside
-    class="fixed top-16 left-0 bottom-0 z-40 w-64 bg-white border-r border-gray-200 overflow-y-auto transition-transform duration-200"
+    class="fixed top-16 left-0 bottom-0 z-40 w-64 bg-slate-900 border-r border-slate-700 overflow-y-auto transition-transform duration-200"
     :class="open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
   >
     <nav class="p-3 space-y-0.5">
@@ -74,8 +74,8 @@ function isActive(item: NavItem): boolean {
         :to="item.to"
         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
         :class="isActive(item)
-          ? 'bg-indigo-50 text-indigo-700'
-          : 'text-gray-700 hover:bg-gray-100'"
+          ? 'bg-indigo-900/50 text-indigo-300'
+          : 'text-slate-300 hover:bg-slate-700'"
         @click="emit('close')"
       >
         <!-- Home / Wall -->
@@ -119,8 +119,8 @@ function isActive(item: NavItem): boolean {
     </nav>
 
     <!-- Footer -->
-    <div class="absolute bottom-0 inset-x-0 p-4 border-t border-gray-100">
-      <p class="text-xs text-gray-400 text-center">© 2025 Omnijoy · No ads, ever.</p>
+    <div class="absolute bottom-0 inset-x-0 p-4 border-t border-slate-700">
+      <p class="text-xs text-slate-500 text-center">© 2025 Omnijoy · No ads, ever.</p>
     </div>
   </aside>
 </template>

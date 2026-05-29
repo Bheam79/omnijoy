@@ -194,23 +194,23 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 flex flex-col justify-center items-center px-4 py-12">
+  <div class="min-h-screen bg-slate-950 flex flex-col justify-center items-center px-4 py-12">
     <div class="w-full max-w-md">
       <!-- Logo / Heading -->
       <div class="text-center mb-8">
         <img src="/logo.png" alt="Omnijoy" class="h-20 w-20 mx-auto mb-3 rounded-2xl" />
-        <h1 class="text-4xl font-bold text-gray-900 tracking-tight">Omnijoy</h1>
+        <h1 class="text-4xl font-bold text-slate-100 tracking-tight">Omnijoy</h1>
         <p class="text-gray-500 mt-2">Sign in to your account</p>
       </div>
 
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+      <div class="bg-slate-800 rounded-2xl shadow-sm border border-slate-700 p-8">
         <!-- Tab switcher -->
-        <div class="flex rounded-lg bg-gray-100 p-1 mb-6">
+        <div class="flex rounded-lg bg-slate-900 p-1 mb-6">
           <button
             class="flex-1 py-2 text-sm font-medium rounded-md transition-all"
             :class="activeTab === 'password'
-              ? 'bg-white shadow text-gray-900'
-              : 'text-gray-500 hover:text-gray-700'"
+              ? 'bg-slate-700 shadow text-slate-100'
+              : 'text-gray-500 hover:text-slate-300'"
             @click="activeTab = 'password'; clearMessages()"
           >
             Password
@@ -218,8 +218,8 @@ onMounted(() => {
           <button
             class="flex-1 py-2 text-sm font-medium rounded-md transition-all"
             :class="activeTab === 'otp'
-              ? 'bg-white shadow text-gray-900'
-              : 'text-gray-500 hover:text-gray-700'"
+              ? 'bg-slate-700 shadow text-slate-100'
+              : 'text-gray-500 hover:text-slate-300'"
             @click="activeTab = 'otp'; clearMessages()"
           >
             One-time code
@@ -227,10 +227,10 @@ onMounted(() => {
         </div>
 
         <!-- Error / success banners -->
-        <div v-if="localError || auth.error" class="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <div v-if="localError || auth.error" class="mb-4 rounded-lg bg-red-950 border border-red-800 px-4 py-3 text-sm text-red-400">
           {{ localError || auth.error }}
         </div>
-        <div v-if="successMsg" class="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+        <div v-if="successMsg" class="mb-4 rounded-lg bg-green-950 border border-green-800 px-4 py-3 text-sm text-green-400">
           {{ successMsg }}
         </div>
 
@@ -238,23 +238,23 @@ onMounted(() => {
         <form v-if="activeTab === 'password'" @submit.prevent="submitPassword" novalidate>
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label class="block text-sm font-medium text-slate-300 mb-1">Email</label>
               <input
                 v-model="pwEmail"
                 type="email"
                 autocomplete="email"
                 placeholder="you@example.com"
-                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label class="block text-sm font-medium text-slate-300 mb-1">Password</label>
               <input
                 v-model="pwPassword"
                 type="password"
                 autocomplete="current-password"
                 placeholder="••••••••"
-                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
             <button
@@ -273,13 +273,13 @@ onMounted(() => {
           <!-- Step 1: enter email -->
           <div v-if="!otpSent">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label class="block text-sm font-medium text-slate-300 mb-1">Email</label>
               <input
                 v-model="otpEmail"
                 type="email"
                 autocomplete="email"
                 placeholder="you@example.com"
-                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
             <button
@@ -294,18 +294,18 @@ onMounted(() => {
 
           <!-- Step 2: enter code -->
           <div v-else>
-            <p class="text-sm text-gray-600 mb-3">
+            <p class="text-sm text-slate-400 mb-3">
               Enter the 6-digit code sent to <strong>{{ otpEmail }}</strong>
             </p>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Code</label>
+              <label class="block text-sm font-medium text-slate-300 mb-1">Code</label>
               <input
                 v-model="otpCode"
                 type="text"
                 inputmode="numeric"
                 maxlength="6"
                 placeholder="123456"
-                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
             <button
@@ -317,7 +317,7 @@ onMounted(() => {
               <span v-else>Verify &amp; sign in</span>
             </button>
             <button
-              class="w-full mt-2 text-sm text-indigo-600 hover:underline disabled:opacity-50 disabled:no-underline"
+              class="w-full mt-2 text-sm text-indigo-400 hover:underline disabled:opacity-50 disabled:no-underline"
               :disabled="otpCooldown > 0 || auth.loading"
               @click="submitOtpRequest"
             >
@@ -330,10 +330,10 @@ onMounted(() => {
         <!-- ── Social divider ── -->
         <div class="relative my-6">
           <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-t border-gray-200" />
+            <div class="w-full border-t border-slate-700" />
           </div>
           <div class="relative flex justify-center text-sm">
-            <span class="bg-white px-3 text-gray-500">or continue with</span>
+            <span class="bg-slate-800 px-3 text-gray-500">or continue with</span>
           </div>
         </div>
 
@@ -344,7 +344,7 @@ onMounted(() => {
           <button
             v-if="!googleClientId"
             disabled
-            class="w-full flex items-center justify-center gap-2 border border-gray-300 rounded-lg py-2.5 text-sm text-gray-400 cursor-not-allowed"
+            class="w-full flex items-center justify-center gap-2 border border-slate-600 rounded-lg py-2.5 text-sm text-slate-500 cursor-not-allowed"
           >
             <svg class="h-5 w-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
             Google (not configured)
@@ -363,7 +363,7 @@ onMounted(() => {
           <button
             v-if="!facebookAppId"
             disabled
-            class="w-full flex items-center justify-center gap-2 border border-gray-300 rounded-lg py-2.5 text-sm text-gray-400 cursor-not-allowed"
+            class="w-full flex items-center justify-center gap-2 border border-slate-600 rounded-lg py-2.5 text-sm text-slate-500 cursor-not-allowed"
           >
             <svg class="h-5 w-5" fill="#1877F2" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
             Facebook (not configured)
@@ -372,9 +372,9 @@ onMounted(() => {
       </div>
 
       <!-- Register link -->
-      <p class="text-center text-sm text-gray-600 mt-6">
+      <p class="text-center text-sm text-slate-400 mt-6">
         Don't have an account?
-        <RouterLink to="/register" class="text-indigo-600 font-medium hover:underline">Create one</RouterLink>
+        <RouterLink to="/register" class="text-indigo-400 font-medium hover:underline">Create one</RouterLink>
       </p>
     </div>
   </div>

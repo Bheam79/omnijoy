@@ -53,56 +53,56 @@ async function submit() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 flex flex-col justify-center items-center px-4 py-12">
+  <div class="min-h-screen bg-slate-950 flex flex-col justify-center items-center px-4 py-12">
     <div class="w-full max-w-md">
       <!-- Logo / Heading -->
       <div class="text-center mb-8">
         <img src="/logo.png" alt="Omnijoy" class="h-20 w-20 mx-auto mb-3 rounded-2xl" />
-        <h1 class="text-4xl font-bold text-gray-900 tracking-tight">Omnijoy</h1>
+        <h1 class="text-4xl font-bold text-slate-100 tracking-tight">Omnijoy</h1>
         <p class="text-gray-500 mt-2">Create your account</p>
       </div>
 
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+      <div class="bg-slate-800 rounded-2xl shadow-sm border border-slate-700 p-8">
         <!-- Error banner -->
-        <div v-if="localError || auth.error" class="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <div v-if="localError || auth.error" class="mb-4 rounded-lg bg-red-950 border border-red-800 px-4 py-3 text-sm text-red-400">
           {{ localError || auth.error }}
         </div>
 
         <form @submit.prevent="submit" novalidate class="space-y-4">
           <!-- Email -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Email <span class="text-red-500">*</span></label>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Email <span class="text-red-500">*</span></label>
             <input
               v-model="email"
               type="email"
               autocomplete="email"
               placeholder="you@example.com"
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
 
           <!-- Display name -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Display name <span class="text-red-500">*</span></label>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Display name <span class="text-red-500">*</span></label>
             <input
               v-model="displayName"
               type="text"
               autocomplete="name"
               placeholder="Your name"
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
 
           <!-- Auth method -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Sign-in method <span class="text-red-500">*</span></label>
+            <label class="block text-sm font-medium text-slate-300 mb-2">Sign-in method <span class="text-red-500">*</span></label>
             <div class="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 class="flex items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-medium transition-all"
                 :class="authMethod === 'password'
-                  ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                  : 'border-gray-300 text-gray-600 hover:border-gray-400'"
+                  ? 'border-indigo-600 bg-indigo-900/50 text-indigo-300'
+                  : 'border-slate-600 text-slate-400 hover:border-slate-500'"
                 @click="authMethod = 'password'; clearError()"
               >
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
@@ -112,8 +112,8 @@ async function submit() {
                 type="button"
                 class="flex items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-medium transition-all"
                 :class="authMethod === 'otp'
-                  ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                  : 'border-gray-300 text-gray-600 hover:border-gray-400'"
+                  ? 'border-indigo-600 bg-indigo-900/50 text-indigo-300'
+                  : 'border-slate-600 text-slate-400 hover:border-slate-500'"
                 @click="authMethod = 'otp'; clearError()"
               >
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
@@ -129,40 +129,40 @@ async function submit() {
           <!-- Password fields (only for password method) -->
           <template v-if="authMethod === 'password'">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Password <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-slate-300 mb-1">Password <span class="text-red-500">*</span></label>
               <input
                 v-model="password"
                 type="password"
                 autocomplete="new-password"
                 placeholder="Min. 8 characters"
-                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Confirm password <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-slate-300 mb-1">Confirm password <span class="text-red-500">*</span></label>
               <input
                 v-model="confirmPassword"
                 type="password"
                 autocomplete="new-password"
                 placeholder="Repeat password"
-                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
           </template>
 
           <!-- Optional profile fields -->
           <details class="group">
-            <summary class="cursor-pointer text-sm text-gray-500 hover:text-gray-700 select-none list-none flex items-center gap-1">
+            <summary class="cursor-pointer text-sm text-gray-500 hover:text-slate-300 select-none list-none flex items-center gap-1">
               <svg class="h-4 w-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
               Optional profile info
             </summary>
             <div class="mt-3 space-y-3">
               <!-- Gender -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                <label class="block text-sm font-medium text-slate-300 mb-1">Gender</label>
                 <select
                   v-model="gender"
-                  class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 >
                   <option value="NotDisclosed">Prefer not to say</option>
                   <option value="Male">Male</option>
@@ -172,11 +172,11 @@ async function submit() {
 
               <!-- Birth date -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Date of birth</label>
+                <label class="block text-sm font-medium text-slate-300 mb-1">Date of birth</label>
                 <input
                   v-model="birthDate"
                   type="date"
-                  class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
 
@@ -186,9 +186,9 @@ async function submit() {
                   v-model="showBirthDate"
                   id="show-birth-date"
                   type="checkbox"
-                  class="h-4 w-4 rounded border-gray-300 text-indigo-600"
+                  class="h-4 w-4 rounded border-slate-600 text-indigo-400"
                 />
-                <label for="show-birth-date" class="text-sm text-gray-600">Show birth date on my profile</label>
+                <label for="show-birth-date" class="text-sm text-slate-400">Show birth date on my profile</label>
               </div>
             </div>
           </details>
@@ -206,9 +206,9 @@ async function submit() {
       </div>
 
       <!-- Login link -->
-      <p class="text-center text-sm text-gray-600 mt-6">
+      <p class="text-center text-sm text-slate-400 mt-6">
         Already have an account?
-        <RouterLink to="/login" class="text-indigo-600 font-medium hover:underline">Sign in</RouterLink>
+        <RouterLink to="/login" class="text-indigo-400 font-medium hover:underline">Sign in</RouterLink>
       </p>
     </div>
   </div>

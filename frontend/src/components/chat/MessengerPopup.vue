@@ -67,7 +67,7 @@ onUnmounted(() => {
         <!-- Unread badge -->
         <span
           v-if="chat.totalUnread > 0"
-          class="absolute -top-1 -right-1 min-w-[1.25rem] h-5 rounded-full bg-red-500 ring-2 ring-white flex items-center justify-center text-white text-[10px] font-bold px-1"
+          class="absolute -top-1 -right-1 min-w-[1.25rem] h-5 rounded-full bg-red-500 ring-2 ring-slate-900 flex items-center justify-center text-white text-[10px] font-bold px-1"
         >
           {{ chat.totalUnread > 99 ? '99+' : chat.totalUnread }}
         </span>

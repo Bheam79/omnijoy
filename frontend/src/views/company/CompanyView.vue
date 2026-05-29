@@ -167,13 +167,13 @@ onMounted(fetchData)
   <div>
     <!-- Loading -->
     <div v-if="loading" class="animate-pulse">
-      <div class="h-48 bg-gray-200"/>
+      <div class="h-48 bg-slate-700"/>
       <div class="max-w-2xl mx-auto px-4 -mt-16 pb-6">
         <div class="flex items-end gap-4 mb-4">
-          <div class="w-24 h-24 rounded-2xl bg-gray-300 border-4 border-white"/>
+          <div class="w-24 h-24 rounded-2xl bg-slate-600 border-4 border-slate-700"/>
           <div class="pb-2 space-y-2">
-            <div class="h-5 w-36 bg-gray-300 rounded"/>
-            <div class="h-3 w-24 bg-gray-200 rounded"/>
+            <div class="h-5 w-36 bg-slate-600 rounded"/>
+            <div class="h-3 w-24 bg-slate-700 rounded"/>
           </div>
         </div>
       </div>
@@ -181,8 +181,8 @@ onMounted(fetchData)
 
     <!-- Error -->
     <div v-else-if="error" class="max-w-2xl mx-auto px-4 py-16 text-center">
-      <p class="text-red-600">{{ error }}</p>
-      <RouterLink to="/company" class="text-indigo-600 hover:underline text-sm mt-2 inline-block">← Back to Pages</RouterLink>
+      <p class="text-red-400">{{ error }}</p>
+      <RouterLink to="/company" class="text-indigo-400 hover:underline text-sm mt-2 inline-block">← Back to Pages</RouterLink>
     </div>
 
     <!-- Page content -->
@@ -197,7 +197,7 @@ onMounted(fetchData)
         <div class="flex items-end justify-between -mt-12 mb-4">
           <div class="flex items-end gap-4">
             <!-- Logo -->
-            <div class="w-24 h-24 rounded-2xl border-4 border-white bg-white shadow-lg overflow-hidden shrink-0">
+            <div class="w-24 h-24 rounded-2xl border-4 border-slate-700 bg-slate-800 shadow-lg overflow-hidden shrink-0">
               <img v-if="page.logoUrl" :src="page.logoUrl" :alt="page.name" class="w-full h-full object-cover"/>
               <div v-else class="w-full h-full bg-indigo-600 flex items-center justify-center text-white font-bold text-3xl">
                 {{ page.name.charAt(0).toUpperCase() }}
@@ -205,14 +205,14 @@ onMounted(fetchData)
             </div>
 
             <div class="pb-1">
-              <h1 class="text-xl font-bold text-gray-900">{{ page.name }}</h1>
+              <h1 class="text-xl font-bold text-slate-100">{{ page.name }}</h1>
               <p class="text-sm text-gray-500">
                 {{ page.followerCount }} follower{{ page.followerCount !== 1 ? 's' : '' }}
                 <span v-if="page.myRole" class="ml-2 px-2 py-0.5 rounded-full text-xs font-medium"
                   :class="{
-                    'bg-yellow-100 text-yellow-800': page.myRole === 'Owner',
-                    'bg-blue-100 text-blue-800':    page.myRole === 'Admin',
-                    'bg-gray-100 text-gray-700':    page.myRole === 'Editor',
+                    'bg-yellow-900/50 text-yellow-300': page.myRole === 'Owner',
+                    'bg-blue-900 text-blue-300':    page.myRole === 'Admin',
+                    'bg-slate-700 text-slate-300':    page.myRole === 'Editor',
                   }"
                 >{{ page.myRole }}</span>
               </p>
@@ -222,12 +222,12 @@ onMounted(fetchData)
           <!-- Actions -->
           <div class="flex gap-2 pb-1">
             <button v-if="isAdmin" @click="openEdit"
-              class="px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+              class="px-3 py-1.5 text-xs font-medium border border-slate-600 rounded-lg text-slate-300 hover:bg-slate-700 transition"
             >Edit Page</button>
             <button
               class="px-4 py-1.5 text-sm font-medium rounded-lg transition border"
               :class="page.isFollowing
-                ? 'border-gray-300 text-gray-700 hover:border-red-300 hover:text-red-600'
+                ? 'border-slate-600 text-slate-300 hover:border-red-300 hover:text-red-400'
                 : 'bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700'"
               @click="toggleFollow"
             >{{ page.isFollowing ? 'Unfollow' : 'Follow' }}</button>
@@ -235,14 +235,14 @@ onMounted(fetchData)
         </div>
 
         <!-- Tabs -->
-        <div class="flex gap-1 border-b border-gray-200 mb-6">
+        <div class="flex gap-1 border-b border-slate-700 mb-6">
           <button
             v-for="tab in ['posts', 'about', ...(isAdmin ? ['admins'] : [])]"
             :key="tab"
             class="px-4 py-2 text-sm font-medium capitalize border-b-2 transition-colors"
             :class="activeTab === tab
-              ? 'border-indigo-600 text-indigo-700'
-              : 'border-transparent text-gray-500 hover:text-gray-700'"
+              ? 'border-indigo-600 text-indigo-300'
+              : 'border-transparent text-gray-500 hover:text-slate-300'"
             @click="activeTab = tab as 'posts' | 'about' | 'admins'"
           >{{ tab }}</button>
         </div>
@@ -257,15 +257,15 @@ onMounted(fetchData)
 
         <!-- About tab -->
         <div v-else-if="activeTab === 'about'" class="pb-8">
-          <div class="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
-            <h2 class="font-semibold text-gray-900 mb-3">About</h2>
-            <p v-if="page.description" class="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm">
+          <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-sm">
+            <h2 class="font-semibold text-slate-100 mb-3">About</h2>
+            <p v-if="page.description" class="text-slate-300 whitespace-pre-wrap leading-relaxed text-sm">
               {{ page.description }}
             </p>
             <p v-else class="text-gray-500 text-sm italic">No description.</p>
-            <div class="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-500">
+            <div class="mt-4 pt-4 border-t border-slate-700 text-xs text-gray-500">
               Created by
-              <RouterLink :to="`/profile/${page.createdBy.id}`" class="font-medium text-gray-700 hover:underline">
+              <RouterLink :to="`/profile/${page.createdBy.id}`" class="font-medium text-slate-300 hover:underline">
                 {{ page.createdBy.displayName }}
               </RouterLink>
               · {{ new Date(page.createdAt).toLocaleDateString() }}
@@ -284,23 +284,23 @@ onMounted(fetchData)
             @updated="onSlugUpdated"
           />
 
-          <div class="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+          <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-sm">
             <div class="flex items-center justify-between mb-4">
-              <h2 class="font-semibold text-gray-900">Page Admins</h2>
+              <h2 class="font-semibold text-slate-100">Page Admins</h2>
               <button v-if="isOwner || page.myRole === 'Admin'"
-                class="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                class="text-xs text-indigo-400 hover:text-indigo-800 font-medium"
                 @click="showAddAdmin = !showAddAdmin"
               >+ Add admin</button>
             </div>
 
             <!-- Add admin form -->
-            <div v-if="showAddAdmin" class="mb-4 p-3 bg-gray-50 rounded-lg space-y-2">
+            <div v-if="showAddAdmin" class="mb-4 p-3 bg-slate-950 rounded-lg space-y-2">
               <div class="flex gap-2">
                 <input v-model="addAdminId" type="text" placeholder="User ID"
-                  class="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  class="flex-1 rounded-lg border border-slate-600 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 <select v-model="addAdminRole"
-                  class="rounded-lg border border-gray-300 px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  class="rounded-lg border border-slate-600 px-2 py-1.5 text-sm bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option v-if="isOwner" value="Admin">Admin</option>
                   <option value="Editor">Editor</option>
@@ -310,7 +310,7 @@ onMounted(fetchData)
                   @click="handleAddAdmin"
                 >Add</button>
               </div>
-              <p v-if="addAdminError" class="text-xs text-red-600">{{ addAdminError }}</p>
+              <p v-if="addAdminError" class="text-xs text-red-400">{{ addAdminError }}</p>
             </div>
 
             <!-- Admin list -->
@@ -318,7 +318,7 @@ onMounted(fetchData)
               <div
                 v-for="admin in admins?.admins ?? []"
                 :key="admin.userId"
-                class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"
+                class="flex items-center justify-between py-2 border-b border-slate-700 last:border-0"
               >
                 <div class="flex items-center gap-2.5">
                   <RouterLink :to="`/profile/${admin.userId}`">
@@ -328,14 +328,14 @@ onMounted(fetchData)
                     </div>
                   </RouterLink>
                   <div>
-                    <RouterLink :to="`/profile/${admin.userId}`" class="text-sm font-medium text-gray-800 hover:underline">
+                    <RouterLink :to="`/profile/${admin.userId}`" class="text-sm font-medium text-slate-200 hover:underline">
                       {{ admin.displayName }}
                     </RouterLink>
                     <span class="ml-2 text-xs px-1.5 py-0.5 rounded font-medium"
                       :class="{
-                        'bg-yellow-100 text-yellow-800': admin.role === 'Owner',
-                        'bg-blue-100 text-blue-800':    admin.role === 'Admin',
-                        'bg-gray-100 text-gray-700':    admin.role === 'Editor',
+                        'bg-yellow-900/50 text-yellow-300': admin.role === 'Owner',
+                        'bg-blue-900 text-blue-300':    admin.role === 'Admin',
+                        'bg-slate-700 text-slate-300':    admin.role === 'Editor',
                       }"
                     >{{ admin.role }}</span>
                   </div>
@@ -344,7 +344,7 @@ onMounted(fetchData)
                 <!-- Remove button (can't remove Owner, can't remove self if last Owner) -->
                 <button
                   v-if="admin.userId !== auth.user?.id && admin.role !== 'Owner'"
-                  class="text-xs text-red-500 hover:text-red-700"
+                  class="text-xs text-red-500 hover:text-red-400"
                   @click="removeAdmin(admin.userId)"
                 >Remove</button>
               </div>
@@ -362,10 +362,10 @@ onMounted(fetchData)
       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
       @click.self="showEditModal = false"
     >
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 class="text-lg font-bold text-gray-900">Edit Page</h2>
-          <button class="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition" @click="showEditModal = false">
+      <div class="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+          <h2 class="text-lg font-bold text-slate-100">Edit Page</h2>
+          <button class="text-slate-500 hover:text-slate-400 p-1 rounded-full hover:bg-slate-700 transition" @click="showEditModal = false">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
             </svg>
@@ -375,7 +375,7 @@ onMounted(fetchData)
         <div class="overflow-y-auto flex-1 px-6 py-4 space-y-4">
           <!-- Cover -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Cover Image</label>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Cover Image</label>
             <div v-if="editCoverPreview" class="relative h-24 rounded-xl overflow-hidden">
               <img :src="editCoverPreview" class="w-full h-full object-cover"/>
               <button type="button" class="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1"
@@ -386,10 +386,10 @@ onMounted(fetchData)
                 </svg>
               </button>
             </div>
-            <div v-else class="relative h-24 rounded-xl overflow-hidden bg-gray-100">
+            <div v-else class="relative h-24 rounded-xl overflow-hidden bg-slate-700">
               <img v-if="page?.coverUrl" :src="page.coverUrl" class="w-full h-full object-cover opacity-60"/>
               <label class="absolute inset-0 flex items-center justify-center cursor-pointer hover:bg-black/10 transition">
-                <span class="text-xs text-gray-600 bg-white/80 px-2 py-1 rounded-full">Change cover</span>
+                <span class="text-xs text-slate-400 bg-slate-800/80 px-2 py-1 rounded-full">Change cover</span>
                 <input type="file" class="hidden" accept="image/*" @change="onEditCoverChange"/>
               </label>
             </div>
@@ -397,16 +397,16 @@ onMounted(fetchData)
 
           <!-- Logo -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Logo</label>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Logo</label>
             <div class="flex items-center gap-3">
-              <div class="w-14 h-14 rounded-xl border border-gray-200 overflow-hidden">
+              <div class="w-14 h-14 rounded-xl border border-slate-700 overflow-hidden">
                 <img v-if="editLogoPreview" :src="editLogoPreview" class="w-full h-full object-cover"/>
                 <img v-else-if="page?.logoUrl" :src="page.logoUrl" class="w-full h-full object-cover"/>
                 <div v-else class="w-full h-full bg-indigo-600 flex items-center justify-center text-white text-xl font-bold">
                   {{ page?.name.charAt(0).toUpperCase() }}
                 </div>
               </div>
-              <label class="text-xs text-indigo-600 cursor-pointer hover:underline">
+              <label class="text-xs text-indigo-400 cursor-pointer hover:underline">
                 Change logo
                 <input type="file" class="hidden" accept="image/*" @change="onEditLogoChange"/>
               </label>
@@ -414,26 +414,26 @@ onMounted(fetchData)
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Name</label>
             <input v-model="editName" type="text" maxlength="256"
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Description</label>
             <textarea v-model="editDesc" rows="3"
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
             />
           </div>
 
-          <div v-if="editError" class="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+          <div v-if="editError" class="text-sm text-red-400 bg-red-950 rounded-lg px-3 py-2">
             {{ editError }}
           </div>
         </div>
 
-        <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-          <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+        <div class="px-6 py-4 border-t border-slate-700 flex justify-end gap-3">
+          <button type="button" class="px-4 py-2 text-sm font-medium text-slate-300 border border-slate-600 rounded-lg hover:bg-slate-700"
             @click="showEditModal = false">Cancel</button>
           <button type="button" :disabled="editSaving"
             class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50"

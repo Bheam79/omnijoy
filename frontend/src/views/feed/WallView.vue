@@ -131,18 +131,18 @@ function setupInfiniteScroll() {
       <div
         v-for="i in 3"
         :key="i"
-        class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 animate-pulse"
+        class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 p-4 animate-pulse"
       >
         <div class="flex items-center gap-3 mb-3">
-          <div class="w-10 h-10 rounded-full bg-gray-200" />
+          <div class="w-10 h-10 rounded-full bg-slate-700" />
           <div class="space-y-1.5">
-            <div class="h-3.5 w-28 bg-gray-200 rounded" />
-            <div class="h-3 w-20 bg-gray-100 rounded" />
+            <div class="h-3.5 w-28 bg-slate-700 rounded" />
+            <div class="h-3 w-20 bg-slate-700 rounded" />
           </div>
         </div>
         <div class="space-y-2">
-          <div class="h-4 bg-gray-100 rounded w-full" />
-          <div class="h-4 bg-gray-100 rounded w-5/6" />
+          <div class="h-4 bg-slate-700 rounded w-full" />
+          <div class="h-4 bg-slate-700 rounded w-5/6" />
         </div>
       </div>
     </div>
@@ -150,7 +150,7 @@ function setupInfiniteScroll() {
     <!-- Error -->
     <div
       v-else-if="feed.error"
-      class="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700 flex items-center gap-2"
+      class="bg-red-950 border border-red-800 rounded-xl p-4 text-sm text-red-400 flex items-center gap-2"
     >
       <svg class="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd"
@@ -159,7 +159,7 @@ function setupInfiniteScroll() {
       </svg>
       {{ feed.error }}
       <button
-        class="ml-auto text-red-700 underline text-xs hover:text-red-900"
+        class="ml-auto text-red-400 underline text-xs hover:text-red-300"
         @click="feed.loadFeed()"
       >
         Retry
@@ -169,10 +169,10 @@ function setupInfiniteScroll() {
     <!-- Empty state -->
     <div
       v-else-if="!feed.loading && feed.items.length === 0"
-      class="bg-white rounded-xl shadow-sm border border-gray-100 p-10 text-center"
+      class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 p-10 text-center"
     >
       <p class="text-4xl mb-3">👋</p>
-      <p class="font-semibold text-gray-800 text-lg">Your wall is empty</p>
+      <p class="font-semibold text-slate-200 text-lg">Your wall is empty</p>
       <p class="text-gray-500 text-sm mt-1">
         Create your first post or connect with friends to see their posts here.
       </p>
@@ -199,14 +199,14 @@ function setupInfiniteScroll() {
 
       <!-- Infinite-scroll sentinel -->
       <div ref="sentinelRef" class="py-2 flex justify-center">
-        <div v-if="feed.loadingMore" class="flex items-center gap-2 text-sm text-gray-400">
+        <div v-if="feed.loadingMore" class="flex items-center gap-2 text-sm text-slate-500">
           <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
           </svg>
           Loading more…
         </div>
-        <p v-else-if="!feed.hasMore && feed.items.length > 0" class="text-xs text-gray-400">
+        <p v-else-if="!feed.hasMore && feed.items.length > 0" class="text-xs text-slate-500">
           You've reached the end
         </p>
       </div>

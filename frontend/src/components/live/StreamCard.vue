@@ -8,13 +8,13 @@ defineProps<{ stream: LiveStreamDto }>()
 <template>
   <RouterLink
     :to="`/live/${stream.id}`"
-    class="group block bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
+    class="group block bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden hover:shadow-md transition-shadow"
   >
     <!-- Thumbnail placeholder -->
     <div class="relative aspect-video bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
       <!-- LIVE badge -->
       <span class="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-0.5 bg-red-600 text-white text-xs font-bold rounded-full">
-        <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+        <span class="w-1.5 h-1.5 rounded-full bg-slate-800 animate-pulse" />
         LIVE
       </span>
 
@@ -30,7 +30,7 @@ defineProps<{ stream: LiveStreamDto }>()
       </span>
 
       <!-- Play icon -->
-      <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition">
+      <div class="w-12 h-12 rounded-full bg-slate-800/20 flex items-center justify-center group-hover:bg-slate-800/30 transition">
         <svg class="w-6 h-6 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
           <path d="M8 5v14l11-7z"/>
         </svg>
@@ -39,7 +39,7 @@ defineProps<{ stream: LiveStreamDto }>()
 
     <!-- Info -->
     <div class="p-3">
-      <p class="font-semibold text-gray-900 text-sm line-clamp-1 mb-1">{{ stream.title }}</p>
+      <p class="font-semibold text-slate-100 text-sm line-clamp-1 mb-1">{{ stream.title }}</p>
       <div class="flex items-center gap-2">
         <!-- Avatar -->
         <img
@@ -50,16 +50,16 @@ defineProps<{ stream: LiveStreamDto }>()
         />
         <div
           v-else
-          class="w-5 h-5 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-700 text-[10px] font-bold"
+          class="w-5 h-5 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-300 text-[10px] font-bold"
         >
           {{ stream.host.displayName.charAt(0).toUpperCase() }}
         </div>
-        <span class="text-xs text-gray-600 truncate">{{ stream.host.displayName }}</span>
+        <span class="text-xs text-slate-400 truncate">{{ stream.host.displayName }}</span>
 
         <!-- Privacy badge -->
         <span
           v-if="stream.privacy === 'Friends'"
-          class="ml-auto text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium"
+          class="ml-auto text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-400 rounded-full font-medium"
         >
           Friends
         </span>

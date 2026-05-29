@@ -64,7 +64,7 @@ function setFilter(f: FilterOption) {
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">Events</h1>
+        <h1 class="text-2xl font-bold text-slate-100">Events</h1>
         <p class="text-sm text-gray-500 mt-0.5">Upcoming events from friends and pages you follow</p>
       </div>
       <button
@@ -79,14 +79,14 @@ function setFilter(f: FilterOption) {
     </div>
 
     <!-- Filter tabs -->
-    <div class="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 w-fit">
+    <div class="flex gap-1 mb-6 bg-slate-700 rounded-xl p-1 w-fit">
       <button
         v-for="opt in filterOptions"
         :key="String(opt.value)"
         class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all"
         :class="activeFilter === opt.value
-          ? 'bg-white text-indigo-700 shadow-sm'
-          : 'text-gray-600 hover:text-gray-800'"
+          ? 'bg-slate-800 text-indigo-300 shadow-sm'
+          : 'text-slate-400 hover:text-slate-200'"
         @click="setFilter(opt.value)"
       >
         {{ opt.label }}
@@ -98,13 +98,13 @@ function setFilter(f: FilterOption) {
       <div
         v-for="i in 4"
         :key="i"
-        class="bg-white rounded-xl border border-gray-100 overflow-hidden animate-pulse"
+        class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden animate-pulse"
       >
-        <div class="h-40 bg-gray-200" />
+        <div class="h-40 bg-slate-700" />
         <div class="p-4 space-y-2">
-          <div class="h-4 bg-gray-200 rounded w-3/4" />
-          <div class="h-3 bg-gray-100 rounded w-1/2" />
-          <div class="h-3 bg-gray-100 rounded w-2/3" />
+          <div class="h-4 bg-slate-700 rounded w-3/4" />
+          <div class="h-3 bg-slate-700 rounded w-1/2" />
+          <div class="h-3 bg-slate-700 rounded w-2/3" />
         </div>
       </div>
     </div>
@@ -112,7 +112,7 @@ function setFilter(f: FilterOption) {
     <!-- Error -->
     <div
       v-else-if="eventsStore.error"
-      class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm"
+      class="bg-red-950 border border-red-800 rounded-xl p-4 text-red-400 text-sm"
     >
       {{ eventsStore.error }}
     </div>
@@ -123,7 +123,7 @@ function setFilter(f: FilterOption) {
       class="text-center py-16"
     >
       <div class="text-5xl mb-3">📅</div>
-      <h3 class="text-lg font-semibold text-gray-700 mb-1">No upcoming events</h3>
+      <h3 class="text-lg font-semibold text-slate-300 mb-1">No upcoming events</h3>
       <p class="text-sm text-gray-500 mb-4">
         <template v-if="activeFilter === 'mine'">You haven't created any events yet.</template>
         <template v-else-if="activeFilter === 'friends'">No upcoming events from your friends.</template>
@@ -150,7 +150,7 @@ function setFilter(f: FilterOption) {
     <!-- Load more -->
     <div v-if="eventsStore.hasMore && !eventsStore.loading" class="mt-6 text-center">
       <button
-        class="px-6 py-2 text-sm font-medium text-indigo-600 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition"
+        class="px-6 py-2 text-sm font-medium text-indigo-400 border border-indigo-700 rounded-xl hover:bg-indigo-900/50 transition"
         :disabled="eventsStore.loadingMore"
         @click="eventsStore.loadMore()"
       >

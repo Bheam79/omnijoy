@@ -46,31 +46,31 @@ const whenLabel = computed(() => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-gray-100 py-8 px-4">
+  <main class="min-h-screen bg-slate-700 py-8 px-4">
     <div class="max-w-xl mx-auto">
       <header class="flex items-center justify-between mb-6">
-        <RouterLink to="/" class="text-2xl font-extrabold text-blue-600">Omnijoy</RouterLink>
+        <RouterLink to="/" class="text-2xl font-extrabold text-blue-400">Omnijoy</RouterLink>
         <RouterLink
           v-if="!auth.isAuthenticated"
           to="/login"
-          class="text-sm font-semibold text-blue-600 hover:underline"
+          class="text-sm font-semibold text-blue-400 hover:underline"
         >Sign in</RouterLink>
         <RouterLink
           v-else
           to="/wall"
-          class="text-sm font-semibold text-blue-600 hover:underline"
+          class="text-sm font-semibold text-blue-400 hover:underline"
         >Open Omnijoy</RouterLink>
       </header>
 
-      <div v-if="loading" class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center text-gray-500">
+      <div v-if="loading" class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 p-8 text-center text-gray-500">
         Loading…
       </div>
 
       <div
         v-else-if="errorMessage"
-        class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center"
+        class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 p-8 text-center"
       >
-        <h1 class="text-xl font-semibold text-gray-900 mb-2">{{ errorTitle }}</h1>
+        <h1 class="text-xl font-semibold text-slate-100 mb-2">{{ errorTitle }}</h1>
         <p class="text-gray-500">{{ errorMessage }}</p>
         <RouterLink
           to="/"
@@ -80,21 +80,21 @@ const whenLabel = computed(() => {
 
       <article
         v-else-if="event"
-        class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+        class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 overflow-hidden"
       >
         <img
           v-if="event.coverImageUrl"
           :src="event.coverImageUrl"
           :alt="event.title"
-          class="w-full max-h-64 object-cover bg-gray-200"
+          class="w-full max-h-64 object-cover bg-slate-700"
         />
         <div class="p-6">
-          <h1 class="text-2xl font-bold text-gray-900">{{ event.title }}</h1>
+          <h1 class="text-2xl font-bold text-slate-100">{{ event.title }}</h1>
           <p class="text-sm text-gray-500 mt-1">
             Hosted by <span class="font-semibold">{{ event.creator.displayName }}</span>
           </p>
 
-          <dl class="mt-5 space-y-3 text-sm text-gray-700">
+          <dl class="mt-5 space-y-3 text-sm text-slate-300">
             <div class="flex gap-2">
               <dt class="font-semibold w-20">When</dt>
               <dd>{{ whenLabel }}</dd>
@@ -111,7 +111,7 @@ const whenLabel = computed(() => {
 
           <p
             v-if="event.description"
-            class="mt-5 text-gray-700 leading-relaxed whitespace-pre-wrap"
+            class="mt-5 text-slate-300 leading-relaxed whitespace-pre-wrap"
           >{{ event.description }}</p>
 
           <div class="mt-6 flex gap-3">

@@ -89,12 +89,12 @@ async function handleSubmit() {
   <!-- Backdrop -->
   <Teleport to="body">
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" @click.self="emit('close')">
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+      <div class="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
         <!-- Header -->
-        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 class="text-lg font-bold text-gray-900">Create Event</h2>
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+          <h2 class="text-lg font-bold text-slate-100">Create Event</h2>
           <button
-            class="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition"
+            class="text-slate-500 hover:text-slate-400 p-1 rounded-full hover:bg-slate-700 transition"
             aria-label="Close"
             @click="emit('close')"
           >
@@ -108,10 +108,10 @@ async function handleSubmit() {
         <form class="overflow-y-auto flex-1 px-6 py-4 space-y-4" @submit.prevent="handleSubmit">
           <!-- Cover image -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Cover Image</label>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Cover Image</label>
             <div
               v-if="coverPreview"
-              class="relative h-36 rounded-xl overflow-hidden bg-gray-100"
+              class="relative h-36 rounded-xl overflow-hidden bg-slate-700"
             >
               <img :src="coverPreview" class="w-full h-full object-cover" alt="Cover preview" />
               <button
@@ -126,9 +126,9 @@ async function handleSubmit() {
             </div>
             <label
               v-else
-              class="flex flex-col items-center justify-center h-24 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition"
+              class="flex flex-col items-center justify-center h-24 border-2 border-dashed border-slate-600 rounded-xl cursor-pointer hover:border-indigo-400 hover:bg-indigo-900/50 transition"
             >
-              <svg class="w-8 h-8 text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-8 h-8 text-slate-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
               </svg>
               <span class="text-xs text-gray-500">Click to add a cover photo</span>
@@ -138,13 +138,13 @@ async function handleSubmit() {
 
           <!-- Title -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
+            <label class="block text-sm font-medium text-slate-300 mb-1">
               Title <span class="text-red-500">*</span>
             </label>
             <input
               v-model="title"
               type="text"
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="Event title"
               maxlength="256"
               required
@@ -153,10 +153,10 @@ async function handleSubmit() {
 
           <!-- Description -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Description</label>
             <textarea
               v-model="description"
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+              class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
               placeholder="What's this event about?"
               rows="3"
             />
@@ -165,35 +165,35 @@ async function handleSubmit() {
           <!-- Start / End datetime -->
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-slate-300 mb-1">
                 Starts <span class="text-red-500">*</span>
               </label>
               <input
                 v-model="startAt"
                 type="datetime-local"
                 :min="minDate"
-                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 required
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Ends</label>
+              <label class="block text-sm font-medium text-slate-300 mb-1">Ends</label>
               <input
                 v-model="endAt"
                 type="datetime-local"
                 :min="startAt || minDate"
-                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
           </div>
 
           <!-- Location -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Location</label>
             <input
               v-model="location"
               type="text"
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="Where is it happening?"
               maxlength="512"
             />
@@ -201,10 +201,10 @@ async function handleSubmit() {
 
           <!-- Privacy -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Privacy</label>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Privacy</label>
             <select
               v-model="privacy"
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+              class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-slate-800"
             >
               <option value="Everyone">🌐 Public</option>
               <option value="FriendsOfFriends">👥 Friends of friends</option>
@@ -214,16 +214,16 @@ async function handleSubmit() {
           </div>
 
           <!-- Error -->
-          <div v-if="formError" class="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+          <div v-if="formError" class="text-sm text-red-400 bg-red-950 rounded-lg px-3 py-2">
             {{ formError }}
           </div>
         </form>
 
         <!-- Footer -->
-        <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+        <div class="px-6 py-4 border-t border-slate-700 flex justify-end gap-3">
           <button
             type="button"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+            class="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-800 border border-slate-600 rounded-lg hover:bg-slate-700 transition"
             @click="emit('close')"
           >
             Cancel

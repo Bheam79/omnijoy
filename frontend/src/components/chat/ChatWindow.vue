@@ -236,7 +236,7 @@ function onDocClick() {
   <div v-if="contextMenu" class="fixed inset-0 z-[9998]" @click="onDocClick" />
 
   <div
-    class="flex flex-col w-72 shadow-2xl rounded-t-xl overflow-hidden border border-gray-200 bg-white"
+    class="flex flex-col w-72 shadow-2xl rounded-t-xl overflow-hidden border border-slate-700 bg-slate-800"
     :class="isMinimized ? 'h-11' : 'h-96'"
     @dragover.prevent="onDragover"
     @dragleave="onDragleave"
@@ -291,7 +291,7 @@ function onDocClick() {
       <!-- Drag-drop overlay -->
       <div
         v-if="isDragging"
-        class="absolute inset-0 z-10 bg-indigo-50/90 flex items-center justify-center text-indigo-600 font-semibold text-sm border-2 border-dashed border-indigo-400 rounded-xl"
+        class="absolute inset-0 z-10 bg-indigo-900/90 flex items-center justify-center text-indigo-400 font-semibold text-sm border-2 border-dashed border-indigo-400 rounded-xl"
       >
         Drop file to attach
       </div>
@@ -321,7 +321,7 @@ function onDocClick() {
             <!-- Deleted placeholder -->
             <div
               v-if="msg.isDeleted"
-              class="max-w-[80%] px-3 py-1.5 rounded-2xl bg-gray-100 text-gray-400 text-xs italic"
+              class="max-w-[80%] px-3 py-1.5 rounded-2xl bg-slate-700 text-slate-500 text-xs italic"
             >
               Message deleted
             </div>
@@ -332,7 +332,7 @@ function onDocClick() {
               class="max-w-[80%] px-3 py-1.5 rounded-2xl text-sm"
               :class="isMine(msg)
                 ? 'bg-indigo-600 text-white rounded-br-sm'
-                : 'bg-gray-100 text-gray-900 rounded-bl-sm'"
+                : 'bg-slate-700 text-slate-100 rounded-bl-sm'"
             >
               <!-- Image -->
               <template v-if="msg.messageType === 'Image' && msg.media">
@@ -360,7 +360,7 @@ function onDocClick() {
                   target="_blank"
                   rel="noopener noreferrer"
                   class="flex items-center gap-2"
-                  :class="isMine(msg) ? 'text-indigo-100 hover:text-white' : 'text-indigo-600 hover:text-indigo-800'"
+                  :class="isMine(msg) ? 'text-indigo-100 hover:text-white' : 'text-indigo-400 hover:text-indigo-800'"
                 >
                   <!-- File icon -->
                   <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -388,7 +388,7 @@ function onDocClick() {
               <!-- Timestamp -->
               <div
                 class="text-[10px] mt-0.5 text-right"
-                :class="isMine(msg) ? 'text-indigo-200' : 'text-gray-400'"
+                :class="isMine(msg) ? 'text-indigo-200' : 'text-slate-500'"
               >
                 {{ formatTime(msg.createdAt) }}
               </div>
@@ -398,7 +398,7 @@ function onDocClick() {
 
         <!-- Typing indicator -->
         <div v-if="isTyping" class="flex justify-start">
-          <div class="bg-gray-100 rounded-2xl rounded-bl-sm px-3 py-2 flex gap-1">
+          <div class="bg-slate-700 rounded-2xl rounded-bl-sm px-3 py-2 flex gap-1">
             <span
               v-for="i in 3"
               :key="i"
@@ -411,7 +411,7 @@ function onDocClick() {
 
       <!-- ── Upload progress ─────────────────────────────────────────────── -->
       <div v-if="uploadProgress > 0 && uploadProgress < 100" class="px-3 pb-1">
-        <div class="h-1 bg-gray-200 rounded-full overflow-hidden">
+        <div class="h-1 bg-slate-700 rounded-full overflow-hidden">
           <div
             class="h-full bg-indigo-500 transition-all duration-200"
             :style="{ width: `${uploadProgress}%` }"
@@ -420,13 +420,13 @@ function onDocClick() {
       </div>
 
       <!-- ── Pending file preview ────────────────────────────────────────── -->
-      <div v-if="pendingFile" class="px-3 pb-1 flex items-center gap-2 text-xs text-gray-600">
-        <svg class="h-4 w-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div v-if="pendingFile" class="px-3 pb-1 flex items-center gap-2 text-xs text-slate-400">
+        <svg class="h-4 w-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
         </svg>
         <span class="truncate flex-1">{{ pendingFile.name }}</span>
-        <button class="text-gray-400 hover:text-gray-600" @click="pendingFile = null">
+        <button class="text-slate-500 hover:text-slate-400" @click="pendingFile = null">
           <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
           </svg>
@@ -434,10 +434,10 @@ function onDocClick() {
       </div>
 
       <!-- ── Composer ────────────────────────────────────────────────────── -->
-      <div class="shrink-0 border-t border-gray-100 flex items-end gap-1 px-2 py-1.5">
+      <div class="shrink-0 border-t border-slate-700 flex items-end gap-1 px-2 py-1.5">
         <!-- File picker -->
         <button
-          class="p-1.5 rounded-full text-gray-400 hover:text-indigo-600 hover:bg-gray-100 transition-colors shrink-0"
+          class="p-1.5 rounded-full text-slate-500 hover:text-indigo-400 hover:bg-slate-700 transition-colors shrink-0"
           aria-label="Attach file"
           @click="openFilePicker"
         >
@@ -459,7 +459,7 @@ function onDocClick() {
           v-model="textInput"
           rows="1"
           placeholder="Write a message…"
-          class="flex-1 resize-none rounded-2xl bg-gray-100 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 max-h-28 overflow-y-auto"
+          class="flex-1 resize-none rounded-2xl bg-slate-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 max-h-28 overflow-y-auto"
           @keydown="onKeydown"
         />
 
@@ -468,7 +468,7 @@ function onDocClick() {
           class="p-1.5 rounded-full transition-colors shrink-0"
           :class="textInput.trim() || pendingFile
             ? 'text-white bg-indigo-600 hover:bg-indigo-700'
-            : 'text-gray-300 bg-gray-100 cursor-not-allowed'"
+            : 'text-slate-600 bg-slate-700 cursor-not-allowed'"
           :disabled="!textInput.trim() && !pendingFile"
           aria-label="Send"
           @click="send"
@@ -486,11 +486,11 @@ function onDocClick() {
   <Teleport to="body">
     <div
       v-if="contextMenu"
-      class="fixed z-[9999] bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[140px]"
+      class="fixed z-[9999] bg-slate-800 rounded-lg shadow-xl border border-slate-700 py-1 min-w-[140px]"
       :style="{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }"
     >
       <button
-        class="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+        class="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-red-950 transition-colors"
         @click="confirmDelete"
       >
         <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -228,18 +228,18 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
   <div class="max-w-3xl mx-auto px-4 py-6 space-y-4">
     <!-- Header -->
     <header>
-      <h1 class="text-2xl font-bold text-gray-900">
+      <h1 class="text-2xl font-bold text-slate-100">
         Search results
       </h1>
       <p v-if="query" class="text-sm text-gray-500 mt-0.5">
-        for "<span class="font-medium text-gray-700">{{ query }}</span>"
+        for "<span class="font-medium text-slate-300">{{ query }}</span>"
       </p>
     </header>
 
     <!-- Empty query state -->
     <div v-if="!query" class="text-center py-16">
       <p class="text-4xl mb-3">🔍</p>
-      <p class="font-semibold text-gray-700">Search Omnijoy</p>
+      <p class="font-semibold text-slate-300">Search Omnijoy</p>
       <p class="text-sm text-gray-500 mt-1">
         Type in the search box above to find people, posts, events, and companies.
       </p>
@@ -247,21 +247,21 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
 
     <template v-else>
       <!-- Tabs -->
-      <nav class="flex gap-1 bg-gray-100 p-1 rounded-xl text-sm overflow-x-auto">
+      <nav class="flex gap-1 bg-slate-900 p-1 rounded-xl text-sm overflow-x-auto">
         <button
           v-for="tab in TABS"
           :key="tab.id"
           :class="[
             'flex-1 min-w-fit py-1.5 px-3 rounded-lg font-medium transition whitespace-nowrap',
             activeTab === tab.id
-              ? 'bg-white shadow text-indigo-600'
-              : 'text-gray-500 hover:text-gray-700',
+              ? 'bg-slate-800 shadow text-indigo-400'
+              : 'text-gray-500 hover:text-slate-300',
           ]"
           :data-test="`tab-${tab.id}`"
           @click="setTab(tab.id)"
         >
           {{ tab.label }}
-          <span v-if="tabCount(tab.id) !== null" class="text-gray-400 text-xs ml-1">
+          <span v-if="tabCount(tab.id) !== null" class="text-slate-500 text-xs ml-1">
             ({{ tabCount(tab.id) }}{{ allResponse?.hasMore ? '+' : '' }})
           </span>
         </button>
@@ -270,7 +270,7 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
       <!-- ── All tab ───────────────────────────────────────────────────────── -->
       <template v-if="activeTab === 'all'">
         <div v-if="allLoading" class="text-center py-12 text-gray-500 text-sm">Searching…</div>
-        <div v-else-if="allError" class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
+        <div v-else-if="allError" class="bg-red-950 border border-red-800 rounded-xl p-4 text-red-400 text-sm">
           {{ allError }}
         </div>
         <div
@@ -278,26 +278,26 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
           class="text-center py-16"
         >
           <p class="text-4xl mb-3">🤷</p>
-          <p class="font-semibold text-gray-700">No results found</p>
+          <p class="font-semibold text-slate-300">No results found</p>
           <p class="text-sm text-gray-500 mt-1">Try different keywords.</p>
         </div>
 
         <template v-else-if="allResponse">
           <!-- People preview -->
-          <section v-if="allResponse.users.length > 0" class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <section v-if="allResponse.users.length > 0" class="bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-700">
             <div class="flex items-center justify-between mb-3">
-              <h2 class="font-semibold text-gray-800 text-sm">People</h2>
-              <button class="text-xs text-indigo-600 hover:underline font-medium" @click="setTab('users')">See all</button>
+              <h2 class="font-semibold text-slate-200 text-sm">People</h2>
+              <button class="text-xs text-indigo-400 hover:underline font-medium" @click="setTab('users')">See all</button>
             </div>
-            <ul class="divide-y divide-gray-100">
+            <ul class="divide-y divide-slate-700">
               <li v-for="u in allResponse.users" :key="`user-${u.id}`" class="py-2">
                 <RouterLink :to="useProfileUrl(u)" class="flex items-center gap-3 group">
                   <img v-if="u.avatarUrl" :src="u.avatarUrl" :alt="u.displayName" class="h-10 w-10 rounded-full object-cover" />
-                  <div v-else class="h-10 w-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+                  <div v-else class="h-10 w-10 rounded-full bg-indigo-900 text-indigo-400 flex items-center justify-center font-bold">
                     {{ u.displayName.charAt(0).toUpperCase() }}
                   </div>
                   <div class="min-w-0 flex-1">
-                    <p class="text-sm font-semibold text-gray-900 group-hover:underline truncate">{{ u.displayName }}</p>
+                    <p class="text-sm font-semibold text-slate-100 group-hover:underline truncate">{{ u.displayName }}</p>
                     <p v-if="u.bio" class="text-xs text-gray-500 truncate">{{ u.bio }}</p>
                   </div>
                 </RouterLink>
@@ -306,20 +306,20 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
           </section>
 
           <!-- Posts preview -->
-          <section v-if="allResponse.posts.length > 0" class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <section v-if="allResponse.posts.length > 0" class="bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-700">
             <div class="flex items-center justify-between mb-3">
-              <h2 class="font-semibold text-gray-800 text-sm">Posts</h2>
-              <button class="text-xs text-indigo-600 hover:underline font-medium" @click="setTab('posts')">See all</button>
+              <h2 class="font-semibold text-slate-200 text-sm">Posts</h2>
+              <button class="text-xs text-indigo-400 hover:underline font-medium" @click="setTab('posts')">See all</button>
             </div>
-            <ul class="divide-y divide-gray-100">
+            <ul class="divide-y divide-slate-700">
               <li v-for="p in allResponse.posts" :key="`post-${p.id}`" class="py-2">
                 <RouterLink :to="`/share/posts/${p.id}`" class="flex items-start gap-3 group">
                   <img v-if="p.authorAvatarUrl" :src="p.authorAvatarUrl" :alt="p.authorDisplayName" class="h-9 w-9 rounded-full object-cover shrink-0" />
-                  <div v-else class="h-9 w-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0 text-sm">
+                  <div v-else class="h-9 w-9 rounded-full bg-blue-900 text-blue-400 flex items-center justify-center font-bold shrink-0 text-sm">
                     {{ p.authorDisplayName.charAt(0).toUpperCase() }}
                   </div>
                   <div class="min-w-0 flex-1">
-                    <p class="text-sm text-gray-900 line-clamp-2 group-hover:underline">{{ p.content }}</p>
+                    <p class="text-sm text-slate-100 line-clamp-2 group-hover:underline">{{ p.content }}</p>
                     <p class="text-xs text-gray-500 mt-0.5">{{ p.authorDisplayName }} · {{ formatDate(p.createdAt) }}</p>
                   </div>
                 </RouterLink>
@@ -328,18 +328,18 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
           </section>
 
           <!-- Events preview -->
-          <section v-if="allResponse.events.length > 0" class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <section v-if="allResponse.events.length > 0" class="bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-700">
             <div class="flex items-center justify-between mb-3">
-              <h2 class="font-semibold text-gray-800 text-sm">Events</h2>
-              <button class="text-xs text-indigo-600 hover:underline font-medium" @click="setTab('events')">See all</button>
+              <h2 class="font-semibold text-slate-200 text-sm">Events</h2>
+              <button class="text-xs text-indigo-400 hover:underline font-medium" @click="setTab('events')">See all</button>
             </div>
-            <ul class="divide-y divide-gray-100">
+            <ul class="divide-y divide-slate-700">
               <li v-for="e in allResponse.events" :key="`event-${e.id}`" class="py-2">
                 <RouterLink :to="`/events/${e.id}`" class="flex items-center gap-3 group">
                   <img v-if="e.coverImageUrl" :src="e.coverImageUrl" :alt="e.title" class="h-10 w-10 rounded-lg object-cover shrink-0" />
-                  <div v-else class="h-10 w-10 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center font-bold shrink-0">📅</div>
+                  <div v-else class="h-10 w-10 rounded-lg bg-purple-900 text-purple-400 flex items-center justify-center font-bold shrink-0">📅</div>
                   <div class="min-w-0 flex-1">
-                    <p class="text-sm font-semibold text-gray-900 truncate group-hover:underline">{{ e.title }}</p>
+                    <p class="text-sm font-semibold text-slate-100 truncate group-hover:underline">{{ e.title }}</p>
                     <p class="text-xs text-gray-500 truncate">
                       {{ formatDate(e.startAt) }}<template v-if="e.location"> · {{ e.location }}</template>
                     </p>
@@ -350,20 +350,20 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
           </section>
 
           <!-- Companies preview -->
-          <section v-if="allResponse.companies.length > 0" class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <section v-if="allResponse.companies.length > 0" class="bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-700">
             <div class="flex items-center justify-between mb-3">
-              <h2 class="font-semibold text-gray-800 text-sm">Companies</h2>
-              <button class="text-xs text-indigo-600 hover:underline font-medium" @click="setTab('companies')">See all</button>
+              <h2 class="font-semibold text-slate-200 text-sm">Companies</h2>
+              <button class="text-xs text-indigo-400 hover:underline font-medium" @click="setTab('companies')">See all</button>
             </div>
-            <ul class="divide-y divide-gray-100">
+            <ul class="divide-y divide-slate-700">
               <li v-for="c in allResponse.companies" :key="`company-${c.id}`" class="py-2">
                 <RouterLink :to="useCompanyUrl(c)" class="flex items-center gap-3 group">
                   <img v-if="c.logoUrl" :src="c.logoUrl" :alt="c.name" class="h-10 w-10 rounded-lg object-cover shrink-0" />
-                  <div v-else class="h-10 w-10 rounded-lg bg-gray-100 text-gray-700 flex items-center justify-center font-bold shrink-0">
+                  <div v-else class="h-10 w-10 rounded-lg bg-slate-700 text-slate-300 flex items-center justify-center font-bold shrink-0">
                     {{ c.name.charAt(0).toUpperCase() }}
                   </div>
                   <div class="min-w-0 flex-1">
-                    <p class="text-sm font-semibold text-gray-900 truncate group-hover:underline">{{ c.name }}</p>
+                    <p class="text-sm font-semibold text-slate-100 truncate group-hover:underline">{{ c.name }}</p>
                     <p class="text-xs text-gray-500 truncate">
                       {{ c.followerCount }} follower{{ c.followerCount === 1 ? '' : 's' }}
                     </p>
@@ -378,10 +378,10 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
       <!-- ── People tab ────────────────────────────────────────────────────── -->
       <template v-else-if="activeTab === 'users'">
         <div v-if="usersLoading && users.length === 0" class="text-center py-12 text-gray-500 text-sm">Searching…</div>
-        <div v-else-if="usersError" class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">{{ usersError }}</div>
+        <div v-else-if="usersError" class="bg-red-950 border border-red-800 rounded-xl p-4 text-red-400 text-sm">{{ usersError }}</div>
         <div v-else-if="users.length === 0" class="text-center py-16">
           <p class="text-4xl mb-3">👤</p>
-          <p class="font-semibold text-gray-700">No people found</p>
+          <p class="font-semibold text-slate-300">No people found</p>
           <p class="text-sm text-gray-500 mt-1">Try different keywords.</p>
         </div>
         <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -389,14 +389,14 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
             v-for="u in users"
             :key="u.id"
             :to="useProfileUrl(u)"
-            class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-3 hover:border-indigo-200 transition-colors"
+            class="bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-700 flex items-center gap-3 hover:border-indigo-700 transition-colors"
           >
             <img v-if="u.avatarUrl" :src="u.avatarUrl" :alt="u.displayName" class="w-12 h-12 rounded-full object-cover" />
-            <div v-else class="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+            <div v-else class="w-12 h-12 rounded-full bg-indigo-900 text-indigo-400 flex items-center justify-center font-bold">
               {{ u.displayName.charAt(0).toUpperCase() }}
             </div>
             <div class="min-w-0 flex-1">
-              <p class="font-semibold text-gray-900 text-sm truncate">{{ u.displayName }}</p>
+              <p class="font-semibold text-slate-100 text-sm truncate">{{ u.displayName }}</p>
               <p v-if="u.bio" class="text-xs text-gray-500 line-clamp-2">{{ u.bio }}</p>
             </div>
           </RouterLink>
@@ -406,10 +406,10 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
       <!-- ── Posts tab ─────────────────────────────────────────────────────── -->
       <template v-else-if="activeTab === 'posts'">
         <div v-if="postsLoading && posts.length === 0" class="text-center py-12 text-gray-500 text-sm">Searching…</div>
-        <div v-else-if="postsError" class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">{{ postsError }}</div>
+        <div v-else-if="postsError" class="bg-red-950 border border-red-800 rounded-xl p-4 text-red-400 text-sm">{{ postsError }}</div>
         <div v-else-if="posts.length === 0" class="text-center py-16">
           <p class="text-4xl mb-3">📝</p>
-          <p class="font-semibold text-gray-700">No posts found</p>
+          <p class="font-semibold text-slate-300">No posts found</p>
           <p class="text-sm text-gray-500 mt-1">Try different keywords.</p>
         </div>
         <div v-else class="space-y-3">
@@ -417,19 +417,19 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
             v-for="p in posts"
             :key="p.id"
             :to="`/share/posts/${p.id}`"
-            class="block bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-indigo-200 transition-colors"
+            class="block bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-700 hover:border-indigo-700 transition-colors"
           >
             <div class="flex items-center gap-3 mb-2">
               <img v-if="p.authorAvatarUrl" :src="p.authorAvatarUrl" :alt="p.authorDisplayName" class="w-9 h-9 rounded-full object-cover" />
-              <div v-else class="w-9 h-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
+              <div v-else class="w-9 h-9 rounded-full bg-blue-900 text-blue-400 flex items-center justify-center font-bold text-sm">
                 {{ p.authorDisplayName.charAt(0).toUpperCase() }}
               </div>
               <div class="min-w-0">
-                <p class="text-sm font-semibold text-gray-900 truncate">{{ p.authorDisplayName }}</p>
+                <p class="text-sm font-semibold text-slate-100 truncate">{{ p.authorDisplayName }}</p>
                 <p class="text-xs text-gray-500">{{ formatDate(p.createdAt) }}</p>
               </div>
             </div>
-            <p class="text-sm text-gray-700 line-clamp-3 whitespace-pre-wrap">{{ p.content }}</p>
+            <p class="text-sm text-slate-300 line-clamp-3 whitespace-pre-wrap">{{ p.content }}</p>
           </RouterLink>
         </div>
       </template>
@@ -437,10 +437,10 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
       <!-- ── Events tab ────────────────────────────────────────────────────── -->
       <template v-else-if="activeTab === 'events'">
         <div v-if="eventsLoading && events.length === 0" class="text-center py-12 text-gray-500 text-sm">Searching…</div>
-        <div v-else-if="eventsError" class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">{{ eventsError }}</div>
+        <div v-else-if="eventsError" class="bg-red-950 border border-red-800 rounded-xl p-4 text-red-400 text-sm">{{ eventsError }}</div>
         <div v-else-if="events.length === 0" class="text-center py-16">
           <p class="text-4xl mb-3">📅</p>
-          <p class="font-semibold text-gray-700">No events found</p>
+          <p class="font-semibold text-slate-300">No events found</p>
           <p class="text-sm text-gray-500 mt-1">Try different keywords.</p>
         </div>
         <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -448,14 +448,14 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
             v-for="e in events"
             :key="e.id"
             :to="`/events/${e.id}`"
-            class="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 hover:border-indigo-200 transition-colors"
+            class="bg-slate-800 rounded-xl overflow-hidden shadow-sm border border-slate-700 hover:border-indigo-700 transition-colors"
           >
-            <div v-if="e.coverImageUrl" class="h-28 bg-gray-200 overflow-hidden">
+            <div v-if="e.coverImageUrl" class="h-28 bg-slate-700 overflow-hidden">
               <img :src="e.coverImageUrl" :alt="e.title" class="w-full h-full object-cover" />
             </div>
             <div v-else class="h-28 bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center text-4xl">📅</div>
             <div class="p-3">
-              <p class="font-semibold text-gray-900 text-sm truncate">{{ e.title }}</p>
+              <p class="font-semibold text-slate-100 text-sm truncate">{{ e.title }}</p>
               <p class="text-xs text-gray-500 mt-1">
                 {{ formatDate(e.startAt) }}<template v-if="e.location"> · {{ e.location }}</template>
               </p>
@@ -468,10 +468,10 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
       <!-- ── Companies tab ─────────────────────────────────────────────────── -->
       <template v-else-if="activeTab === 'companies'">
         <div v-if="companiesLoading && companies.length === 0" class="text-center py-12 text-gray-500 text-sm">Searching…</div>
-        <div v-else-if="companiesError" class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">{{ companiesError }}</div>
+        <div v-else-if="companiesError" class="bg-red-950 border border-red-800 rounded-xl p-4 text-red-400 text-sm">{{ companiesError }}</div>
         <div v-else-if="companies.length === 0" class="text-center py-16">
           <p class="text-4xl mb-3">🏢</p>
-          <p class="font-semibold text-gray-700">No companies found</p>
+          <p class="font-semibold text-slate-300">No companies found</p>
           <p class="text-sm text-gray-500 mt-1">Try different keywords.</p>
         </div>
         <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -479,14 +479,14 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
             v-for="c in companies"
             :key="c.id"
             :to="useCompanyUrl(c)"
-            class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-3 hover:border-indigo-200 transition-colors"
+            class="bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-700 flex items-center gap-3 hover:border-indigo-700 transition-colors"
           >
             <img v-if="c.logoUrl" :src="c.logoUrl" :alt="c.name" class="w-12 h-12 rounded-lg object-cover" />
-            <div v-else class="w-12 h-12 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+            <div v-else class="w-12 h-12 rounded-lg bg-indigo-900 text-indigo-400 flex items-center justify-center font-bold">
               {{ c.name.charAt(0).toUpperCase() }}
             </div>
             <div class="min-w-0 flex-1">
-              <p class="font-semibold text-gray-900 text-sm truncate">{{ c.name }}</p>
+              <p class="font-semibold text-slate-100 text-sm truncate">{{ c.name }}</p>
               <p class="text-xs text-gray-500">
                 {{ c.followerCount }} follower{{ c.followerCount === 1 ? '' : 's' }}
               </p>
@@ -502,7 +502,7 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
         class="text-center pt-2"
       >
         <button
-          class="px-6 py-2 text-sm font-medium text-indigo-600 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition disabled:opacity-50"
+          class="px-6 py-2 text-sm font-medium text-indigo-400 border border-indigo-700 rounded-xl hover:bg-indigo-900/50 transition disabled:opacity-50"
           :disabled="activeLoading"
           data-test="load-more"
           @click="loadMore"

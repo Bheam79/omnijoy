@@ -89,9 +89,9 @@ async function submitComment(content: string) {
 <template>
   <div data-testid="comment-thread">
     <!-- Toggle bar -->
-    <div class="px-4 py-1.5 border-t border-gray-100">
+    <div class="px-4 py-1.5 border-t border-slate-700">
       <button
-        class="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-blue-600 transition"
+        class="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-blue-400 transition"
         data-testid="toggle-thread"
         @click="toggleOpen"
       >
@@ -129,10 +129,10 @@ async function submitComment(content: string) {
           :key="i"
           class="flex gap-2 animate-pulse"
         >
-          <div class="w-8 h-8 rounded-full bg-gray-200 shrink-0" />
+          <div class="w-8 h-8 rounded-full bg-slate-700 shrink-0" />
           <div class="flex-1 space-y-1 pt-1">
-            <div class="h-3 bg-gray-200 rounded w-1/4" />
-            <div class="h-3 bg-gray-100 rounded w-3/4" />
+            <div class="h-3 bg-slate-700 rounded w-1/4" />
+            <div class="h-3 bg-slate-700 rounded w-3/4" />
           </div>
         </div>
       </div>
@@ -149,7 +149,7 @@ async function submitComment(content: string) {
       <!-- Empty state -->
       <p
         v-else-if="!loading"
-        class="text-sm text-gray-400 text-center py-2"
+        class="text-sm text-slate-500 text-center py-2"
         data-testid="empty-comments"
       >
         No comments yet. Be the first to comment!
@@ -159,7 +159,7 @@ async function submitComment(content: string) {
       <div v-if="hasMore && comments.length > 0" class="text-center pt-1">
         <button
           :disabled="loading"
-          class="text-sm font-semibold text-blue-600 hover:text-blue-800 disabled:opacity-50 transition"
+          class="text-sm font-semibold text-blue-400 hover:text-blue-300 disabled:opacity-50 transition"
           data-testid="load-more"
           @click="store.loadMore(postId)"
         >

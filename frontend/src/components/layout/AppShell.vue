@@ -25,7 +25,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-slate-950">
     <!-- Fixed top navigation -->
     <TopNav
       :sidebar-open="sidebarOpen"

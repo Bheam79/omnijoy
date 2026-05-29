@@ -7,7 +7,7 @@ const auth = useAuthStore()
 
 <template>
   <div>
-    <h1 class="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
+    <h1 class="text-2xl font-bold text-slate-100 mb-6">Settings</h1>
 
     <div class="space-y-2">
 
@@ -15,20 +15,20 @@ const auth = useAuthStore()
       <RouterLink
         v-if="auth.user"
         :to="`/profile/${auth.user.id}`"
-        class="flex items-center justify-between bg-white rounded-xl border border-gray-100 px-5 py-4 hover:border-indigo-200 transition-colors group"
+        class="flex items-center justify-between bg-slate-800 rounded-xl border border-slate-700 px-5 py-4 hover:border-indigo-700 transition-colors group"
       >
         <div class="flex items-center gap-4">
-          <div class="h-10 w-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+          <div class="h-10 w-10 rounded-full bg-indigo-900/50 flex items-center justify-center text-indigo-400">
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
             </svg>
           </div>
           <div>
-            <p class="text-sm font-medium text-gray-900">My Profile</p>
+            <p class="text-sm font-medium text-slate-100">My Profile</p>
             <p class="text-xs text-gray-500">Edit name, bio, avatar, cover photo</p>
           </div>
         </div>
-        <svg class="h-4 w-4 text-gray-400 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="h-4 w-4 text-slate-500 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
         </svg>
       </RouterLink>
@@ -36,7 +36,7 @@ const auth = useAuthStore()
       <!-- Public URL -->
       <RouterLink
         to="/settings/profile"
-        class="flex items-center justify-between bg-white rounded-xl border border-gray-100 px-5 py-4 hover:border-indigo-200 transition-colors group"
+        class="flex items-center justify-between bg-slate-800 rounded-xl border border-slate-700 px-5 py-4 hover:border-indigo-700 transition-colors group"
         data-testid="settings-profile-link"
       >
         <div class="flex items-center gap-4">
@@ -46,11 +46,11 @@ const auth = useAuthStore()
             </svg>
           </div>
           <div>
-            <p class="text-sm font-medium text-gray-900">Public URL</p>
+            <p class="text-sm font-medium text-slate-100">Public URL</p>
             <p class="text-xs text-gray-500">Choose a vanity URL like omnijoy.com/yourname</p>
           </div>
         </div>
-        <svg class="h-4 w-4 text-gray-400 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="h-4 w-4 text-slate-500 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
         </svg>
       </RouterLink>
@@ -58,7 +58,7 @@ const auth = useAuthStore()
       <!-- Privacy -->
       <RouterLink
         to="/settings/privacy"
-        class="flex items-center justify-between bg-white rounded-xl border border-gray-100 px-5 py-4 hover:border-indigo-200 transition-colors group"
+        class="flex items-center justify-between bg-slate-800 rounded-xl border border-slate-700 px-5 py-4 hover:border-indigo-700 transition-colors group"
       >
         <div class="flex items-center gap-4">
           <div class="h-10 w-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
@@ -67,11 +67,11 @@ const auth = useAuthStore()
             </svg>
           </div>
           <div>
-            <p class="text-sm font-medium text-gray-900">Privacy</p>
+            <p class="text-sm font-medium text-slate-100">Privacy</p>
             <p class="text-xs text-gray-500">Control who can see your posts, profile, and messages</p>
           </div>
         </div>
-        <svg class="h-4 w-4 text-gray-400 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="h-4 w-4 text-slate-500 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
         </svg>
       </RouterLink>
@@ -79,7 +79,7 @@ const auth = useAuthStore()
       <!-- Notifications -->
       <RouterLink
         to="/settings/notifications"
-        class="flex items-center justify-between bg-white rounded-xl border border-gray-100 px-5 py-4 hover:border-indigo-200 transition-colors group"
+        class="flex items-center justify-between bg-slate-800 rounded-xl border border-slate-700 px-5 py-4 hover:border-indigo-700 transition-colors group"
       >
         <div class="flex items-center gap-4">
           <div class="h-10 w-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-600">
@@ -88,11 +88,11 @@ const auth = useAuthStore()
             </svg>
           </div>
           <div>
-            <p class="text-sm font-medium text-gray-900">Notifications</p>
+            <p class="text-sm font-medium text-slate-100">Notifications</p>
             <p class="text-xs text-gray-500">Choose which events trigger notifications</p>
           </div>
         </div>
-        <svg class="h-4 w-4 text-gray-400 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="h-4 w-4 text-slate-500 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
         </svg>
       </RouterLink>
@@ -100,20 +100,20 @@ const auth = useAuthStore()
       <!-- Account security -->
       <RouterLink
         to="/settings/account"
-        class="flex items-center justify-between bg-white rounded-xl border border-gray-100 px-5 py-4 hover:border-indigo-200 transition-colors group"
+        class="flex items-center justify-between bg-slate-800 rounded-xl border border-slate-700 px-5 py-4 hover:border-indigo-700 transition-colors group"
       >
         <div class="flex items-center gap-4">
-          <div class="h-10 w-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600">
+          <div class="h-10 w-10 rounded-full bg-amber-950 flex items-center justify-center text-amber-600">
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
             </svg>
           </div>
           <div>
-            <p class="text-sm font-medium text-gray-900">Account</p>
+            <p class="text-sm font-medium text-slate-100">Account</p>
             <p class="text-xs text-gray-500">Change email, password, or deactivate / delete your account</p>
           </div>
         </div>
-        <svg class="h-4 w-4 text-gray-400 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="h-4 w-4 text-slate-500 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
         </svg>
       </RouterLink>

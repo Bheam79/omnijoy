@@ -68,7 +68,7 @@ function onRemove() {
     <!-- Reaction count strip (only when there are reactions) -->
     <div
       v-if="totalCount > 0"
-      class="px-4 py-1 flex items-center gap-1 text-sm text-gray-500 border-b border-gray-50"
+      class="px-4 py-1 flex items-center gap-1 text-sm text-gray-500 border-b border-slate-700"
     >
       <button
         class="flex items-center gap-1 hover:underline focus:outline-none"
@@ -89,7 +89,7 @@ function onRemove() {
     </div>
 
     <!-- Picker + count row -->
-    <div class="flex items-center gap-1 px-4 py-2 border-t border-gray-100">
+    <div class="flex items-center gap-1 px-4 py-2 border-t border-slate-700">
       <ReactionPicker
         :current-reaction="currentReaction"
         :disabled="!loggedIn"

@@ -222,13 +222,13 @@ function extractError(e: unknown): string {
   <div class="max-w-7xl mx-auto px-4 py-6">
     <!-- Loading -->
     <div v-if="loading" class="flex items-center justify-center h-64">
-      <div class="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+      <div class="w-10 h-10 border-4 border-indigo-700 border-t-indigo-600 rounded-full animate-spin" />
     </div>
 
     <!-- Error -->
     <div
       v-else-if="error"
-      class="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700 text-center"
+      class="bg-red-950 border border-red-800 rounded-xl p-6 text-red-400 text-center"
     >
       <p class="font-semibold mb-1">Could not load stream</p>
       <p class="text-sm">{{ error }}</p>
@@ -250,17 +250,17 @@ function extractError(e: unknown): string {
               v-if="stream.status === 'Live'"
               class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-red-600 text-white text-xs font-bold rounded-full"
             >
-              <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              <span class="w-1.5 h-1.5 rounded-full bg-slate-800 animate-pulse" />
               LIVE
             </span>
             <span
               v-else
-              class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-gray-200 text-gray-600 text-xs font-semibold rounded-full"
+              class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-700 text-slate-400 text-xs font-semibold rounded-full"
             >
               ENDED
             </span>
           </div>
-          <h1 class="text-xl font-bold text-gray-900 truncate">{{ stream.title }}</h1>
+          <h1 class="text-xl font-bold text-slate-100 truncate">{{ stream.title }}</h1>
           <div class="flex items-center gap-2 mt-1 text-sm text-gray-500">
             <img
               v-if="stream.host.avatarUrl"
@@ -269,12 +269,12 @@ function extractError(e: unknown): string {
             />
             <div
               v-else
-              class="w-5 h-5 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-700 text-[10px] font-bold"
+              class="w-5 h-5 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-300 text-[10px] font-bold"
             >
               {{ stream.host.displayName.charAt(0).toUpperCase() }}
             </div>
             <span>{{ stream.host.displayName }}</span>
-            <span class="text-gray-300">·</span>
+            <span class="text-slate-600">·</span>
             <span class="flex items-center gap-1">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -326,7 +326,7 @@ function extractError(e: unknown): string {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
                       d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.124a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
               </svg>
-              <p class="text-lg font-semibold text-gray-300">Stream has ended</p>
+              <p class="text-lg font-semibold text-slate-600">Stream has ended</p>
               <button
                 class="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition"
                 @click="$router.push('/live')"
@@ -338,11 +338,11 @@ function extractError(e: unknown): string {
         </div>
 
         <!-- Chat sidebar -->
-        <div class="flex flex-col bg-white rounded-2xl border border-gray-100 overflow-hidden" style="min-height: 400px; max-height: 600px;">
+        <div class="flex flex-col bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden" style="min-height: 400px; max-height: 600px;">
           <!-- Chat header -->
-          <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-            <span class="text-sm font-semibold text-gray-800">Live Chat</span>
-            <span class="text-xs text-gray-400">{{ chatMessages.length }} messages</span>
+          <div class="px-4 py-3 border-b border-slate-700 flex items-center justify-between">
+            <span class="text-sm font-semibold text-slate-200">Live Chat</span>
+            <span class="text-xs text-slate-500">{{ chatMessages.length }} messages</span>
           </div>
 
           <!-- Messages -->
@@ -352,7 +352,7 @@ function extractError(e: unknown): string {
           >
             <div
               v-if="chatMessages.length === 0"
-              class="flex flex-col items-center justify-center h-full text-gray-400 py-8"
+              class="flex flex-col items-center justify-center h-full text-slate-500 py-8"
             >
               <svg class="w-8 h-8 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -366,19 +366,19 @@ function extractError(e: unknown): string {
               :key="msg.id"
               class="flex gap-2 text-sm"
             >
-              <div class="shrink-0 w-6 h-6 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-700 text-[10px] font-bold mt-0.5">
+              <div class="shrink-0 w-6 h-6 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-300 text-[10px] font-bold mt-0.5">
                 {{ (msg.displayName || 'U').charAt(0).toUpperCase() }}
               </div>
               <div class="min-w-0">
-                <span class="font-semibold text-gray-800 text-xs">{{ msg.displayName || 'User' }}</span>
-                <span class="text-gray-400 text-[10px] ml-1">{{ formatTime(msg.sentAt) }}</span>
-                <p class="text-gray-700 text-xs break-words">{{ msg.message }}</p>
+                <span class="font-semibold text-slate-200 text-xs">{{ msg.displayName || 'User' }}</span>
+                <span class="text-slate-500 text-[10px] ml-1">{{ formatTime(msg.sentAt) }}</span>
+                <p class="text-slate-300 text-xs break-words">{{ msg.message }}</p>
               </div>
             </div>
           </div>
 
           <!-- Input -->
-          <div class="p-3 border-t border-gray-100">
+          <div class="p-3 border-t border-slate-700">
             <form class="flex items-center gap-2" @submit.prevent="sendChat">
               <input
                 v-model="chatInput"
@@ -386,7 +386,7 @@ function extractError(e: unknown): string {
                 placeholder="Say something…"
                 maxlength="500"
                 :disabled="stream.status !== 'Live'"
-                class="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
+                class="flex-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
               />
               <button
                 type="submit"

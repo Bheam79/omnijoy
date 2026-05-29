@@ -218,24 +218,24 @@ async function clear() {
 </script>
 
 <template>
-  <div class="bg-white rounded-xl border border-gray-100 px-5 py-5" data-testid="slug-picker">
-    <h2 class="text-base font-semibold text-gray-900 mb-1">Public URL</h2>
+  <div class="bg-slate-800 rounded-xl border border-slate-700 px-5 py-5" data-testid="slug-picker">
+    <h2 class="text-base font-semibold text-slate-100 mb-1">Public URL</h2>
     <p class="text-xs text-gray-500 mb-4">
-      Choose a vanity URL so people can find you at <span class="font-mono text-gray-700">omnijoy.com/&lt;slug&gt;</span>.
+      Choose a vanity URL so people can find you at <span class="font-mono text-slate-300">omnijoy.com/&lt;slug&gt;</span>.
     </p>
 
     <!-- Current canonical URL -->
-    <div v-if="currentUrl" class="mb-3 flex items-center gap-1.5 text-sm text-gray-600" data-testid="current-url">
-      <svg class="h-4 w-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div v-if="currentUrl" class="mb-3 flex items-center gap-1.5 text-sm text-slate-400" data-testid="current-url">
+      <svg class="h-4 w-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
       </svg>
-      Your current public URL: <span class="font-mono font-medium text-indigo-600">{{ currentUrl }}</span>
+      Your current public URL: <span class="font-mono font-medium text-indigo-400">{{ currentUrl }}</span>
     </div>
 
     <!-- Input + status icon row -->
     <div class="flex items-center gap-2 mb-2">
       <div class="flex-1 relative">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 select-none pointer-events-none">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500 select-none pointer-events-none">
           omnijoy.com/
         </span>
         <input
@@ -249,14 +249,14 @@ async function clear() {
           data-testid="slug-input"
           class="w-full rounded-lg border px-3 py-2 pl-[6.5rem] text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
           :class="{
-            'border-gray-300':  checkStatus === 'idle' || checkStatus === 'checking',
+            'border-slate-600':  checkStatus === 'idle' || checkStatus === 'checking',
             'border-green-400': checkStatus === 'available',
             'border-red-400':   checkStatus === 'invalid' || checkStatus === 'reserved' || checkStatus === 'taken' || checkStatus === 'error',
           }"
         />
         <!-- Spinner while checking -->
         <span v-if="checkStatus === 'checking'" class="absolute right-3 top-1/2 -translate-y-1/2" data-testid="check-spinner">
-          <svg class="animate-spin h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24">
+          <svg class="animate-spin h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
           </svg>
@@ -271,28 +271,28 @@ async function clear() {
     <!-- Live preview / feedback -->
     <p
       v-if="checkStatus === 'available' && previewUrl"
-      class="text-xs text-green-600 mb-3"
+      class="text-xs text-green-400 mb-3"
       data-testid="feedback-available"
     >
       ✓ Available — your URL will be <span class="font-mono font-medium">{{ previewUrl }}</span>
     </p>
     <p
       v-else-if="(checkStatus === 'invalid' || checkStatus === 'reserved' || checkStatus === 'taken' || checkStatus === 'error') && checkReason"
-      class="text-xs text-red-600 mb-3"
+      class="text-xs text-red-400 mb-3"
       data-testid="feedback-error"
     >
       {{ checkReason }}
     </p>
     <p
       v-else-if="checkStatus === 'checking'"
-      class="text-xs text-gray-400 mb-3"
+      class="text-xs text-slate-500 mb-3"
       data-testid="feedback-checking"
     >
       Checking availability…
     </p>
     <p
       v-else-if="checkStatus === 'idle' && !inputValue"
-      class="text-xs text-gray-400 mb-3"
+      class="text-xs text-slate-500 mb-3"
     >
       Enter a slug to see availability.
     </p>
@@ -301,7 +301,7 @@ async function clear() {
     <!-- Save / Clear error -->
     <div
       v-if="saveError"
-      class="mb-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700"
+      class="mb-3 rounded-lg bg-red-950 border border-red-800 px-3 py-2 text-sm text-red-400"
       data-testid="save-error"
     >
       {{ saveError }}
@@ -310,7 +310,7 @@ async function clear() {
     <!-- Save success -->
     <div
       v-if="saveSuccess"
-      class="mb-3 rounded-lg bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-700"
+      class="mb-3 rounded-lg bg-green-950 border border-green-800 px-3 py-2 text-sm text-green-400"
       data-testid="save-success"
     >
       Public URL saved!
@@ -333,7 +333,7 @@ async function clear() {
         v-if="hasCurrent"
         type="button"
         :disabled="saving"
-        class="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        class="px-4 py-2 text-sm font-medium text-slate-300 border border-slate-600 rounded-lg hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         data-testid="clear-btn"
         @click="clear"
       >

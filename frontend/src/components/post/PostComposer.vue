@@ -221,7 +221,7 @@ defineExpose({ open, close })
 <template>
   <!-- Trigger bar (always visible) -->
   <div
-    class="bg-white rounded-xl shadow-sm border border-gray-100 p-3 flex items-center gap-3 cursor-pointer hover:bg-gray-50 transition"
+    class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 p-3 flex items-center gap-3 cursor-pointer hover:bg-slate-700 transition"
     @click="open"
   >
     <div
@@ -229,7 +229,7 @@ defineExpose({ open, close })
     >
       {{ auth.user?.displayName?.charAt(0)?.toUpperCase() ?? '?' }}
     </div>
-    <div class="flex-1 bg-gray-100 rounded-full px-4 py-2 text-gray-400 text-sm select-none">
+    <div class="flex-1 bg-slate-700 rounded-full px-4 py-2 text-slate-500 text-sm select-none">
       What's on your mind?
     </div>
   </div>
@@ -243,14 +243,14 @@ defineExpose({ open, close })
         @mousedown.self="close"
       >
         <div
-          class="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]"
+          class="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]"
           @click.stop
         >
           <!-- Modal header -->
-          <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-            <h2 class="text-lg font-semibold text-gray-900">Create Post</h2>
+          <div class="flex items-center justify-between px-5 py-4 border-b border-slate-700">
+            <h2 class="text-lg font-semibold text-slate-100">Create Post</h2>
             <button
-              class="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition"
+              class="text-slate-500 hover:text-slate-400 p-1 rounded-full hover:bg-slate-700 transition"
               @click="close"
               aria-label="Close"
             >
@@ -273,7 +273,7 @@ defineExpose({ open, close })
                 <div v-if="myAdminPages.length > 0" class="mb-0.5">
                   <select
                     v-model="postingAsPageId"
-                    class="text-xs bg-indigo-50 border border-indigo-200 rounded-md px-2 py-0.5 text-indigo-700 focus:ring-2 focus:ring-indigo-400 cursor-pointer font-medium"
+                    class="text-xs bg-indigo-900/50 border border-indigo-700 rounded-md px-2 py-0.5 text-indigo-300 focus:ring-2 focus:ring-indigo-400 cursor-pointer font-medium"
                   >
                     <option :value="null">👤 {{ auth.user?.displayName }}</option>
                     <option
@@ -283,11 +283,11 @@ defineExpose({ open, close })
                     >🏢 {{ pg.name }}</option>
                   </select>
                 </div>
-                <p v-else class="font-semibold text-gray-900 text-sm">{{ auth.user?.displayName }}</p>
+                <p v-else class="font-semibold text-slate-100 text-sm">{{ auth.user?.displayName }}</p>
                 <!-- Privacy selector -->
                 <select
                   v-model="privacy"
-                  class="mt-0.5 text-xs bg-gray-100 border-0 rounded-md px-2 py-0.5 text-gray-700 focus:ring-2 focus:ring-blue-400 cursor-pointer"
+                  class="mt-0.5 text-xs bg-slate-700 border-0 rounded-md px-2 py-0.5 text-slate-300 focus:ring-2 focus:ring-blue-400 cursor-pointer"
                 >
                   <option value="Everyone">🌐 Everyone</option>
                   <option value="Friends">👥 Friends</option>
@@ -297,15 +297,15 @@ defineExpose({ open, close })
             </div>
 
             <!-- Post type tabs -->
-            <div class="flex gap-1 bg-gray-100 p-1 rounded-xl text-sm">
+            <div class="flex gap-1 bg-slate-900 p-1 rounded-xl text-sm">
               <button
                 v-for="(label, type) in { Text: '✍️ Text', Image: '🖼️ Image', Video: '🎬 Video', TextOnBackground: '🎨 BG Text' }"
                 :key="type"
                 :class="[
                   'flex-1 py-1.5 px-2 rounded-lg font-medium transition',
                   postType === type
-                    ? 'bg-white shadow text-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-slate-800 shadow text-blue-400'
+                    : 'text-gray-500 hover:text-slate-300'
                 ]"
                 @click="postType = type as PostType"
               >
@@ -318,7 +318,7 @@ defineExpose({ open, close })
               v-if="postType !== 'TextOnBackground'"
               v-model="content"
               rows="4"
-              class="w-full resize-none border-0 bg-transparent text-gray-900 placeholder-gray-400 focus:outline-none text-lg leading-relaxed"
+              class="w-full resize-none border-0 bg-transparent text-slate-100 placeholder-slate-500 focus:outline-none text-lg leading-relaxed"
               placeholder="What's on your mind?"
               autofocus
             />
@@ -358,15 +358,15 @@ defineExpose({ open, close })
               <textarea
                 v-model="content"
                 rows="2"
-                class="w-full resize-none border border-gray-200 rounded-xl px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                class="w-full resize-none border border-slate-700 rounded-xl px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
                 placeholder="Add a caption… (optional)"
               />
 
               <!-- File input -->
               <label
-                class="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl py-6 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition"
+                class="flex flex-col items-center justify-center border-2 border-dashed border-slate-600 rounded-xl py-6 cursor-pointer hover:border-blue-400 hover:bg-blue-900/40 transition"
               >
-                <svg class="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-8 h-8 text-slate-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                 </svg>
@@ -413,7 +413,7 @@ defineExpose({ open, close })
             <!-- Link preview card (auto-fetched when a URL is detected) -->
             <div
               v-if="linkPreviewLoading"
-              class="flex items-center gap-3 border border-gray-200 rounded-xl p-3 bg-gray-50"
+              class="flex items-center gap-3 border border-slate-700 rounded-xl p-3 bg-slate-950"
             >
               <svg class="animate-spin w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -424,7 +424,7 @@ defineExpose({ open, close })
 
             <div
               v-else-if="linkPreview"
-              class="relative border border-gray-200 rounded-xl overflow-hidden bg-white"
+              class="relative border border-slate-700 rounded-xl overflow-hidden bg-slate-800"
             >
               <button
                 type="button"
@@ -436,37 +436,37 @@ defineExpose({ open, close })
                 v-if="linkPreview.imageUrl"
                 :src="linkPreview.imageUrl"
                 :alt="linkPreview.title ?? ''"
-                class="w-full max-h-48 object-cover bg-gray-100"
+                class="w-full max-h-48 object-cover bg-slate-700"
               />
               <div class="px-3 py-2">
-                <p v-if="linkPreview.siteName" class="text-xs uppercase tracking-wide text-gray-400">
+                <p v-if="linkPreview.siteName" class="text-xs uppercase tracking-wide text-slate-500">
                   {{ linkPreview.siteName }}
                 </p>
                 <p
                   v-if="linkPreview.title"
-                  class="font-semibold text-sm text-gray-900 line-clamp-2"
+                  class="font-semibold text-sm text-slate-100 line-clamp-2"
                 >{{ linkPreview.title }}</p>
                 <p
                   v-if="linkPreview.description"
                   class="text-xs text-gray-500 mt-1 line-clamp-2"
                 >{{ linkPreview.description }}</p>
-                <p class="text-xs text-blue-600 mt-1 truncate">{{ linkPreview.url }}</p>
+                <p class="text-xs text-blue-400 mt-1 truncate">{{ linkPreview.url }}</p>
               </div>
             </div>
 
             <!-- Error -->
-            <p v-if="error" class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <p v-if="error" class="text-sm text-red-400 bg-red-950 border border-red-800 rounded-lg px-3 py-2">
               {{ error }}
             </p>
           </div>
 
           <!-- Footer -->
-          <div class="px-5 py-4 border-t border-gray-100">
+          <div class="px-5 py-4 border-t border-slate-700">
             <button
               class="w-full py-2.5 rounded-xl font-semibold text-sm transition"
               :class="canSubmit
                 ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'"
+                : 'bg-slate-700 text-slate-500 cursor-not-allowed'"
               :disabled="!canSubmit"
               @click="submit"
             >
@@ -495,11 +495,11 @@ defineExpose({ open, close })
 .modal-leave-to {
   opacity: 0;
 }
-.modal-enter-active .bg-white,
-.modal-leave-active .bg-white {
+.modal-enter-active .bg-slate-800,
+.modal-leave-active .bg-slate-800 {
   transition: transform 0.2s ease;
 }
-.modal-enter-from .bg-white {
+.modal-enter-from .bg-slate-800 {
   transform: scale(0.95);
 }
 </style>

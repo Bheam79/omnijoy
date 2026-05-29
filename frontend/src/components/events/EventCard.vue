@@ -74,7 +74,7 @@ async function handleDelete() {
 </script>
 
 <template>
-  <article class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+  <article class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 overflow-hidden hover:shadow-md transition-shadow">
     <!-- Cover image -->
     <RouterLink :to="`/events/${event.id}`" class="block">
       <div
@@ -87,8 +87,8 @@ async function handleDelete() {
           class="w-full h-full object-cover"
         />
         <!-- Date overlay -->
-        <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-lg px-2.5 py-1.5 text-center shadow">
-          <div class="text-xs font-semibold text-indigo-600 uppercase leading-none">
+        <div class="absolute top-3 left-3 bg-slate-800/90 backdrop-blur-sm rounded-lg px-2.5 py-1.5 text-center shadow">
+          <div class="text-xs font-semibold text-indigo-400 uppercase leading-none">
             {{ formatShortDate(event.startAt) }}
           </div>
           <div class="text-xs text-gray-500 mt-0.5">{{ formatShortTime(event.startAt) }}</div>
@@ -104,14 +104,14 @@ async function handleDelete() {
     <div class="p-4">
       <!-- Title + creator -->
       <RouterLink :to="`/events/${event.id}`" class="block group">
-        <h3 class="font-semibold text-gray-900 text-base group-hover:text-indigo-700 transition-colors leading-snug mb-1">
+        <h3 class="font-semibold text-slate-100 text-base group-hover:text-indigo-300 transition-colors leading-snug mb-1">
           {{ event.title }}
         </h3>
       </RouterLink>
 
       <!-- Creator -->
       <div class="flex items-center gap-1.5 text-xs text-gray-500 mb-2">
-        <RouterLink :to="`/profile/${event.creator.id}`" class="hover:underline font-medium text-gray-700">
+        <RouterLink :to="`/profile/${event.creator.id}`" class="hover:underline font-medium text-slate-300">
           {{ event.creator.displayName }}
         </RouterLink>
       </div>
@@ -139,10 +139,10 @@ async function handleDelete() {
       <!-- Attendee counts -->
       <div class="flex items-center gap-3 text-xs text-gray-500 mb-3">
         <span v-if="event.goingCount > 0">
-          <span class="font-semibold text-green-600">{{ event.goingCount }}</span> going
+          <span class="font-semibold text-green-400">{{ event.goingCount }}</span> going
         </span>
         <span v-if="event.maybeCount > 0">
-          <span class="font-semibold text-yellow-600">{{ event.maybeCount }}</span> maybe
+          <span class="font-semibold text-yellow-400">{{ event.maybeCount }}</span> maybe
         </span>
         <span v-if="event.goingCount === 0 && event.maybeCount === 0" class="italic">
           No RSVPs yet
@@ -157,7 +157,7 @@ async function handleDelete() {
           class="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-all"
           :class="event.myRsvp === opt.value
             ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-            : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:text-indigo-600'"
+            : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-indigo-300 hover:text-indigo-400'"
           @click="handleRsvp(opt.value)"
         >
           <span>{{ opt.icon }}</span>
@@ -166,15 +166,15 @@ async function handleDelete() {
       </div>
 
       <!-- Owner actions -->
-      <div v-if="isOwn" class="mt-3 flex gap-2 border-t border-gray-100 pt-3">
+      <div v-if="isOwn" class="mt-3 flex gap-2 border-t border-slate-700 pt-3">
         <RouterLink
           :to="`/events/${event.id}`"
-          class="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+          class="text-xs text-indigo-400 hover:text-indigo-800 font-medium"
         >
           Manage
         </RouterLink>
         <button
-          class="text-xs text-red-500 hover:text-red-700 font-medium"
+          class="text-xs text-red-500 hover:text-red-400 font-medium"
           @click="handleDelete"
         >
           Delete

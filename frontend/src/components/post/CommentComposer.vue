@@ -87,7 +87,7 @@ defineExpose({ clear: () => { text.value = '' } })
         :disabled="loading"
         rows="1"
         data-testid="comment-input"
-        class="w-full resize-none rounded-2xl bg-gray-100 border border-transparent focus:border-blue-300 focus:bg-white focus:outline-none transition px-3 py-2 text-sm leading-snug disabled:opacity-60"
+        class="w-full resize-none rounded-2xl bg-slate-700 border border-transparent focus:border-blue-300 focus:bg-slate-800 focus:outline-none transition px-3 py-2 text-sm leading-snug disabled:opacity-60"
         :class="compact ? 'text-xs' : ''"
         @keydown="onKeydown"
       />
@@ -96,7 +96,7 @@ defineExpose({ clear: () => { text.value = '' } })
       <div v-if="text.trim().length > 0" class="flex items-center gap-1 mt-1 justify-end">
         <button
           type="button"
-          class="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded transition"
+          class="text-xs text-gray-500 hover:text-slate-300 px-2 py-1 rounded transition"
           @click="cancel"
         >
           Cancel

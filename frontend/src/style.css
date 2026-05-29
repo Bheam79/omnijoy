@@ -1,13 +1,42 @@
 @import "tailwindcss";
 
-/* Omnijoy base styles */
+/* Omnijoy base styles — always dark */
 body {
   margin: 0;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #020617;
+  color: #f8fafc;
+  color-scheme: dark;
 }
 
 #app {
   min-height: 100svh;
+}
+
+/* ── Dark form controls ───────────────────────────────────────────────────── */
+/* Ensure all form elements use dark colours by default so nothing falls back
+   to the browser's light-mode stylesheet when an explicit bg class is absent. */
+@layer base {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]),
+  textarea,
+  select {
+    color-scheme: dark;
+    background-color: #334155; /* slate-700 */
+    color: #f1f5f9;            /* slate-100 */
+    border-color: #475569;     /* slate-600 */
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #64748b; /* slate-500 */
+  }
+
+  /* Checkbox / radio use accent colour */
+  input[type="checkbox"],
+  input[type="radio"] {
+    color-scheme: dark;
+    accent-color: #6366f1; /* indigo-500 */
+  }
 }

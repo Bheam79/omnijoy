@@ -57,10 +57,10 @@ async function logout() {
     @click="profileOpen = false"
   />
 
-  <header class="fixed top-0 inset-x-0 z-50 h-16 bg-white border-b border-gray-200 flex items-center px-3 gap-2 lg:gap-4">
+  <header class="fixed top-0 inset-x-0 z-50 h-16 bg-slate-900 border-b border-slate-700 flex items-center px-3 gap-2 lg:gap-4">
     <!-- Hamburger (mobile only) -->
     <button
-      class="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+      class="lg:hidden p-2 rounded-lg text-slate-400 hover:bg-slate-700 transition-colors"
       :aria-label="sidebarOpen ? 'Close menu' : 'Open menu'"
       @click="emit('toggle-sidebar')"
     >
@@ -75,7 +75,7 @@ async function logout() {
     <!-- Logo -->
     <RouterLink to="/wall" class="shrink-0 flex items-center gap-1.5">
       <img src="/logo.png" alt="Omnijoy" class="h-8 w-8 rounded-lg" />
-      <span class="hidden sm:block text-lg font-bold text-gray-900 tracking-tight">Omnijoy</span>
+      <span class="hidden sm:block text-lg font-bold text-slate-100 tracking-tight">Omnijoy</span>
     </RouterLink>
 
     <!-- Search (grows to fill available space) -->
@@ -90,8 +90,8 @@ async function logout() {
         to="/live"
         class="relative hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition"
         :class="hasLiveStreams
-          ? 'bg-red-100 text-red-700 hover:bg-red-200'
-          : 'text-gray-600 hover:bg-gray-100'"
+          ? 'bg-red-100 text-red-400 hover:bg-red-200'
+          : 'text-slate-400 hover:bg-slate-700'"
         aria-label="Live streams"
       >
         <span
@@ -103,7 +103,7 @@ async function logout() {
       <!-- Friend requests button with badge -->
       <RouterLink
         to="/friends"
-        class="relative p-2 rounded-full text-gray-600 hover:bg-gray-100 transition-colors"
+        class="relative p-2 rounded-full text-slate-400 hover:bg-slate-700 transition-colors"
         aria-label="Friend requests"
       >
         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -112,7 +112,7 @@ async function logout() {
         </svg>
         <span
           v-if="friendsStore.pendingCount > 0"
-          class="absolute top-0.5 right-0.5 min-w-[1.1rem] h-[1.1rem] rounded-full bg-red-500 ring-2 ring-white flex items-center justify-center text-white text-[10px] font-bold px-0.5"
+          class="absolute top-0.5 right-0.5 min-w-[1.1rem] h-[1.1rem] rounded-full bg-red-500 ring-2 ring-slate-900 flex items-center justify-center text-white text-[10px] font-bold px-0.5"
         >
           {{ friendsStore.pendingCount > 9 ? '9+' : friendsStore.pendingCount }}
         </span>
@@ -123,7 +123,7 @@ async function logout() {
 
       <!-- Messenger / chat -->
       <button
-        class="relative p-2 rounded-full text-gray-600 hover:bg-gray-100 transition-colors"
+        class="relative p-2 rounded-full text-slate-400 hover:bg-slate-700 transition-colors"
         aria-label="Messages"
         @click="chatStore.toggleList()"
       >
@@ -133,7 +133,7 @@ async function logout() {
         <!-- Unread badge -->
         <span
           v-if="chatStore.totalUnread > 0"
-          class="absolute top-0.5 right-0.5 min-w-[1.1rem] h-[1.1rem] rounded-full bg-red-500 ring-2 ring-white flex items-center justify-center text-white text-[10px] font-bold px-0.5"
+          class="absolute top-0.5 right-0.5 min-w-[1.1rem] h-[1.1rem] rounded-full bg-red-500 ring-2 ring-slate-900 flex items-center justify-center text-white text-[10px] font-bold px-0.5"
         >
           {{ chatStore.totalUnread > 9 ? '9+' : chatStore.totalUnread }}
         </span>
@@ -142,7 +142,7 @@ async function logout() {
       <!-- Profile dropdown trigger -->
       <div class="relative z-50">
         <button
-          class="flex items-center p-1 rounded-full hover:bg-gray-100 transition-colors"
+          class="flex items-center p-1 rounded-full hover:bg-slate-700 transition-colors"
           aria-label="Your account"
           @click.stop="profileOpen = !profileOpen"
         >
@@ -154,7 +154,7 @@ async function logout() {
           </div>
           <div
             v-else
-            class="h-8 w-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-bold ring-2 ring-transparent hover:ring-indigo-300 transition-all"
+            class="h-8 w-8 rounded-full bg-indigo-900 text-indigo-400 flex items-center justify-center text-sm font-bold ring-2 ring-transparent hover:ring-indigo-300 transition-all"
           >
             {{ auth.user?.displayName?.[0]?.toUpperCase() ?? '?' }}
           </div>
@@ -171,21 +171,21 @@ async function logout() {
         >
           <div
             v-if="profileOpen"
-            class="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-1"
+            class="absolute right-0 top-full mt-1 w-56 bg-slate-800 rounded-xl shadow-lg border border-slate-700 py-1"
           >
             <!-- User info -->
-            <div class="px-4 py-3 border-b border-gray-100">
-              <p class="text-sm font-semibold text-gray-900 truncate">{{ auth.user?.displayName ?? 'You' }}</p>
+            <div class="px-4 py-3 border-b border-slate-700">
+              <p class="text-sm font-semibold text-slate-100 truncate">{{ auth.user?.displayName ?? 'You' }}</p>
               <p class="text-xs text-gray-500 truncate mt-0.5">{{ auth.user?.email }}</p>
             </div>
 
             <!-- Links -->
             <RouterLink
               :to="auth.user ? `/profile/${auth.user.id}` : '/'"
-              class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-700 transition-colors"
               @click="profileOpen = false"
             >
-              <svg class="h-4 w-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="h-4 w-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
               </svg>
               My Profile
@@ -193,19 +193,19 @@ async function logout() {
 
             <RouterLink
               to="/settings"
-              class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-700 transition-colors"
               @click="profileOpen = false"
             >
-              <svg class="h-4 w-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="h-4 w-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
               </svg>
               Settings
             </RouterLink>
 
-            <div class="border-t border-gray-100 mt-1 pt-1">
+            <div class="border-t border-slate-700 mt-1 pt-1">
               <button
-                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-950 transition-colors"
                 @click="logout"
               >
                 <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

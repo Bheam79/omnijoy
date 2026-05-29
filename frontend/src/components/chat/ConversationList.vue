@@ -72,12 +72,12 @@ import { computed } from 'vue'
 </script>
 
 <template>
-  <div class="flex flex-col w-80 max-h-[480px] bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
+  <div class="flex flex-col w-80 max-h-[480px] bg-slate-800 rounded-xl shadow-2xl border border-slate-700 overflow-hidden">
     <!-- Header -->
-    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-      <span class="font-semibold text-gray-900">Messenger</span>
+    <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700">
+      <span class="font-semibold text-slate-100">Messenger</span>
       <button
-        class="p-1 rounded-full text-gray-400 hover:bg-gray-100 transition-colors"
+        class="p-1 rounded-full text-slate-500 hover:bg-slate-700 transition-colors"
         aria-label="Close"
         @click="chat.toggleList()"
       >
@@ -88,29 +88,29 @@ import { computed } from 'vue'
     </div>
 
     <!-- Search -->
-    <div class="px-3 py-2 border-b border-gray-100">
+    <div class="px-3 py-2 border-b border-slate-700">
       <div class="relative">
-        <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
         </svg>
         <input
           v-model="searchQuery"
           type="search"
           placeholder="Search conversations…"
-          class="w-full bg-gray-100 rounded-full pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400"
+          class="w-full bg-slate-700 rounded-full pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400"
         />
       </div>
     </div>
 
     <!-- Loading -->
-    <div v-if="chat.loading" class="flex-1 flex items-center justify-center py-8 text-gray-400 text-sm">
+    <div v-if="chat.loading" class="flex-1 flex items-center justify-center py-8 text-slate-500 text-sm">
       Loading…
     </div>
 
     <!-- Empty -->
     <div
       v-else-if="!filtered.length"
-      class="flex-1 flex flex-col items-center justify-center py-8 text-gray-400 text-sm gap-2"
+      class="flex-1 flex flex-col items-center justify-center py-8 text-slate-500 text-sm gap-2"
     >
       <svg class="h-8 w-8 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -124,12 +124,12 @@ import { computed } from 'vue'
       <li
         v-for="conv in filtered"
         :key="conv.id"
-        class="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 cursor-pointer transition-colors"
+        class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-700 cursor-pointer transition-colors"
         @click="chat.openWindow(conv.id)"
       >
         <!-- Avatar -->
         <div class="shrink-0 relative">
-          <div class="h-10 w-10 rounded-full overflow-hidden bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm">
+          <div class="h-10 w-10 rounded-full overflow-hidden bg-indigo-900 flex items-center justify-center text-indigo-400 font-bold text-sm">
             <img
               v-if="otherParticipant(conv)?.avatarUrl"
               :src="otherParticipant(conv)?.avatarUrl"
@@ -151,7 +151,7 @@ import { computed } from 'vue'
           <!-- Unread dot -->
           <span
             v-if="conv.unreadCount > 0"
-            class="absolute -top-0.5 -right-0.5 min-w-[1rem] h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center px-0.5 ring-2 ring-white"
+            class="absolute -top-0.5 -right-0.5 min-w-[1rem] h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center px-0.5 ring-2 ring-slate-900"
           >
             {{ conv.unreadCount > 9 ? '9+' : conv.unreadCount }}
           </span>
@@ -160,16 +160,16 @@ import { computed } from 'vue'
         <!-- Content -->
         <div class="flex-1 min-w-0">
           <div class="flex items-baseline justify-between">
-            <span class="text-sm font-medium text-gray-900 truncate">
+            <span class="text-sm font-medium text-slate-100 truncate">
               {{ otherParticipant(conv)?.displayName ?? 'Unknown' }}
             </span>
-            <span class="text-[10px] text-gray-400 shrink-0 ml-2">
+            <span class="text-[10px] text-slate-500 shrink-0 ml-2">
               {{ formatTime(conv.lastMessage?.createdAt) }}
             </span>
           </div>
           <p
             class="text-xs truncate mt-0.5"
-            :class="conv.unreadCount > 0 ? 'text-gray-900 font-medium' : 'text-gray-500'"
+            :class="conv.unreadCount > 0 ? 'text-slate-100 font-medium' : 'text-gray-500'"
           >
             {{ lastMessagePreview(conv) }}
           </p>

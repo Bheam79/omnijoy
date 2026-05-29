@@ -163,22 +163,22 @@ function applyMetaTags() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 flex flex-col">
+  <div class="min-h-screen bg-slate-950 flex flex-col">
 
     <!-- ── Top navigation ───────────────────────────────────────────────── -->
-    <nav class="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-gray-100">
+    <nav class="sticky top-0 z-30 bg-slate-800/90 backdrop-blur border-b border-slate-700">
       <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <div class="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center">
             <span class="text-white font-bold text-sm">OJ</span>
           </div>
-          <span class="text-lg font-bold text-gray-900 tracking-tight">Omnijoy</span>
+          <span class="text-lg font-bold text-slate-100 tracking-tight">Omnijoy</span>
         </div>
 
         <div class="flex items-center gap-3">
           <RouterLink
             to="/login"
-            class="text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors px-3 py-2"
+            class="text-sm font-medium text-slate-300 hover:text-indigo-400 transition-colors px-3 py-2"
           >
             Log in
           </RouterLink>
@@ -193,16 +193,16 @@ function applyMetaTags() {
     </nav>
 
     <!-- ── Hero ─────────────────────────────────────────────────────────── -->
-    <section class="bg-gradient-to-br from-indigo-50 via-white to-violet-50 border-b border-gray-100">
+    <section class="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border-b border-slate-700">
       <div class="max-w-4xl mx-auto px-4 py-10 sm:py-14 text-center">
-        <div class="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full px-3 py-1 text-xs font-medium mb-5">
+        <div class="inline-flex items-center gap-2 bg-indigo-900/50 text-indigo-300 border border-indigo-700 rounded-full px-3 py-1 text-xs font-medium mb-5">
           <span class="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
           No ads. No forced feed. Just people and events.
         </div>
-        <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight mb-3">
+        <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-100 tracking-tight mb-3">
           {{ feedHeading }}
         </h1>
-        <p class="text-base text-gray-600 max-w-2xl mx-auto">
+        <p class="text-base text-slate-400 max-w-2xl mx-auto">
           {{ feedSubheading }}
         </p>
       </div>
@@ -216,7 +216,7 @@ function applyMetaTags() {
           <span class="text-gray-500">Location:</span>
           <span
             v-if="publicLocation"
-            class="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full px-3 py-1 text-xs font-semibold"
+            class="inline-flex items-center gap-1 bg-indigo-900/50 text-indigo-300 border border-indigo-700 rounded-full px-3 py-1 text-xs font-semibold"
           >
             <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
@@ -224,12 +224,12 @@ function applyMetaTags() {
             </svg>
             {{ publicLocation }}
           </span>
-          <span v-else class="text-xs italic text-gray-400">Showing public events from everywhere</span>
+          <span v-else class="text-xs italic text-slate-500">Showing public events from everywhere</span>
         </div>
         <div class="flex items-center gap-2">
           <button
             type="button"
-            class="text-xs font-medium text-indigo-700 hover:text-indigo-900 underline-offset-2 hover:underline"
+            class="text-xs font-medium text-indigo-300 hover:text-indigo-400 underline-offset-2 hover:underline"
             @click="reopenLocationModal"
           >
             {{ publicLocation ? 'Change location' : 'Set a location' }}
@@ -237,7 +237,7 @@ function applyMetaTags() {
           <button
             v-if="publicLocation"
             type="button"
-            class="text-xs font-medium text-gray-500 hover:text-gray-700"
+            class="text-xs font-medium text-gray-500 hover:text-slate-300"
             @click="clearLocation"
           >
             Clear
@@ -250,13 +250,13 @@ function applyMetaTags() {
         <div
           v-for="i in 6"
           :key="i"
-          class="bg-white rounded-xl border border-gray-100 overflow-hidden animate-pulse"
+          class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden animate-pulse"
         >
-          <div class="h-40 bg-gray-200" />
+          <div class="h-40 bg-slate-700" />
           <div class="p-4 space-y-2">
-            <div class="h-4 bg-gray-200 rounded w-3/4" />
-            <div class="h-3 bg-gray-100 rounded w-1/2" />
-            <div class="h-3 bg-gray-100 rounded w-2/3" />
+            <div class="h-4 bg-slate-700 rounded w-3/4" />
+            <div class="h-3 bg-slate-700 rounded w-1/2" />
+            <div class="h-3 bg-slate-700 rounded w-2/3" />
           </div>
         </div>
       </div>
@@ -264,13 +264,13 @@ function applyMetaTags() {
       <!-- Error -->
       <div
         v-else-if="errorMessage"
-        class="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700 flex items-center gap-2"
+        class="bg-red-950 border border-red-800 rounded-xl p-4 text-sm text-red-400 flex items-center gap-2"
       >
         <svg class="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
         </svg>
         {{ errorMessage }}
-        <button class="ml-auto text-red-700 underline text-xs hover:text-red-900" @click="loadEvents()">
+        <button class="ml-auto text-red-400 underline text-xs hover:text-red-300" @click="loadEvents()">
           Retry
         </button>
       </div>
@@ -278,10 +278,10 @@ function applyMetaTags() {
       <!-- Empty -->
       <div
         v-else-if="events.length === 0"
-        class="bg-white rounded-2xl border border-gray-100 p-10 text-center"
+        class="bg-slate-800 rounded-2xl border border-slate-700 p-10 text-center"
       >
         <div class="text-4xl mb-3">📅</div>
-        <h3 class="text-lg font-semibold text-gray-800 mb-1">No upcoming public events</h3>
+        <h3 class="text-lg font-semibold text-slate-200 mb-1">No upcoming public events</h3>
         <p class="text-sm text-gray-500 max-w-md mx-auto">
           <template v-if="publicLocation">
             Nothing public coming up around <strong>{{ publicLocation }}</strong> yet.
@@ -295,7 +295,7 @@ function applyMetaTags() {
           <button
             v-if="publicLocation"
             type="button"
-            class="px-4 py-2 text-xs font-medium text-indigo-700 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition"
+            class="px-4 py-2 text-xs font-medium text-indigo-300 border border-indigo-700 rounded-xl hover:bg-indigo-900/50 transition"
             @click="clearLocation"
           >
             Clear location
@@ -323,7 +323,7 @@ function applyMetaTags() {
       <div v-if="!loading && events.length > 0 && hasMore" class="mt-6 text-center">
         <button
           type="button"
-          class="px-6 py-2 text-sm font-medium text-indigo-700 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition disabled:opacity-50"
+          class="px-6 py-2 text-sm font-medium text-indigo-300 border border-indigo-700 rounded-xl hover:bg-indigo-900/50 transition disabled:opacity-50"
           :disabled="loadingMore"
           @click="loadMore"
         >
@@ -345,13 +345,13 @@ function applyMetaTags() {
         <div class="flex flex-col sm:flex-row gap-3 justify-center">
           <RouterLink
             to="/register"
-            class="inline-flex items-center justify-center bg-white hover:bg-gray-50 text-indigo-700 font-semibold px-6 py-3 rounded-xl text-sm transition-colors shadow"
+            class="inline-flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-indigo-300 font-semibold px-6 py-3 rounded-xl text-sm transition-colors shadow"
           >
             Create a free account
           </RouterLink>
           <RouterLink
             to="/login"
-            class="inline-flex items-center justify-center border border-indigo-300 hover:border-indigo-100 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-colors"
+            class="inline-flex items-center justify-center border border-indigo-300 hover:border-indigo-700 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-colors"
           >
             Sign in
           </RouterLink>
@@ -360,13 +360,13 @@ function applyMetaTags() {
     </section>
 
     <!-- ── Footer ───────────────────────────────────────────────────────── -->
-    <footer class="bg-gray-900 text-gray-400 py-8">
+    <footer class="bg-gray-900 text-slate-500 py-8">
       <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
         <div class="flex items-center gap-2">
           <div class="h-6 w-6 rounded-md bg-indigo-500 flex items-center justify-center">
             <span class="text-white font-bold text-xs">OJ</span>
           </div>
-          <span class="text-sm font-medium text-gray-300">Omnijoy</span>
+          <span class="text-sm font-medium text-slate-400">Omnijoy</span>
         </div>
         <p class="text-xs">© 2025 Omnijoy · No ads. No data sales. Ever.</p>
         <div class="flex gap-4 text-xs">

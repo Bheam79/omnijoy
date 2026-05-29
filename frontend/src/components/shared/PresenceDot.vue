@@ -53,9 +53,9 @@ onMounted(() => {
   <span
     v-if="online || showOffline"
     :class="[
-      'inline-block rounded-full ring-white',
+      'inline-block rounded-full ring-slate-900',
       sizeClass,
-      online ? 'bg-emerald-500' : 'bg-gray-300',
+      online ? 'bg-emerald-500' : 'bg-slate-600',
     ]"
     :title="online ? 'Online' : 'Offline'"
     :aria-label="online ? 'Online' : 'Offline'"

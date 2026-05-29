@@ -215,10 +215,10 @@ const hasUnread = computed(() => items.value.some((n) => !n.isRead))
   <div class="max-w-2xl mx-auto space-y-4">
     <!-- Page header -->
     <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold text-gray-900">Notifications</h1>
+      <h1 class="text-2xl font-bold text-slate-100">Notifications</h1>
       <button
         v-if="hasUnread"
-        class="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+        class="text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
         @click="markAllRead"
       >
         Mark all as read
@@ -226,15 +226,15 @@ const hasUnread = computed(() => items.value.some((n) => !n.isRead))
     </div>
 
     <!-- Filter bar -->
-    <div class="flex gap-1 overflow-x-auto bg-gray-100 p-1 rounded-xl text-sm no-scrollbar">
+    <div class="flex gap-1 overflow-x-auto bg-slate-900 p-1 rounded-xl text-sm no-scrollbar">
       <button
         v-for="key in FILTER_KEYS"
         :key="key"
         :class="[
           'shrink-0 py-1.5 px-3 rounded-lg font-medium transition-colors whitespace-nowrap',
           activeFilter === key
-            ? 'bg-white shadow text-indigo-600'
-            : 'text-gray-500 hover:text-gray-700',
+            ? 'bg-slate-800 shadow text-indigo-400'
+            : 'text-gray-500 hover:text-slate-300',
         ]"
         @click="setFilter(key)"
       >
@@ -243,22 +243,22 @@ const hasUnread = computed(() => items.value.some((n) => !n.isRead))
     </div>
 
     <!-- Error state -->
-    <div v-if="error" class="bg-red-50 border border-red-100 text-red-700 text-sm rounded-xl px-4 py-3">
+    <div v-if="error" class="bg-red-950 border border-red-100 text-red-400 text-sm rounded-xl px-4 py-3">
       {{ error }}
       <button class="underline ml-2" @click="loadPage(1)">Retry</button>
     </div>
 
     <!-- Loading skeleton (first page only) -->
-    <div v-else-if="loading && items.length === 0" class="bg-white rounded-xl shadow-sm border border-gray-100 divide-y divide-gray-100">
+    <div v-else-if="loading && items.length === 0" class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 divide-y divide-slate-700">
       <div
         v-for="i in 5"
         :key="i"
         class="px-4 py-4 flex items-start gap-3 animate-pulse"
       >
-        <div class="h-10 w-10 rounded-full bg-gray-200 shrink-0" />
+        <div class="h-10 w-10 rounded-full bg-slate-700 shrink-0" />
         <div class="flex-1 space-y-2 pt-1">
-          <div class="h-4 bg-gray-200 rounded w-3/4" />
-          <div class="h-3 bg-gray-100 rounded w-1/4" />
+          <div class="h-4 bg-slate-700 rounded w-3/4" />
+          <div class="h-3 bg-slate-700 rounded w-1/4" />
         </div>
       </div>
     </div>
@@ -266,23 +266,23 @@ const hasUnread = computed(() => items.value.some((n) => !n.isRead))
     <!-- Empty state -->
     <div
       v-else-if="!loading && items.length === 0"
-      class="bg-white rounded-xl shadow-sm border border-gray-100 text-center py-16"
+      class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 text-center py-16"
     >
       <p class="text-4xl mb-3">🔔</p>
-      <p class="font-semibold text-gray-700">No notifications yet</p>
+      <p class="font-semibold text-slate-300">No notifications yet</p>
       <p class="text-sm text-gray-500 mt-1">
         {{ activeFilter === 'all' ? "You're all caught up!" : 'None in this category.' }}
       </p>
     </div>
 
     <!-- Notification list -->
-    <div v-else class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <ul class="divide-y divide-gray-100">
+    <div v-else class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 overflow-hidden">
+      <ul class="divide-y divide-slate-700">
         <li
           v-for="n in items"
           :key="n.id"
-          class="px-4 py-3.5 flex items-start gap-3 transition-colors hover:bg-gray-50 cursor-pointer"
-          :class="{ 'bg-indigo-50/40': !n.isRead }"
+          class="px-4 py-3.5 flex items-start gap-3 transition-colors hover:bg-slate-700 cursor-pointer"
+          :class="{ 'bg-indigo-900/30': !n.isRead }"
           @click="onClick(n)"
         >
           <!-- Avatar -->
@@ -295,7 +295,7 @@ const hasUnread = computed(() => items.value.some((n) => !n.isRead))
             />
             <div
               v-else
-              class="h-10 w-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm"
+              class="h-10 w-10 rounded-full bg-indigo-900 text-indigo-400 flex items-center justify-center font-bold text-sm"
             >
               {{ n.actor?.displayName?.[0]?.toUpperCase() ?? '?' }}
             </div>
@@ -303,7 +303,7 @@ const hasUnread = computed(() => items.value.some((n) => !n.isRead))
 
           <!-- Body -->
           <div class="flex-1 min-w-0">
-            <p class="text-sm text-gray-900">{{ describe(n) }}</p>
+            <p class="text-sm text-slate-100">{{ describe(n) }}</p>
             <p class="text-xs text-gray-500 mt-0.5">{{ timeAgo(n.createdAt) }}</p>
           </div>
 
@@ -317,9 +317,9 @@ const hasUnread = computed(() => items.value.some((n) => !n.isRead))
       </ul>
 
       <!-- Load more -->
-      <div v-if="hasMore" class="px-4 py-3 border-t border-gray-100 text-center">
+      <div v-if="hasMore" class="px-4 py-3 border-t border-slate-700 text-center">
         <button
-          class="text-sm font-medium text-indigo-600 hover:text-indigo-700 disabled:text-gray-400 transition-colors"
+          class="text-sm font-medium text-indigo-400 hover:text-indigo-300 disabled:text-slate-500 transition-colors"
           :disabled="loading"
           @click="loadMore"
         >

@@ -59,8 +59,8 @@ async function toggleBan(user: AdminUserDto) {
 function roleBadgeClass(role: UserRole): string {
   switch (role) {
     case 'Admin':     return 'bg-red-100 text-red-800'
-    case 'Moderator': return 'bg-yellow-100 text-yellow-800'
-    case 'User':      return 'bg-gray-100 text-gray-700'
+    case 'Moderator': return 'bg-yellow-900/50 text-yellow-300'
+    case 'User':      return 'bg-slate-700 text-slate-300'
   }
 }
 
@@ -75,7 +75,7 @@ function extractError(e: unknown): string {
 
 <template>
   <div class="space-y-4">
-    <h1 class="text-2xl font-bold text-gray-900">User management</h1>
+    <h1 class="text-2xl font-bold text-slate-100">User management</h1>
 
     <!-- Search -->
     <form class="flex gap-2" @submit.prevent="runSearch">
@@ -84,7 +84,7 @@ function extractError(e: unknown): string {
         type="search"
         placeholder="Search by name or email…"
         aria-label="Search users"
-        class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+        class="flex-1 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
       >
       <button
         type="submit"
@@ -96,7 +96,7 @@ function extractError(e: unknown): string {
 
     <p
       v-if="actionError"
-      class="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2"
+      class="text-sm text-red-400 bg-red-950 border border-red-800 rounded-lg px-3 py-2"
       role="alert"
     >
       {{ actionError }}
@@ -106,13 +106,13 @@ function extractError(e: unknown): string {
     <div v-if="store.usersLoading" class="text-sm text-gray-500">Loading users…</div>
     <div
       v-else-if="store.users.length === 0"
-      class="bg-white border border-gray-200 rounded-xl p-8 text-center text-gray-500"
+      class="bg-slate-800 border border-slate-700 rounded-xl p-8 text-center text-gray-500"
     >
       No users found.
     </div>
-    <div v-else class="overflow-x-auto bg-white border border-gray-200 rounded-xl">
+    <div v-else class="overflow-x-auto bg-slate-800 border border-slate-700 rounded-xl">
       <table class="min-w-full text-sm" aria-label="Users">
-        <thead class="bg-gray-50 text-gray-600">
+        <thead class="bg-slate-950 text-slate-400">
           <tr>
             <th class="px-3 py-2 text-left">Name</th>
             <th class="px-3 py-2 text-left">Email</th>
@@ -121,10 +121,10 @@ function extractError(e: unknown): string {
             <th class="px-3 py-2 text-right">Actions</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-100">
-          <tr v-for="u in store.users" :key="u.id" class="hover:bg-gray-50">
-            <td class="px-3 py-2 text-gray-800">{{ u.displayName }}</td>
-            <td class="px-3 py-2 text-gray-600">{{ u.email }}</td>
+        <tbody class="divide-y divide-slate-700">
+          <tr v-for="u in store.users" :key="u.id" class="hover:bg-slate-700">
+            <td class="px-3 py-2 text-slate-200">{{ u.displayName }}</td>
+            <td class="px-3 py-2 text-slate-400">{{ u.email }}</td>
             <td class="px-3 py-2">
               <span
                 class="inline-block px-2 py-0.5 text-xs font-semibold rounded"
@@ -154,7 +154,7 @@ function extractError(e: unknown): string {
                   :value="u.role"
                   :aria-label="`Change role for ${u.displayName}`"
                   :disabled="actingId === u.id"
-                  class="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:ring-2 focus:ring-blue-500"
+                  class="border border-slate-600 rounded-lg px-2 py-1 text-xs focus:ring-2 focus:ring-blue-500"
                   @change="setRole(u, $event)"
                 >
                   <option value="User">User</option>
@@ -165,8 +165,8 @@ function extractError(e: unknown): string {
                 <button
                   class="px-3 py-1 text-xs font-medium rounded-lg disabled:opacity-50"
                   :class="u.isBanned
-                    ? 'text-green-700 border border-green-300 hover:bg-green-50'
-                    : 'text-red-700 border border-red-300 hover:bg-red-50'"
+                    ? 'text-green-400 border border-green-300 hover:bg-green-950'
+                    : 'text-red-400 border border-red-300 hover:bg-red-950'"
                   :disabled="actingId === u.id"
                   :aria-label="u.isBanned ? `Unban ${u.displayName}` : `Ban ${u.displayName}`"
                   @click="toggleBan(u)"
@@ -183,15 +183,15 @@ function extractError(e: unknown): string {
     <!-- Pagination -->
     <div v-if="store.users.length > 0" class="flex items-center justify-between">
       <button
-        class="px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg disabled:opacity-50"
+        class="px-3 py-1.5 text-sm font-medium text-slate-300 border border-slate-600 rounded-lg disabled:opacity-50"
         :disabled="store.usersPage === 1 || store.usersLoading"
         @click="changePage(-1)"
       >
         Previous
       </button>
-      <span class="text-sm text-gray-600">Page {{ store.usersPage }}</span>
+      <span class="text-sm text-slate-400">Page {{ store.usersPage }}</span>
       <button
-        class="px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg disabled:opacity-50"
+        class="px-3 py-1.5 text-sm font-medium text-slate-300 border border-slate-600 rounded-lg disabled:opacity-50"
         :disabled="!store.usersHasMore || store.usersLoading"
         @click="changePage(1)"
       >

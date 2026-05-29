@@ -33,7 +33,7 @@ function isActive(item: NavItem): boolean {
   <div class="flex gap-6">
     <!-- Admin-section sidebar -->
     <aside class="w-56 shrink-0 hidden md:block">
-      <div class="bg-white border border-gray-200 rounded-xl p-2">
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-2">
         <div class="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
           Admin
         </div>
@@ -44,8 +44,8 @@ function isActive(item: NavItem): boolean {
             :to="item.to"
             class="block px-3 py-2 rounded-lg text-sm font-medium transition-colors"
             :class="isActive(item)
-              ? 'bg-indigo-50 text-indigo-700'
-              : 'text-gray-700 hover:bg-gray-100'"
+              ? 'bg-indigo-900/50 text-indigo-300'
+              : 'text-slate-300 hover:bg-slate-700'"
           >
             {{ item.label }}
           </RouterLink>

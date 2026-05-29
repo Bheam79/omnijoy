@@ -94,18 +94,18 @@ const targetLabel: Record<ReportTargetType, string> = {
       @click.self="close"
     >
       <div
-        class="bg-white rounded-2xl shadow-xl w-full max-w-md"
+        class="bg-slate-800 rounded-2xl shadow-xl w-full max-w-md"
         role="dialog"
         aria-modal="true"
         :aria-label="`Report ${targetLabel[targetType]}`"
       >
         <!-- Header -->
-        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 class="text-lg font-semibold text-gray-900">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-700">
+          <h2 class="text-lg font-semibold text-slate-100">
             Report {{ targetLabel[targetType] }}
           </h2>
           <button
-            class="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition"
+            class="text-slate-500 hover:text-slate-400 p-1 rounded-full hover:bg-slate-700 transition"
             aria-label="Close"
             @click="close"
           >
@@ -118,11 +118,11 @@ const targetLabel: Record<ReportTargetType, string> = {
         <!-- Confirmation state -->
         <div v-if="submitted" class="px-5 py-8 text-center">
           <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 mb-3">
-            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
             </svg>
           </div>
-          <p class="text-gray-900 font-medium mb-1">Report submitted</p>
+          <p class="text-slate-100 font-medium mb-1">Report submitted</p>
           <p class="text-sm text-gray-500 mb-5">
             Thank you for helping keep the community safe. We'll review your report shortly.
           </p>
@@ -139,12 +139,12 @@ const targetLabel: Record<ReportTargetType, string> = {
           <div class="px-5 py-4 space-y-4">
             <!-- Reason dropdown -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-slate-300 mb-1">
                 Reason <span class="text-red-500">*</span>
               </label>
               <select
                 v-model="reason"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-label="Report reason"
               >
                 <option
@@ -159,16 +159,16 @@ const targetLabel: Record<ReportTargetType, string> = {
 
             <!-- Optional notes -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-slate-300 mb-1">
                 Additional details
-                <span class="font-normal text-gray-400">(optional)</span>
+                <span class="font-normal text-slate-500">(optional)</span>
               </label>
               <textarea
                 v-model="notes"
                 rows="3"
                 maxlength="2000"
                 placeholder="Tell us more about why you're reporting this…"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full border border-slate-600 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-label="Report notes"
               />
             </div>
@@ -176,7 +176,7 @@ const targetLabel: Record<ReportTargetType, string> = {
             <!-- Error -->
             <p
               v-if="error"
-              class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2"
+              class="text-sm text-red-400 bg-red-950 border border-red-800 rounded-lg px-3 py-2"
             >
               {{ error }}
             </p>
@@ -185,7 +185,7 @@ const targetLabel: Record<ReportTargetType, string> = {
           <!-- Footer -->
           <div class="px-5 pb-4 flex justify-end gap-2">
             <button
-              class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition"
+              class="px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700 rounded-lg transition"
               @click="close"
             >
               Cancel

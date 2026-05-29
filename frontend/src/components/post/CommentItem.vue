@@ -150,14 +150,14 @@ async function handleDelete() {
       <!-- Comment bubble -->
       <div
         class="inline-block rounded-2xl px-3 py-2 max-w-full"
-        :class="isDeleted ? 'bg-gray-50 text-gray-400 italic' : 'bg-gray-100'"
+        :class="isDeleted ? 'bg-slate-950 text-slate-500 italic' : 'bg-slate-700'"
         data-testid="comment-bubble"
       >
         <!-- Author name (hidden for deleted) -->
         <RouterLink
           v-if="!isDeleted"
           :to="`/profile/${comment.author.id}`"
-          class="font-semibold text-gray-900 text-xs hover:underline"
+          class="font-semibold text-slate-100 text-xs hover:underline"
         >
           {{ comment.author.displayName }}
         </RouterLink>
@@ -167,13 +167,13 @@ async function handleDelete() {
             v-model="editText"
             rows="2"
             data-testid="edit-input"
-            class="w-full resize-none rounded-lg bg-white border border-blue-300 focus:outline-none px-2 py-1 text-sm"
+            class="w-full resize-none rounded-lg bg-slate-800 border border-blue-300 focus:outline-none px-2 py-1 text-sm"
             @keydown.enter.exact.prevent="submitEdit"
             @keydown.esc="cancelEdit"
           />
           <div class="flex gap-1 mt-1">
             <button
-              class="text-xs text-gray-500 hover:text-gray-700 px-2 py-0.5 rounded transition"
+              class="text-xs text-gray-500 hover:text-slate-300 px-2 py-0.5 rounded transition"
               @click="cancelEdit"
             >Cancel</button>
             <button
@@ -185,7 +185,7 @@ async function handleDelete() {
           </div>
         </div>
         <!-- Content -->
-        <p v-else class="text-sm text-gray-800 mt-0.5 whitespace-pre-wrap break-words">
+        <p v-else class="text-sm text-slate-200 mt-0.5 whitespace-pre-wrap break-words">
           {{ comment.content }}
         </p>
       </div>
@@ -193,14 +193,14 @@ async function handleDelete() {
       <!-- Actions row -->
       <div class="flex items-center gap-3 mt-0.5 ml-1" v-if="!isDeleted">
         <!-- Timestamp -->
-        <span class="text-xs text-gray-400" :title="new Date(comment.createdAt).toLocaleString()">
+        <span class="text-xs text-slate-500" :title="new Date(comment.createdAt).toLocaleString()">
           {{ formatRelativeTime(comment.createdAt) }}
         </span>
 
         <!-- Reply button (top-level only) -->
         <button
           v-if="!isReply && auth.user"
-          class="text-xs font-semibold text-gray-500 hover:text-blue-600 transition"
+          class="text-xs font-semibold text-gray-500 hover:text-blue-400 transition"
           data-testid="reply-button"
           @click="showReplyComposer = !showReplyComposer"
         >
@@ -210,14 +210,14 @@ async function handleDelete() {
         <!-- Edit / Delete (own comment) -->
         <template v-if="isOwn && !editing">
           <button
-            class="text-xs font-semibold text-gray-500 hover:text-blue-600 transition"
+            class="text-xs font-semibold text-gray-500 hover:text-blue-400 transition"
             data-testid="edit-button"
             @click="startEdit"
           >
             Edit
           </button>
           <button
-            class="text-xs font-semibold text-gray-500 hover:text-red-600 transition"
+            class="text-xs font-semibold text-gray-500 hover:text-red-400 transition"
             data-testid="delete-button"
             @click="handleDelete"
           >
@@ -229,7 +229,7 @@ async function handleDelete() {
       <!-- Show N replies toggle -->
       <button
         v-if="!isReply && comment.replyCount > 0"
-        class="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 ml-1 mt-1 transition"
+        class="flex items-center gap-1 text-xs font-semibold text-blue-400 hover:text-blue-300 ml-1 mt-1 transition"
         data-testid="toggle-replies"
         @click="toggleReplies"
       >
@@ -261,7 +261,7 @@ async function handleDelete() {
 
       <!-- Nested replies -->
       <div v-if="showReplies && !isReply" class="mt-2 space-y-2">
-        <div v-if="repliesLoading" class="ml-9 text-xs text-gray-400 animate-pulse">Loading replies…</div>
+        <div v-if="repliesLoading" class="ml-9 text-xs text-slate-500 animate-pulse">Loading replies…</div>
         <CommentItem
           v-for="reply in replies"
           :key="reply.id"

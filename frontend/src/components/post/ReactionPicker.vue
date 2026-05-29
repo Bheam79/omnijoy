@@ -113,7 +113,7 @@ function onPickReaction(type: ReactionType) {
 const reactionColorClass = computed(() => {
   if (!props.currentReaction) return 'text-gray-500'
   const map: Record<ReactionType, string> = {
-    Like:  'text-blue-600',
+    Like:  'text-blue-400',
     Love:  'text-red-500',
     Haha:  'text-yellow-500',
     Wow:   'text-yellow-500',
@@ -139,8 +139,8 @@ onBeforeUnmount(cancelTimers)
       class="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg transition flex-1 justify-center"
       :class="[
         currentReaction
-          ? `${reactionColorClass} hover:bg-blue-50`
-          : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50',
+          ? `${reactionColorClass} hover:bg-blue-900/40`
+          : 'text-gray-500 hover:text-blue-400 hover:bg-blue-900/40',
         disabled ? 'opacity-50 cursor-default' : 'cursor-pointer',
       ]"
       :disabled="disabled"
@@ -167,7 +167,7 @@ onBeforeUnmount(cancelTimers)
     <Transition name="picker">
       <div
         v-if="pickerVisible"
-        class="absolute bottom-full left-0 mb-2 z-20 flex items-center gap-1 bg-white rounded-full shadow-lg border border-gray-100 px-2 py-1.5"
+        class="absolute bottom-full left-0 mb-2 z-20 flex items-center gap-1 bg-slate-800 rounded-full shadow-lg border border-slate-700 px-2 py-1.5"
         data-testid="reaction-picker-popup"
         @mouseenter="cancelTimers"
         @mouseleave="scheduleClosed"
@@ -175,7 +175,7 @@ onBeforeUnmount(cancelTimers)
         <button
           v-for="type in ALL_REACTION_TYPES"
           :key="type"
-          class="text-2xl leading-none p-1.5 rounded-full transition hover:scale-125 hover:bg-gray-100 focus:outline-none"
+          class="text-2xl leading-none p-1.5 rounded-full transition hover:scale-125 hover:bg-slate-700 focus:outline-none"
           :class="{ 'scale-125': currentReaction === type }"
           :aria-label="REACTION_LABELS[type]"
           :data-testid="`pick-${type.toLowerCase()}`"

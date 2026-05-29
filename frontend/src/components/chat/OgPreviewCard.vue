@@ -21,7 +21,7 @@ onMounted(async () => {
   <!-- Loading skeleton -->
   <div
     v-if="loading"
-    class="mt-1.5 h-16 rounded-lg bg-gray-100 animate-pulse"
+    class="mt-1.5 h-16 rounded-lg bg-slate-700 animate-pulse"
   />
 
   <!-- Preview card -->
@@ -30,7 +30,7 @@ onMounted(async () => {
     :href="url"
     target="_blank"
     rel="noopener noreferrer"
-    class="block mt-1.5 rounded-lg border border-gray-200 overflow-hidden hover:bg-gray-50 transition-colors text-left"
+    class="block mt-1.5 rounded-lg border border-slate-700 overflow-hidden hover:bg-slate-700 transition-colors text-left"
   >
     <img
       v-if="preview.imageUrl"
@@ -40,10 +40,10 @@ onMounted(async () => {
       loading="lazy"
     />
     <div class="px-2 py-1.5">
-      <p v-if="preview.siteName" class="text-[10px] text-gray-400 uppercase tracking-wider truncate">
+      <p v-if="preview.siteName" class="text-[10px] text-slate-500 uppercase tracking-wider truncate">
         {{ preview.siteName }}
       </p>
-      <p v-if="preview.title" class="text-xs font-semibold text-gray-900 line-clamp-2 leading-snug">
+      <p v-if="preview.title" class="text-xs font-semibold text-slate-100 line-clamp-2 leading-snug">
         {{ preview.title }}
       </p>
       <p v-if="preview.description" class="text-[11px] text-gray-500 line-clamp-2 mt-0.5">

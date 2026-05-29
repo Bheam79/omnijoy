@@ -18,7 +18,7 @@ const privacyIcon: Record<string, string> = {
 </script>
 
 <template>
-  <article class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+  <article class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 overflow-hidden">
     <!-- Share header -->
     <div class="flex items-center gap-3 px-4 pt-4 pb-2">
       <RouterLink :to="`/profile/${sharedPost.sharer.id}`">
@@ -36,27 +36,27 @@ const privacyIcon: Record<string, string> = {
         </div>
       </RouterLink>
       <div>
-        <p class="text-sm font-semibold text-gray-900">
+        <p class="text-sm font-semibold text-slate-100">
           <RouterLink
             :to="`/profile/${sharedPost.sharer.id}`"
             class="hover:underline"
           >{{ sharedPost.sharer.displayName }}</RouterLink>
           <span class="font-normal text-gray-500"> shared a post</span>
         </p>
-        <p class="text-xs text-gray-400 mt-0.5">{{ formatDate(sharedPost.createdAt) }}</p>
+        <p class="text-xs text-slate-500 mt-0.5">{{ formatDate(sharedPost.createdAt) }}</p>
       </div>
     </div>
 
     <!-- Optional sharer message -->
     <div
       v-if="sharedPost.message"
-      class="px-4 pb-3 text-gray-800 leading-relaxed whitespace-pre-wrap text-sm"
+      class="px-4 pb-3 text-slate-200 leading-relaxed whitespace-pre-wrap text-sm"
     >
       {{ sharedPost.message }}
     </div>
 
     <!-- Embedded original post -->
-    <div class="mx-4 mb-4 border border-gray-200 rounded-xl overflow-hidden bg-gray-50">
+    <div class="mx-4 mb-4 border border-slate-700 rounded-xl overflow-hidden bg-slate-950">
       <!-- Original post header -->
       <div class="flex items-center gap-3 px-3 pt-3 pb-2">
         <RouterLink :to="`/profile/${sharedPost.originalPost.author.id}`">
@@ -76,11 +76,11 @@ const privacyIcon: Record<string, string> = {
         <div>
           <RouterLink
             :to="`/profile/${sharedPost.originalPost.author.id}`"
-            class="font-semibold text-gray-900 hover:underline text-sm"
+            class="font-semibold text-slate-100 hover:underline text-sm"
           >
             {{ sharedPost.originalPost.author.displayName }}
           </RouterLink>
-          <div class="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
+          <div class="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
             <span>{{ formatDate(sharedPost.originalPost.createdAt) }}</span>
             <span>·</span>
             <span>{{ privacyIcon[sharedPost.originalPost.privacy] ?? '👥' }}</span>
@@ -91,7 +91,7 @@ const privacyIcon: Record<string, string> = {
       <!-- Original post content: Text -->
       <div
         v-if="sharedPost.originalPost.postType === 'Text' && sharedPost.originalPost.content"
-        class="px-3 pb-3 text-gray-800 text-sm leading-relaxed whitespace-pre-wrap"
+        class="px-3 pb-3 text-slate-200 text-sm leading-relaxed whitespace-pre-wrap"
       >
         {{ sharedPost.originalPost.content }}
       </div>
@@ -102,20 +102,20 @@ const privacyIcon: Record<string, string> = {
         :href="sharedPost.originalPost.linkPreview.url"
         target="_blank"
         rel="noopener noreferrer"
-        class="block mx-3 mb-3 border border-gray-200 rounded-lg overflow-hidden hover:bg-white transition text-sm"
+        class="block mx-3 mb-3 border border-slate-700 rounded-lg overflow-hidden hover:bg-slate-800 transition text-sm"
       >
         <img
           v-if="sharedPost.originalPost.linkPreview.imageUrl"
           :src="sharedPost.originalPost.linkPreview.imageUrl"
           :alt="sharedPost.originalPost.linkPreview.title ?? ''"
-          class="w-full max-h-48 object-cover bg-gray-100"
+          class="w-full max-h-48 object-cover bg-slate-700"
           loading="lazy"
         />
         <div class="px-3 py-2">
-          <p v-if="sharedPost.originalPost.linkPreview.title" class="font-semibold text-gray-900 line-clamp-2">
+          <p v-if="sharedPost.originalPost.linkPreview.title" class="font-semibold text-slate-100 line-clamp-2">
             {{ sharedPost.originalPost.linkPreview.title }}
           </p>
-          <p class="text-xs text-blue-600 mt-0.5 truncate">{{ sharedPost.originalPost.linkPreview.url }}</p>
+          <p class="text-xs text-blue-400 mt-0.5 truncate">{{ sharedPost.originalPost.linkPreview.url }}</p>
         </div>
       </a>
 
@@ -134,7 +134,7 @@ const privacyIcon: Record<string, string> = {
 
       <!-- Images -->
       <template v-else-if="sharedPost.originalPost.postType === 'Image'">
-        <div class="px-3 pb-2 text-sm text-gray-800 whitespace-pre-wrap" v-if="sharedPost.originalPost.content">
+        <div class="px-3 pb-2 text-sm text-slate-200 whitespace-pre-wrap" v-if="sharedPost.originalPost.content">
           {{ sharedPost.originalPost.content }}
         </div>
         <div
@@ -156,7 +156,7 @@ const privacyIcon: Record<string, string> = {
 
       <!-- Video -->
       <template v-else-if="sharedPost.originalPost.postType === 'Video'">
-        <div class="px-3 pb-2 text-sm text-gray-800 whitespace-pre-wrap" v-if="sharedPost.originalPost.content">
+        <div class="px-3 pb-2 text-sm text-slate-200 whitespace-pre-wrap" v-if="sharedPost.originalPost.content">
           {{ sharedPost.originalPost.content }}
         </div>
         <div v-for="m in sharedPost.originalPost.media" :key="m.id" class="bg-black">

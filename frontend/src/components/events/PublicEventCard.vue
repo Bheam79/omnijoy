@@ -43,7 +43,7 @@ void props
 </script>
 
 <template>
-  <article class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+  <article class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 overflow-hidden hover:shadow-md transition-shadow">
     <!-- Cover -->
     <div class="relative h-40 bg-gradient-to-br from-indigo-500 to-purple-600 overflow-hidden">
       <img
@@ -53,8 +53,8 @@ void props
         class="w-full h-full object-cover"
       />
       <!-- Date overlay -->
-      <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-lg px-2.5 py-1.5 text-center shadow">
-        <div class="text-xs font-semibold text-indigo-600 uppercase leading-none">
+      <div class="absolute top-3 left-3 bg-slate-800/90 backdrop-blur-sm rounded-lg px-2.5 py-1.5 text-center shadow">
+        <div class="text-xs font-semibold text-indigo-400 uppercase leading-none">
           {{ formatShortDate(event.startAt) }}
         </div>
         <div class="text-xs text-gray-500 mt-0.5">{{ formatShortTime(event.startAt) }}</div>
@@ -66,12 +66,12 @@ void props
 
     <!-- Body -->
     <div class="p-4">
-      <h3 class="font-semibold text-gray-900 text-base leading-snug mb-1">
+      <h3 class="font-semibold text-slate-100 text-base leading-snug mb-1">
         {{ event.title }}
       </h3>
 
       <p class="text-xs text-gray-500 mb-2">
-        by <span class="font-medium text-gray-700">{{ event.creator.displayName }}</span>
+        by <span class="font-medium text-slate-300">{{ event.creator.displayName }}</span>
       </p>
 
       <div class="flex items-start gap-1.5 text-xs text-gray-500 mb-1">
@@ -92,16 +92,16 @@ void props
         <span>{{ event.location }}</span>
       </div>
 
-      <p v-if="event.description" class="text-xs text-gray-600 line-clamp-2 mb-3">
+      <p v-if="event.description" class="text-xs text-slate-400 line-clamp-2 mb-3">
         {{ event.description }}
       </p>
 
       <div class="flex items-center gap-3 text-xs text-gray-500 mb-3">
         <span v-if="event.goingCount > 0">
-          <span class="font-semibold text-green-600">{{ event.goingCount }}</span> going
+          <span class="font-semibold text-green-400">{{ event.goingCount }}</span> going
         </span>
         <span v-if="event.maybeCount > 0">
-          <span class="font-semibold text-yellow-600">{{ event.maybeCount }}</span> maybe
+          <span class="font-semibold text-yellow-400">{{ event.maybeCount }}</span> maybe
         </span>
         <span v-if="event.goingCount === 0 && event.maybeCount === 0" class="italic">
           No RSVPs yet
@@ -110,7 +110,7 @@ void props
 
       <button
         type="button"
-        class="w-full text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg px-3 py-2 transition-colors"
+        class="w-full text-xs font-semibold text-indigo-300 bg-indigo-900/50 hover:bg-indigo-900 rounded-lg px-3 py-2 transition-colors"
         @click="handleAction"
       >
         Sign in to RSVP

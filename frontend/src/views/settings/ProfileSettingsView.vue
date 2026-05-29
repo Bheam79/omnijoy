@@ -25,7 +25,7 @@ function onSlugUpdated(newSlug: string | null) {
     <div class="flex items-center gap-2 mb-6">
       <RouterLink
         to="/settings"
-        class="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+        class="flex items-center gap-1.5 text-sm text-gray-500 hover:text-slate-300 transition-colors"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -34,7 +34,7 @@ function onSlugUpdated(newSlug: string | null) {
       </RouterLink>
     </div>
 
-    <h1 class="text-2xl font-bold text-gray-900 mb-2">Profile</h1>
+    <h1 class="text-2xl font-bold text-slate-100 mb-2">Profile</h1>
     <p class="text-sm text-gray-500 mb-6">Manage your public profile settings.</p>
 
     <!-- Public URL card -->

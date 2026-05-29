@@ -100,7 +100,7 @@ function indexOf(item: SuggestItem): number {
   <div class="relative w-full">
     <!-- Search input -->
     <div class="relative">
-      <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
       </svg>
       <input
@@ -112,7 +112,7 @@ function indexOf(item: SuggestItem): number {
         aria-controls="search-suggest-listbox"
         :aria-expanded="open && hasResults"
         placeholder="Search Omnijoy…"
-        class="w-full bg-gray-100 rounded-full pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-colors"
+        class="w-full bg-slate-700 rounded-full pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-slate-800 transition-colors"
         @focus="onFocus"
         @blur="onBlur"
         @keydown="onKeydown"
@@ -124,7 +124,7 @@ function indexOf(item: SuggestItem): number {
       v-if="open && trimmedQuery.length > 0"
       id="search-suggest-listbox"
       role="listbox"
-      class="absolute z-50 left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-gray-200 max-h-[28rem] overflow-y-auto"
+      class="absolute z-50 left-0 right-0 mt-1 bg-slate-800 rounded-xl shadow-lg border border-slate-700 max-h-[28rem] overflow-y-auto"
     >
       <!-- Loading -->
       <div v-if="loading" class="px-4 py-6 text-center text-sm text-gray-500">
@@ -152,8 +152,8 @@ function indexOf(item: SuggestItem): number {
             :key="`user-${u.id}`"
             type="button"
             role="option"
-            class="w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-gray-50 transition-colors"
-            :class="indexOf({ category: 'user', id: u.id, label: u.displayName, routeTo: '' }) === highlighted ? 'bg-indigo-50' : ''"
+            class="w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-slate-700 transition-colors"
+            :class="indexOf({ category: 'user', id: u.id, label: u.displayName, routeTo: '' }) === highlighted ? 'bg-indigo-900/50' : ''"
             :data-test="`suggest-user-${i}`"
             @mousedown.prevent="goToItem({
               category: 'user',
@@ -170,12 +170,12 @@ function indexOf(item: SuggestItem): number {
             />
             <div
               v-else
-              class="h-8 w-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold"
+              class="h-8 w-8 rounded-full bg-indigo-900 text-indigo-400 flex items-center justify-center text-xs font-bold"
             >
               {{ u.displayName.charAt(0).toUpperCase() }}
             </div>
             <div class="min-w-0 flex-1">
-              <p class="text-sm font-medium text-gray-900 truncate">{{ u.displayName }}</p>
+              <p class="text-sm font-medium text-slate-100 truncate">{{ u.displayName }}</p>
               <p v-if="u.bio" class="text-xs text-gray-500 truncate">{{ u.bio }}</p>
             </div>
           </button>
@@ -195,8 +195,8 @@ function indexOf(item: SuggestItem): number {
             :key="`post-${p.id}`"
             type="button"
             role="option"
-            class="w-full text-left px-4 py-2 flex items-start gap-3 hover:bg-gray-50 transition-colors"
-            :class="indexOf({ category: 'post', id: p.id, label: p.content, routeTo: '' }) === highlighted ? 'bg-indigo-50' : ''"
+            class="w-full text-left px-4 py-2 flex items-start gap-3 hover:bg-slate-700 transition-colors"
+            :class="indexOf({ category: 'post', id: p.id, label: p.content, routeTo: '' }) === highlighted ? 'bg-indigo-900/50' : ''"
             :data-test="`suggest-post-${i}`"
             @mousedown.prevent="goToItem({
               category: 'post',
@@ -213,12 +213,12 @@ function indexOf(item: SuggestItem): number {
             />
             <div
               v-else
-              class="h-8 w-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
+              class="h-8 w-8 rounded-full bg-blue-900 text-blue-400 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
             >
               {{ p.authorDisplayName.charAt(0).toUpperCase() }}
             </div>
             <div class="min-w-0 flex-1">
-              <p class="text-sm text-gray-900 line-clamp-2">{{ p.content }}</p>
+              <p class="text-sm text-slate-100 line-clamp-2">{{ p.content }}</p>
               <p class="text-xs text-gray-500 truncate">{{ p.authorDisplayName }}</p>
             </div>
           </button>
@@ -237,8 +237,8 @@ function indexOf(item: SuggestItem): number {
             :key="`event-${e.id}`"
             type="button"
             role="option"
-            class="w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-gray-50 transition-colors"
-            :class="indexOf({ category: 'event', id: e.id, label: e.title, routeTo: '' }) === highlighted ? 'bg-indigo-50' : ''"
+            class="w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-slate-700 transition-colors"
+            :class="indexOf({ category: 'event', id: e.id, label: e.title, routeTo: '' }) === highlighted ? 'bg-indigo-900/50' : ''"
             :data-test="`suggest-event-${i}`"
             @mousedown.prevent="goToItem({
               category: 'event',
@@ -255,12 +255,12 @@ function indexOf(item: SuggestItem): number {
             />
             <div
               v-else
-              class="h-8 w-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-xs font-bold shrink-0"
+              class="h-8 w-8 rounded-lg bg-purple-900 text-purple-400 flex items-center justify-center text-xs font-bold shrink-0"
             >
               📅
             </div>
             <div class="min-w-0 flex-1">
-              <p class="text-sm font-medium text-gray-900 truncate">{{ e.title }}</p>
+              <p class="text-sm font-medium text-slate-100 truncate">{{ e.title }}</p>
               <p class="text-xs text-gray-500 truncate">
                 {{ new Date(e.startAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) }}
                 <template v-if="e.location"> · {{ e.location }}</template>
@@ -282,8 +282,8 @@ function indexOf(item: SuggestItem): number {
             :key="`company-${c.id}`"
             type="button"
             role="option"
-            class="w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-gray-50 transition-colors"
-            :class="indexOf({ category: 'company', id: c.id, label: c.name, routeTo: '' }) === highlighted ? 'bg-indigo-50' : ''"
+            class="w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-slate-700 transition-colors"
+            :class="indexOf({ category: 'company', id: c.id, label: c.name, routeTo: '' }) === highlighted ? 'bg-indigo-900/50' : ''"
             :data-test="`suggest-company-${i}`"
             @mousedown.prevent="goToItem({
               category: 'company',
@@ -300,12 +300,12 @@ function indexOf(item: SuggestItem): number {
             />
             <div
               v-else
-              class="h-8 w-8 rounded-lg bg-gray-100 text-gray-700 flex items-center justify-center text-xs font-bold shrink-0"
+              class="h-8 w-8 rounded-lg bg-slate-700 text-slate-300 flex items-center justify-center text-xs font-bold shrink-0"
             >
               {{ c.name.charAt(0).toUpperCase() }}
             </div>
             <div class="min-w-0 flex-1">
-              <p class="text-sm font-medium text-gray-900 truncate">{{ c.name }}</p>
+              <p class="text-sm font-medium text-slate-100 truncate">{{ c.name }}</p>
               <p class="text-xs text-gray-500 truncate">
                 {{ c.followerCount }} follower{{ c.followerCount === 1 ? '' : 's' }}
               </p>
@@ -314,10 +314,10 @@ function indexOf(item: SuggestItem): number {
         </section>
 
         <!-- See all results -->
-        <div class="border-t border-gray-100 mt-1">
+        <div class="border-t border-slate-700 mt-1">
           <button
             type="button"
-            class="w-full text-center px-4 py-2.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 transition-colors"
+            class="w-full text-center px-4 py-2.5 text-sm font-medium text-indigo-400 hover:bg-indigo-900/50 transition-colors"
             data-test="suggest-see-all"
             @mousedown.prevent="goToResultsPage"
           >
