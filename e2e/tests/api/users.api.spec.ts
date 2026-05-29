@@ -1,5 +1,6 @@
 import { test, expect, type APIRequestContext } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { MINIMAL_PNG } from '../../fixtures/image-fixtures'
 
 /**
  * API E2E tests for /api/users/* endpoints.
@@ -81,19 +82,13 @@ test.describe('POST /api/users/me/avatar', () => {
 
   test('uploads avatar image successfully', async ({ request, baseURL }) => {
     const { token } = await getToken(request, baseURL, SEED.user1)
-    // Create a minimal valid 1x1 PNG
-    const pngBytes = Buffer.from(
-      '89504e470d0a1a0a0000000d49484452000000010000000108020000009001' +
-      '2e00000000c4944415478016360f8ff00000200014040c340000000049454e44ae426082',
-      'hex',
-    )
     const resp = await request.post(`${baseURL}/api/users/me/avatar`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
         file: {
           name: 'avatar.png',
           mimeType: 'image/png',
-          buffer: pngBytes,
+          buffer: MINIMAL_PNG,
         },
       },
     })

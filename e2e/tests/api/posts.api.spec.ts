@@ -1,5 +1,6 @@
 import { test, expect, type APIRequestContext } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { MINIMAL_PNG } from '../../fixtures/image-fixtures'
 
 /**
  * API E2E tests for /api/posts/* and /api/feed endpoints.
@@ -48,11 +49,6 @@ test.describe('POST /api/posts (create post)', () => {
 
   test('creates a post with image attachment', async ({ request, baseURL }) => {
     const { token } = await loginAs(request, baseURL, SEED.user1)
-    const pngBytes = Buffer.from(
-      '89504e470d0a1a0a0000000d49484452000000010000000108020000009001' +
-      '2e00000000c4944415478016360f8ff00000200014040c340000000049454e44ae426082',
-      'hex',
-    )
     const resp = await request.post(`${baseURL}/api/posts`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -62,7 +58,7 @@ test.describe('POST /api/posts (create post)', () => {
         'media[]': {
           name: 'test-image.png',
           mimeType: 'image/png',
-          buffer: pngBytes,
+          buffer: MINIMAL_PNG,
         },
       },
     })

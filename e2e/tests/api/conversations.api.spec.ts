@@ -1,5 +1,6 @@
 import { test, expect, type APIRequestContext } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { MINIMAL_PNG } from '../../fixtures/image-fixtures'
 
 /**
  * API E2E tests for /api/conversations/* and /api/messages/* endpoints.
@@ -150,17 +151,12 @@ test.describe('POST /api/messages', () => {
     })
     const conv = await convResp.json()
 
-    const pngBytes = Buffer.from(
-      '89504e470d0a1a0a0000000d49484452000000010000000108020000009001' +
-      '2e00000000c4944415478016360f8ff00000200014040c340000000049454e44ae426082',
-      'hex',
-    )
     const resp = await request.post(`${baseURL}/api/messages`, {
       headers: { Authorization: `Bearer ${token1}` },
       multipart: {
         conversationId: conv.id,
         content: 'Check this image!',
-        file: { name: 'img.png', mimeType: 'image/png', buffer: pngBytes },
+        file: { name: 'img.png', mimeType: 'image/png', buffer: MINIMAL_PNG },
       },
     })
     expect([200, 201]).toContain(resp.status())

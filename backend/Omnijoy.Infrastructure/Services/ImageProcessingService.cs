@@ -18,52 +18,65 @@ public sealed class ImageProcessingService : IImageProcessingService
     /// <inheritdoc />
     public async Task<Stream> ProcessImageAsync(Stream input, ImageFolder folder)
     {
-        using var image = await Image.LoadAsync(input);
-
-        switch (folder)
+        Image image;
+        try
         {
-            case ImageFolder.Avatar:
-                // 256 × 256 — crop to fill, centred
-                image.Mutate(x => x.Resize(new ResizeOptions
-                {
-                    Size     = new Size(256, 256),
-                    Mode     = ResizeMode.Crop,
-                    Position = AnchorPositionMode.Center,
-                }));
-                break;
-
-            case ImageFolder.Cover:
-                // 1200 × 630 — scale to fit, letterbox/pillarbox with black bars
-                image.Mutate(x => x.Resize(new ResizeOptions
-                {
-                    Size     = new Size(1200, 630),
-                    Mode     = ResizeMode.Pad,
-                    PadColor = Color.Black,
-                }));
-                break;
-
-            case ImageFolder.PostImage:
-                // ≤ 1920 px wide — downscale only, aspect ratio preserved
-                if (image.Width > 1920)
-                {
-                    var h = (int)Math.Round((double)image.Height * 1920 / image.Width);
-                    image.Mutate(x => x.Resize(1920, h));
-                }
-                break;
-
-            case ImageFolder.Thumbnail:
-                // 480 × 270 — scale to fit (no pad, no crop)
-                image.Mutate(x => x.Resize(new ResizeOptions
-                {
-                    Size = new Size(480, 270),
-                    Mode = ResizeMode.Max,
-                }));
-                break;
+            image = await Image.LoadAsync(input);
+        }
+        catch (Exception ex) when (ex is ImageFormatException or NotSupportedException)
+        {
+            throw new ArgumentException(
+                "The uploaded file is not a recognised image format. " +
+                "Supported formats: JPEG, PNG, GIF, WebP.", ex);
         }
 
-        var output = new MemoryStream();
-        await image.SaveAsWebpAsync(output, Encoder);
-        output.Seek(0, SeekOrigin.Begin);
-        return output;
+        using (image)
+        {
+            switch (folder)
+            {
+                case ImageFolder.Avatar:
+                    // 256 × 256 — crop to fill, centred
+                    image.Mutate(x => x.Resize(new ResizeOptions
+                    {
+                        Size     = new Size(256, 256),
+                        Mode     = ResizeMode.Crop,
+                        Position = AnchorPositionMode.Center,
+                    }));
+                    break;
+
+                case ImageFolder.Cover:
+                    // 1200 × 630 — scale to fit, letterbox/pillarbox with black bars
+                    image.Mutate(x => x.Resize(new ResizeOptions
+                    {
+                        Size     = new Size(1200, 630),
+                        Mode     = ResizeMode.Pad,
+                        PadColor = Color.Black,
+                    }));
+                    break;
+
+                case ImageFolder.PostImage:
+                    // ≤ 1920 px wide — downscale only, aspect ratio preserved
+                    if (image.Width > 1920)
+                    {
+                        var h = (int)Math.Round((double)image.Height * 1920 / image.Width);
+                        image.Mutate(x => x.Resize(1920, h));
+                    }
+                    break;
+
+                case ImageFolder.Thumbnail:
+                    // 480 × 270 — scale to fit (no pad, no crop)
+                    image.Mutate(x => x.Resize(new ResizeOptions
+                    {
+                        Size = new Size(480, 270),
+                        Mode = ResizeMode.Max,
+                    }));
+                    break;
+            }
+
+            var output = new MemoryStream();
+            await image.SaveAsWebpAsync(output, Encoder);
+            output.Seek(0, SeekOrigin.Begin);
+            return output;
+        }
     }
 }
