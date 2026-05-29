@@ -46,3 +46,7 @@ Thumbs.db
 
 # ── Temp build artifacts ──────────────────────────────────────────────────────
 /tmp/omnijoy_*
+
+# ── E2E test artifacts ────────────────────────────────────────────────────────
+# Auth-token cache — written by globalSetup, contains JWTs (rotated each run).
+e2e/.auth/

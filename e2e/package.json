@@ -12,6 +12,7 @@
     "test:report": "playwright show-report"
   },
   "devDependencies": {
+    "@microsoft/signalr": "^10.0.0",
     "@playwright/test": "^1.44.0",
     "@types/node": "^20.0.0",
     "typescript": "^5.4.0"

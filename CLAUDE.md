@@ -420,3 +420,29 @@ test('returns 500 when …', async ({ request }) => {
   expect(resp.status()).toBe(500)
 })
 ```
+
+### E2E — SignalR coverage
+
+Specs under `e2e/tests/api/signalr/` exercise each hub end-to-end:
+
+- `notifications.signalr.spec.ts` — FriendRequest push + presence broadcast.
+- `chat.signalr.spec.ts` — ReceiveMessage + UserTyping.
+- `feed.signalr.spec.ts` — NewPost, NewSharedPost, ReactionCountsUpdated.
+- `live.signalr.spec.ts` — ViewerJoined / ViewerLeft / LiveChatMessage.
+
+Helpers:
+
+- `e2e/support/signalr-client.ts` — `connectToHub`, `waitForEvent`,
+  `waitForEvent2`, `disposeAll`. Connects via the `access_token` query-string
+  pattern that `JwtBearerEvents.OnMessageReceived` looks for. `disposeAll`
+  pauses 500 ms after stopping so the server has time to run
+  `OnDisconnectedAsync` before the next test connects.
+- `e2e/support/shared-auth.ts` — global setup pre-fetches JWTs for every
+  seed user once and persists them to `e2e/.auth/shared-auth.json`. The
+  SignalR specs read from this cache instead of logging in per test,
+  keeping the suite well under the `strict` (10 req/min/IP) auth rate
+  limit. The `.auth/` directory is `.gitignore`d.
+
+When adding a new hub event, mirror the test pattern: register the
+`waitForEvent` listener *before* triggering the REST call so the test
+can't race the push.
