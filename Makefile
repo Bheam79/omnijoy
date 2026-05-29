@@ -60,6 +60,7 @@ endif
         deploy-blue deploy-green switch rollback \
         dev dev-backend dev-frontend \
         test test-backend test-frontend test-e2e test-e2e-api test-e2e-browser \
+        test-e2e-prod \
         migrate clean status logs \
         prod-up prod-start prod-stop prod-down prod-restart \
         prod-build prod-migrate prod-logs prod-status prod-shell \
@@ -94,12 +95,14 @@ help:
 	@echo "    make rollback        Switch nginx back to the previous slot"
 	@echo ""
 	@echo "  Testing:"
-	@echo "    make test            Run all tests (backend + frontend)"
-	@echo "    make test-backend    Run xUnit tests"
-	@echo "    make test-frontend   Run Vitest tests"
-	@echo "    make test-e2e        Run all E2E tests (Playwright)"
-	@echo "    make test-e2e-api    Run E2E API tests only (no browser)"
-	@echo "    make test-e2e-browser Run E2E browser tests only"
+	@echo "    make test               Run all tests (backend + frontend)"
+	@echo "    make test-backend       Run xUnit tests"
+	@echo "    make test-frontend      Run Vitest tests"
+	@echo "    make test-e2e           Run all E2E tests against the dev stack"
+	@echo "    make test-e2e-api       Run E2E API tests only (no browser)"
+	@echo "    make test-e2e-browser   Run E2E browser tests only"
+	@echo "    make test-e2e-prod      Run all E2E tests against the prod stack"
+	@echo "                            (MinIO + Redis — run 'make prod-up' first)"
 	@echo ""
 	@echo "  Production (full Docker stack — DB + backend + nginx):"
 	@echo "    make prod-up         Build image + start all services (main entry point)"
@@ -291,6 +294,22 @@ test-e2e-api:
 test-e2e-browser:
 	@echo ">> Running E2E browser tests only..."
 	cd e2e && npm ci && npx playwright test tests/browser
+
+# Run the full Playwright suite against the production Docker stack
+# (MinIO + Redis code paths are exercised instead of the local/in-memory fallbacks).
+#
+# Prerequisites:
+#   1. docker/.env must exist and be populated (cp docker/.env.example docker/.env).
+#   2. The production stack must already be running:  make prod-up
+#
+# BASE_URL is derived from PUBLIC_PORT in docker/.env (defaults to 80).
+# The global-setup seeds test users idempotently — safe to re-run.
+test-e2e-prod: _check-env
+	@echo ">> Running E2E tests against the production stack (MinIO + Redis)..."
+	@PUBLIC_PORT=$$(grep '^PUBLIC_PORT=' $(PROD_ENV) | cut -d= -f2 | head -1); \
+	PUBLIC_PORT=$${PUBLIC_PORT:-80}; \
+	echo ">>   BASE_URL=http://localhost:$$PUBLIC_PORT"; \
+	cd e2e && npm ci && BASE_URL=http://localhost:$$PUBLIC_PORT npx playwright test
 
 # ── Misc ──────────────────────────────────────────────────────────────────────
 status:

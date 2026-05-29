@@ -390,6 +390,18 @@ the SPA as static files in production.
 - Frontend: 95% line/branch/function/statement coverage (enforced in `vite.config.ts`)
 - E2E: Playwright (project `/e2e`, see OMNIJOY-17)
 
+| E2E target | Stack | Storage | Redis | When to run |
+|---|---|---|---|---|
+| `make test-e2e` | Dev (dotnet watch + Vite) | Local (`wwwroot/uploads/`) | Optional | Fast inner loop |
+| `make test-e2e-prod` | Prod Docker stack | **MinIO (S3)** | **Yes** | Before tagging a release |
+
+`make test-e2e-prod` requires `docker/.env` to exist and `make prod-up` to have been run.
+It reads `PUBLIC_PORT` from `.env` and sets `BASE_URL` accordingly (default: `http://localhost:80`).
+
+`e2e/tests/api/health.api.spec.ts` is the first spec to run and hits `GET /api/health`.
+If the stack is not up at all this single test fails loudly rather than producing hundreds
+of cascading assertion errors.
+
 ### E2E — 5xx guard
 
 All E2E spec files import `test` and `expect` from `e2e/support/fixtures.ts`
