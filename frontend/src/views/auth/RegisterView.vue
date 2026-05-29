@@ -64,7 +64,7 @@ async function submit() {
 
       <div class="bg-slate-800 rounded-2xl shadow-sm border border-slate-700 p-8">
         <!-- Error banner -->
-        <div v-if="localError || auth.error" data-testid="auth-error" class="mb-4 rounded-lg bg-red-950 border border-red-800 px-4 py-3 text-sm text-red-400">
+        <div v-if="localError || auth.error" data-testid="register-error-banner" class="mb-4 rounded-lg bg-red-950 border border-red-800 px-4 py-3 text-sm text-red-400">
           {{ localError || auth.error }}
         </div>
 
@@ -74,6 +74,7 @@ async function submit() {
             <label class="block text-sm font-medium text-slate-300 mb-1">Email <span class="text-red-500">*</span></label>
             <input
               v-model="email"
+              data-testid="register-email-input"
               type="email"
               autocomplete="email"
               placeholder="you@example.com"
@@ -86,6 +87,7 @@ async function submit() {
             <label class="block text-sm font-medium text-slate-300 mb-1">Display name <span class="text-red-500">*</span></label>
             <input
               v-model="displayName"
+              data-testid="register-display-name-input"
               type="text"
               autocomplete="name"
               placeholder="Your name"
@@ -98,6 +100,7 @@ async function submit() {
             <label class="block text-sm font-medium text-slate-300 mb-2">Sign-in method <span class="text-red-500">*</span></label>
             <div class="grid grid-cols-2 gap-2">
               <button
+                data-testid="auth-method-password"
                 type="button"
                 class="flex items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-medium transition-all"
                 :class="authMethod === 'password'
@@ -109,6 +112,7 @@ async function submit() {
                 Password
               </button>
               <button
+                data-testid="auth-method-otp"
                 type="button"
                 class="flex items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-medium transition-all"
                 :class="authMethod === 'otp'
@@ -132,6 +136,7 @@ async function submit() {
               <label class="block text-sm font-medium text-slate-300 mb-1">Password <span class="text-red-500">*</span></label>
               <input
                 v-model="password"
+                data-testid="register-password-input"
                 type="password"
                 autocomplete="new-password"
                 placeholder="Min. 8 characters"
@@ -142,6 +147,7 @@ async function submit() {
               <label class="block text-sm font-medium text-slate-300 mb-1">Confirm password <span class="text-red-500">*</span></label>
               <input
                 v-model="confirmPassword"
+                data-testid="register-confirm-password-input"
                 type="password"
                 autocomplete="new-password"
                 placeholder="Repeat password"
@@ -195,6 +201,7 @@ async function submit() {
 
           <!-- Submit -->
           <button
+            data-testid="register-submit"
             type="submit"
             :disabled="auth.loading"
             class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"

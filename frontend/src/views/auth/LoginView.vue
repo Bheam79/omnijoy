@@ -207,6 +207,7 @@ onMounted(() => {
         <!-- Tab switcher -->
         <div class="flex rounded-lg bg-slate-900 p-1 mb-6">
           <button
+            data-testid="password-tab"
             class="flex-1 py-2 text-sm font-medium rounded-md transition-all"
             :class="activeTab === 'password'
               ? 'bg-slate-700 shadow text-slate-100'
@@ -216,6 +217,7 @@ onMounted(() => {
             Password
           </button>
           <button
+            data-testid="otp-tab"
             class="flex-1 py-2 text-sm font-medium rounded-md transition-all"
             :class="activeTab === 'otp'
               ? 'bg-slate-700 shadow text-slate-100'
@@ -227,10 +229,10 @@ onMounted(() => {
         </div>
 
         <!-- Error / success banners -->
-        <div v-if="localError || auth.error" data-testid="auth-error" class="mb-4 rounded-lg bg-red-950 border border-red-800 px-4 py-3 text-sm text-red-400">
+        <div v-if="localError || auth.error" data-testid="login-error-banner" class="mb-4 rounded-lg bg-red-950 border border-red-800 px-4 py-3 text-sm text-red-400">
           {{ localError || auth.error }}
         </div>
-        <div v-if="successMsg" data-testid="auth-success" class="mb-4 rounded-lg bg-green-950 border border-green-800 px-4 py-3 text-sm text-green-400">
+        <div v-if="successMsg" data-testid="login-success-banner" class="mb-4 rounded-lg bg-green-950 border border-green-800 px-4 py-3 text-sm text-green-400">
           {{ successMsg }}
         </div>
 
@@ -241,6 +243,7 @@ onMounted(() => {
               <label class="block text-sm font-medium text-slate-300 mb-1">Email</label>
               <input
                 v-model="pwEmail"
+                data-testid="pw-email-input"
                 type="email"
                 autocomplete="email"
                 placeholder="you@example.com"
@@ -251,6 +254,7 @@ onMounted(() => {
               <label class="block text-sm font-medium text-slate-300 mb-1">Password</label>
               <input
                 v-model="pwPassword"
+                data-testid="pw-password-input"
                 type="password"
                 autocomplete="current-password"
                 placeholder="••••••••"
@@ -258,6 +262,7 @@ onMounted(() => {
               />
             </div>
             <button
+              data-testid="pw-submit"
               type="submit"
               :disabled="auth.loading"
               class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
@@ -276,6 +281,7 @@ onMounted(() => {
               <label class="block text-sm font-medium text-slate-300 mb-1">Email</label>
               <input
                 v-model="otpEmail"
+                data-testid="otp-email-input"
                 type="email"
                 autocomplete="email"
                 placeholder="you@example.com"
@@ -283,6 +289,7 @@ onMounted(() => {
               />
             </div>
             <button
+              data-testid="send-code-button"
               :disabled="auth.loading"
               class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
               @click="submitOtpRequest"
@@ -301,6 +308,7 @@ onMounted(() => {
               <label class="block text-sm font-medium text-slate-300 mb-1">Code</label>
               <input
                 v-model="otpCode"
+                data-testid="otp-code-input"
                 type="text"
                 inputmode="numeric"
                 maxlength="6"
@@ -309,6 +317,7 @@ onMounted(() => {
               />
             </div>
             <button
+              data-testid="verify-button"
               :disabled="auth.loading"
               class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
               @click="submitOtpVerify"
@@ -317,6 +326,7 @@ onMounted(() => {
               <span v-else>Verify &amp; sign in</span>
             </button>
             <button
+              data-testid="resend-code-button"
               class="w-full mt-2 text-sm text-indigo-400 hover:underline disabled:opacity-50 disabled:no-underline"
               :disabled="otpCooldown > 0 || auth.loading"
               @click="submitOtpRequest"

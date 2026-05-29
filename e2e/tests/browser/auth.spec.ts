@@ -132,26 +132,19 @@ test.describe('Logout flow', () => {
 test.describe('OTP login flow', () => {
   test('OTP request tab is present on login page', async ({ page }) => {
     await page.goto('/login')
-    // The login page has a button-based tab switcher (not ARIA tabs)
-    // Look for the "One-time code" button that switches to the OTP view
-    const otpOption = page.getByRole('button', { name: /one-time code|otp/i })
-      .or(page.getByText(/one-time code|sign in with code/i))
-    await expect(otpOption).toBeVisible()
+    // The login page has a button-based tab switcher with data-testid="otp-tab"
+    await expect(page.locator('[data-testid="otp-tab"]')).toBeVisible()
   })
 
   test('OTP request returns success message for any email', async ({ page }) => {
-    await page.goto('/login')
-    // Switch to OTP tab — the login page uses a button switcher (not ARIA tabs)
-    const otpTab = page.getByRole('button', { name: 'One-time code' })
-    if (await otpTab.isVisible()) await otpTab.click()
-
-    const emailField = page.locator('input[type="email"]').last()
-    await emailField.fill('anyone@omnijoy.test')
-    const sendBtn = page.getByRole('button', { name: /send code|request/i })
-    await sendBtn.click()
+    const login = new LoginPage(page)
+    await login.goto()
+    // Switch to OTP tab using data-testid selector
+    await login.otpTabButton.click()
+    await login.otpEmailInput.fill('anyone@omnijoy.test')
+    await login.sendOtpButton.click()
     // API always returns 200 to prevent email enumeration — expect the green success banner.
-    // The Vue template shows: "Check your email for a 6-digit code." inside [data-testid="auth-success"].
-    // Using data-testid avoids breakage when theme classes change.
-    await expect(page.locator('[data-testid="auth-success"]')).toBeVisible({ timeout: 8_000 })
+    // The Vue template shows: "Check your email for a 6-digit code." inside [data-testid="login-success-banner"].
+    await expect(login.successBanner).toBeVisible({ timeout: 8_000 })
   })
 })
