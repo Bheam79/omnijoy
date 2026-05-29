@@ -28,7 +28,7 @@ export interface ReportDto {
   targetType: ReportTargetType
   targetId: string
   reason: ReportReason
-  notes?: string
+  notes?: string | null
   status: 'Pending' | 'Reviewed' | 'Dismissed'
   createdAt: string
 }
