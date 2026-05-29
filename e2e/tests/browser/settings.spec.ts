@@ -148,18 +148,19 @@ test.describe('Settings — account settings UI', () => {
     const settings = new SettingsPage(page)
     await settings.gotoAccount()
 
-    // At minimum, there should be some form element (input or button)
-    const hasForm =
-      (await page.locator('input').count()) > 0 ||
-      (await page.getByRole('button').count()) > 0
-    expect(hasForm).toBeTruthy()
+    // Password form and its inputs should be present
+    const hasPasswordForm = await settings.passwordForm.isVisible()
+    const hasInputs =
+      (await settings.currentPasswordInput.count()) > 0 ||
+      (await settings.newPasswordInput.count()) > 0
+    expect(hasPasswordForm || hasInputs).toBeTruthy()
   })
 
   test('notification settings page renders toggle controls', async ({ page }) => {
     const settings = new SettingsPage(page)
     await settings.gotoNotifications()
 
-    // Should have checkboxes, switches, or selects
+    // Should have data-testid toggle checkboxes
     const hasControls =
       (await settings.notificationToggles.count()) > 0 ||
       (await page.locator('select').count()) > 0 ||

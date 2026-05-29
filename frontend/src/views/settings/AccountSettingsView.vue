@@ -221,6 +221,7 @@ async function confirmDelete() {
           <input
             id="new-email"
             v-model="emailForm.newEmail"
+            data-testid="new-email-input"
             type="email"
             autocomplete="email"
             required
@@ -240,6 +241,7 @@ async function confirmDelete() {
           <input
             id="email-current-password"
             v-model="emailForm.currentPassword"
+            data-testid="email-current-password-input"
             type="password"
             autocomplete="current-password"
             required
@@ -250,6 +252,7 @@ async function confirmDelete() {
 
         <button
           type="submit"
+          data-testid="save-email-button"
           :disabled="emailSaving"
           class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium px-5 py-2 rounded-lg text-sm transition-colors"
         >
@@ -280,6 +283,7 @@ async function confirmDelete() {
           <input
             id="pw-current"
             v-model="pwForm.currentPassword"
+            data-testid="current-password"
             type="password"
             autocomplete="current-password"
             required
@@ -293,6 +297,7 @@ async function confirmDelete() {
           <input
             id="pw-new"
             v-model="pwForm.newPassword"
+            data-testid="new-password"
             type="password"
             autocomplete="new-password"
             required
@@ -310,6 +315,7 @@ async function confirmDelete() {
           <input
             id="pw-confirm"
             v-model="pwForm.confirmNewPassword"
+            data-testid="confirm-new-password"
             type="password"
             autocomplete="new-password"
             required
@@ -330,6 +336,7 @@ async function confirmDelete() {
 
         <button
           type="submit"
+          data-testid="save-password-button"
           :disabled="pwSaving"
           class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium px-5 py-2 rounded-lg text-sm transition-colors"
         >

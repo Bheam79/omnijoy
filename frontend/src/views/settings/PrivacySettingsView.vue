@@ -43,13 +43,13 @@ const privacyOptions = [
   { value: 'OnlyMe', label: 'Only me' },
 ]
 
-const privacyFields: Array<{ key: keyof PrivacySettings; label: string; description: string }> = [
-  { key: 'whoCanSeePosts', label: 'Who can see my posts', description: 'Default visibility for new posts you create.' },
-  { key: 'whoCanSeeProfile', label: 'Who can see my profile', description: 'Controls access to your profile page.' },
-  { key: 'whoCanSendMessages', label: 'Who can message me', description: 'Restricts who can start conversations with you.' },
-  { key: 'whoCanSeeFriendList', label: 'Who can see my friend list', description: 'Controls visibility of your connections.' },
-  { key: 'whoCanSeeEvents', label: 'Who can see my events', description: 'Events you are attending or hosting.' },
-  { key: 'whoCanTagInPosts', label: 'Who can tag me in posts', description: 'Prevents unwanted mentions.' },
+const privacyFields: Array<{ key: keyof PrivacySettings; label: string; description: string; testid: string }> = [
+  { key: 'whoCanSeePosts',      label: 'Who can see my posts',       description: 'Default visibility for new posts you create.',          testid: 'who-can-see-posts' },
+  { key: 'whoCanSeeProfile',    label: 'Who can see my profile',     description: 'Controls access to your profile page.',                  testid: 'who-can-see-profile' },
+  { key: 'whoCanSendMessages',  label: 'Who can message me',         description: 'Restricts who can start conversations with you.',        testid: 'who-can-send-requests' },
+  { key: 'whoCanSeeFriendList', label: 'Who can see my friend list', description: 'Controls visibility of your connections.',               testid: 'who-can-see-friends' },
+  { key: 'whoCanSeeEvents',     label: 'Who can see my events',      description: 'Events you are attending or hosting.',                   testid: 'who-can-see-events' },
+  { key: 'whoCanTagInPosts',    label: 'Who can tag me in posts',    description: 'Prevents unwanted mentions.',                            testid: 'who-can-tag-in-posts' },
 ]
 </script>
 
@@ -78,7 +78,7 @@ const privacyFields: Array<{ key: keyof PrivacySettings; label: string; descript
       <div v-if="error" class="mb-5 rounded-lg bg-red-950 border border-red-800 px-4 py-3 text-sm text-red-400">{{ error }}</div>
       <div v-if="successMsg" class="mb-5 rounded-lg bg-green-950 border border-green-800 px-4 py-3 text-sm text-green-400">{{ successMsg }}</div>
 
-      <form class="space-y-4" @submit.prevent="save">
+      <form data-testid="privacy-settings-form" class="space-y-4" @submit.prevent="save">
         <div
           v-for="field in privacyFields"
           :key="field.key"
@@ -88,6 +88,7 @@ const privacyFields: Array<{ key: keyof PrivacySettings; label: string; descript
           <p class="text-xs text-gray-500 mb-3">{{ field.description }}</p>
           <select
             v-model="privacy[field.key]"
+            :data-testid="field.testid"
             class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           >
             <option v-for="opt in privacyOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
@@ -96,6 +97,7 @@ const privacyFields: Array<{ key: keyof PrivacySettings; label: string; descript
 
         <button
           type="submit"
+          data-testid="save-privacy-button"
           :disabled="saving"
           class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-2.5 rounded-xl text-sm transition-colors"
         >

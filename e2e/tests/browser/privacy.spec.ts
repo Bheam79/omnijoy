@@ -2,6 +2,7 @@ import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
 import { getSharedTokenFor } from '../../support/shared-auth'
 import { injectTokens } from '../../support/auth-helpers'
+import { SettingsPage } from './pages/settings.page'
 
 test.describe('Privacy settings page', () => {
   test.beforeEach(async ({ page, baseURL }) => {
@@ -16,17 +17,14 @@ test.describe('Privacy settings page', () => {
   })
 
   test('privacy settings are displayed', async ({ page }) => {
-    await page.goto('/settings/privacy')
-    await page.waitForLoadState('networkidle')
+    const settings = new SettingsPage(page)
+    await settings.gotoPrivacy()
 
-    // Should show some privacy controls
-    const hasControls =
-      (await page.getByRole('combobox').count()) > 0 ||
-      (await page.getByRole('radio').count()) > 0 ||
-      (await page.getByRole('switch').count()) > 0 ||
-      (await page.locator('select').count()) > 0
+    // Should show the privacy form and at least one select control
+    const hasForm = await settings.privacySettingsForm.isVisible()
+    const hasSelects = (await page.locator('[data-testid^="who-can-"]').count()) > 0
 
-    expect(hasControls).toBeTruthy()
+    expect(hasForm || hasSelects).toBeTruthy()
   })
 
   test('can update privacy settings via API and reflect in page', async ({ page, request, baseURL }) => {

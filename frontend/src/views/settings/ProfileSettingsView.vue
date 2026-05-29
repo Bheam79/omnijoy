@@ -20,7 +20,7 @@ function onSlugUpdated(newSlug: string | null) {
 </script>
 
 <template>
-  <div>
+  <div data-testid="profile-settings-form">
     <!-- Back link -->
     <div class="flex items-center gap-2 mb-6">
       <RouterLink
