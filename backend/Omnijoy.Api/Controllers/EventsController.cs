@@ -58,6 +58,19 @@ public class EventsController : ControllerBase
                 cover = new CoverImageUploadItem(ms, input.CoverImage.FileName, input.CoverImage.ContentType);
             }
 
+            // Fallback: bracket-notation 'coverImage[]' is not bound by model binding.
+            if (cover == null)
+            {
+                var bracketFile = Request.Form.Files.GetFiles("coverImage[]").FirstOrDefault(f => f.Length > 0);
+                if (bracketFile != null)
+                {
+                    var ms = new MemoryStream();
+                    await bracketFile.CopyToAsync(ms);
+                    ms.Position = 0;
+                    cover = new CoverImageUploadItem(ms, bracketFile.FileName, bracketFile.ContentType);
+                }
+            }
+
             var request = new CreateEventRequest(
                 Title:         input.Title ?? string.Empty,
                 Description:   input.Description,
@@ -178,6 +191,19 @@ public class EventsController : ControllerBase
                 await input.CoverImage.CopyToAsync(ms);
                 ms.Position = 0;
                 cover = new CoverImageUploadItem(ms, input.CoverImage.FileName, input.CoverImage.ContentType);
+            }
+
+            // Fallback: bracket-notation 'coverImage[]' is not bound by model binding.
+            if (cover == null)
+            {
+                var bracketFile = Request.Form.Files.GetFiles("coverImage[]").FirstOrDefault(f => f.Length > 0);
+                if (bracketFile != null)
+                {
+                    var ms = new MemoryStream();
+                    await bracketFile.CopyToAsync(ms);
+                    ms.Position = 0;
+                    cover = new CoverImageUploadItem(ms, bracketFile.FileName, bracketFile.ContentType);
+                }
             }
 
             var request = new UpdateEventRequest(

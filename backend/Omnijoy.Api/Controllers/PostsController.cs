@@ -86,6 +86,21 @@ public class PostsController : ControllerBase
                 }
             }
 
+            // Fallback: browsers and E2E tests send files under the bracket-notation
+            // key 'media[]'. ASP.NET Core model binding does NOT map 'media[]' to the
+            // 'Media' property, so we check Request.Form.Files directly.
+            if (mediaItems.Count == 0)
+            {
+                foreach (var file in Request.Form.Files.GetFiles("media[]"))
+                {
+                    if (file.Length == 0) continue;
+                    var ms = new MemoryStream();
+                    await file.CopyToAsync(ms);
+                    ms.Position = 0;
+                    mediaItems.Add(new MediaUploadItem(ms, file.FileName, file.ContentType));
+                }
+            }
+
             var request = new CreatePostRequest(
                 Content:            input.Content ?? string.Empty,
                 PostType:           input.PostType ?? "Text",

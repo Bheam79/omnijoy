@@ -63,6 +63,19 @@ public class MessagesController : ControllerBase
                 mediaItems = [new MediaUploadItem(ms, input.File.FileName, input.File.ContentType)];
             }
 
+            // Fallback: bracket-notation 'file[]' is not bound by model binding.
+            if (mediaItems == null)
+            {
+                var bracketFile = Request.Form.Files.GetFiles("file[]").FirstOrDefault(f => f.Length > 0);
+                if (bracketFile != null)
+                {
+                    var ms = new MemoryStream();
+                    await bracketFile.CopyToAsync(ms);
+                    ms.Position = 0;
+                    mediaItems = [new MediaUploadItem(ms, bracketFile.FileName, bracketFile.ContentType)];
+                }
+            }
+
             var message = await _chat.SendMessageAsync(
                 conversationId, userId, input.Content, mediaItems);
 

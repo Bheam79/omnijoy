@@ -41,8 +41,8 @@ public class CompanyPagesController : ControllerBase
 
         try
         {
-            var logo  = await ReadFileAsync(input.Logo,  "logo");
-            var cover = await ReadFileAsync(input.Cover, "cover");
+            var logo  = await ReadFileWithBracketFallbackAsync(input.Logo,  "Logo",  "logo");
+            var cover = await ReadFileWithBracketFallbackAsync(input.Cover, "Cover", "cover");
 
             var request = new CreateCompanyPageRequest(
                 Name:        input.Name ?? string.Empty,
@@ -120,8 +120,8 @@ public class CompanyPagesController : ControllerBase
 
         try
         {
-            var logo  = await ReadFileAsync(input.Logo,  "logo");
-            var cover = await ReadFileAsync(input.Cover, "cover");
+            var logo  = await ReadFileWithBracketFallbackAsync(input.Logo,  "Logo",  "logo");
+            var cover = await ReadFileWithBracketFallbackAsync(input.Cover, "Cover", "cover");
 
             var request = new UpdateCompanyPageRequest(
                 Name:        input.Name,
@@ -302,6 +302,27 @@ public class CompanyPagesController : ControllerBase
         await file.CopyToAsync(ms);
         ms.Position = 0;
         return new PageImageUploadItem(ms, file.FileName, file.ContentType, kind);
+    }
+
+    /// <summary>
+    /// Like <see cref="ReadFileAsync"/> but also falls back to bracket-notation
+    /// (e.g. <c>logo[]</c>) which ASP.NET Core model binding does not map to the
+    /// property automatically.
+    /// </summary>
+    private async Task<PageImageUploadItem?> ReadFileWithBracketFallbackAsync(
+        IFormFile? file, string fieldName, string kind)
+    {
+        var item = await ReadFileAsync(file, kind);
+        if (item != null) return item;
+
+        var bracketFile = Request.Form.Files.GetFiles($"{fieldName}[]")
+            .FirstOrDefault(f => f.Length > 0);
+        if (bracketFile == null) return null;
+
+        var ms = new MemoryStream();
+        await bracketFile.CopyToAsync(ms);
+        ms.Position = 0;
+        return new PageImageUploadItem(ms, bracketFile.FileName, bracketFile.ContentType, kind);
     }
 }
 
