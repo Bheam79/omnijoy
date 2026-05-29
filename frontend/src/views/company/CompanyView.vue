@@ -5,6 +5,7 @@ import { companyPageService, type CompanyPageDto, type AdminsResult } from '@/se
 import { postService, type PostDto } from '@/services/postService'
 import { useAuthStore } from '@/stores/auth'
 import PostCard from '@/components/post/PostCard.vue'
+import PostComposer from '@/components/post/PostComposer.vue'
 import SlugPicker from '@/components/shared/SlugPicker.vue'
 
 const route = useRoute()
@@ -39,6 +40,12 @@ const isAdmin = computed(() =>
   page.value?.myRole === 'Owner' || page.value?.myRole === 'Admin'
 )
 const isOwner = computed(() => page.value?.myRole === 'Owner')
+// Anyone with a role on the page (Owner / Admin / Editor) can post on its behalf.
+const canPostAsPage = computed(() => page.value?.myRole != null)
+
+function onPostCreated(post: PostDto) {
+  posts.value.unshift(post)
+}
 
 async function fetchData() {
   loading.value = true
@@ -249,6 +256,14 @@ onMounted(fetchData)
 
         <!-- Posts tab -->
         <div v-if="activeTab === 'posts'" class="space-y-4 pb-8">
+          <!-- Composer (only for Owner/Admin/Editor) -->
+          <PostComposer
+            v-if="canPostAsPage"
+            :default-company-page-id="page.id"
+            :default-company-page="page"
+            @created="onPostCreated"
+          />
+
           <div v-if="posts.length === 0" class="text-center py-10 text-gray-500 text-sm">
             No posts yet.
           </div>

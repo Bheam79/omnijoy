@@ -5,6 +5,22 @@ import { useFeedStore } from '@/stores/feed'
 import { useAuthStore } from '@/stores/auth'
 import { companyPageService, type CompanyPageDto } from '@/services/companyPageService'
 
+const props = defineProps<{
+  /**
+   * When set, the "Posting as" selector defaults to this company page on open.
+   * The user can still switch back to their personal identity or to another
+   * page they administer. Use this on a company page view to make the
+   * composer post on behalf of that page by default.
+   */
+  defaultCompanyPageId?: string | null
+  /**
+   * Optional — when the caller already has the company page DTO (e.g. from a
+   * company-page view), pass it here so the "Posting as" selector renders the
+   * page name instantly without waiting for /api/company-pages/mine to resolve.
+   */
+  defaultCompanyPage?: CompanyPageDto | null
+}>()
+
 const emit = defineEmits<{ created: [post: PostDto] }>()
 
 const auth = useAuthStore()
@@ -26,8 +42,10 @@ const submitting = ref(false)
 const error = ref<string | null>(null)
 
 // "Posting as" — company pages where user is admin
-const myAdminPages = ref<CompanyPageDto[]>([])
-const postingAsPageId = ref<string | null>(null)
+const myAdminPages = ref<CompanyPageDto[]>(props.defaultCompanyPage ? [props.defaultCompanyPage] : [])
+const postingAsPageId = ref<string | null>(
+  props.defaultCompanyPageId ?? props.defaultCompanyPage?.id ?? null
+)
 
 // ── URL preview state ────────────────────────────────────────────────────────
 // The composer scans the text for a URL whenever the content changes; when a
@@ -93,8 +111,31 @@ watch(content, () => {
 
 onMounted(async () => {
   try {
-    myAdminPages.value = await companyPageService.getMyAdminPages()
+    const fetched = await companyPageService.getMyAdminPages()
+    // Merge fetched pages with any seeded default, deduping by id.
+    const seen = new Set<string>()
+    const merged: CompanyPageDto[] = []
+    for (const pg of [...myAdminPages.value, ...fetched]) {
+      if (seen.has(pg.id)) continue
+      seen.add(pg.id)
+      merged.push(pg)
+    }
+    myAdminPages.value = merged
   } catch { /* non-critical */ }
+})
+
+// If the parent changes the default (e.g. navigating between company pages
+// without unmounting), keep the selector in sync.
+watch(() => props.defaultCompanyPageId, (next) => {
+  postingAsPageId.value = next ?? props.defaultCompanyPage?.id ?? null
+})
+watch(() => props.defaultCompanyPage, (next) => {
+  if (next && !myAdminPages.value.some(p => p.id === next.id)) {
+    myAdminPages.value = [next, ...myAdminPages.value]
+  }
+  if (next && props.defaultCompanyPageId == null) {
+    postingAsPageId.value = next.id
+  }
 })
 
 // Predefined backgrounds for TextOnBackground
@@ -160,7 +201,7 @@ function reset() {
   mediaPreviewUrls.value = []
   error.value = null
   submitting.value = false
-  postingAsPageId.value = null
+  postingAsPageId.value = props.defaultCompanyPageId ?? props.defaultCompanyPage?.id ?? null
   linkPreview.value = null
   linkPreviewUrl.value = null
   linkPreviewLoading.value = false
