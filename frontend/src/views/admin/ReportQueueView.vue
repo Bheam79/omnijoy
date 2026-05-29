@@ -90,6 +90,7 @@ function openDetail(report: ReportDto) {
     <div class="flex flex-wrap items-center gap-2">
       <label class="text-sm font-medium text-slate-400">Status</label>
       <select
+        data-testid="report-status-filter"
         :value="store.statusFilter ?? ''"
         aria-label="Filter by status"
         class="border border-slate-600 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500"
@@ -102,6 +103,7 @@ function openDetail(report: ReportDto) {
 
       <label class="text-sm font-medium text-slate-400 ml-3">Type</label>
       <select
+        data-testid="report-type-filter"
         :value="store.typeFilter ?? ''"
         aria-label="Filter by type"
         class="border border-slate-600 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500"
@@ -158,7 +160,7 @@ function openDetail(report: ReportDto) {
       v-else-if="hasReports"
       class="overflow-x-auto bg-slate-800 border border-slate-700 rounded-xl"
     >
-      <table class="min-w-full text-sm" aria-label="Reports queue">
+      <table data-testid="reports-table" class="min-w-full text-sm" aria-label="Reports queue">
         <thead class="bg-slate-950 text-slate-400">
           <tr>
             <th class="px-3 py-2 text-left w-10">
@@ -181,6 +183,7 @@ function openDetail(report: ReportDto) {
           <tr
             v-for="report in store.reports"
             :key="report.id"
+            data-testid="report-row"
             class="hover:bg-slate-700 cursor-pointer"
             @click="openDetail(report)"
           >

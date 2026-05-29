@@ -5,9 +5,31 @@ import { Page, Locator } from '@playwright/test'
  */
 export class AdminPage {
   readonly page: Page
+  readonly reportRows: Locator
+  readonly userRows: Locator
+  readonly reportsTable: Locator
+  readonly usersTable: Locator
+  readonly reportStatusFilter: Locator
+  readonly reportTypeFilter: Locator
+  readonly userSearchInput: Locator
+  readonly userSearchButton: Locator
+  readonly navReports: Locator
+  readonly navUsers: Locator
+  readonly navAudit: Locator
 
   constructor(page: Page) {
     this.page = page
+    this.reportRows = page.locator('[data-testid="report-row"]')
+    this.userRows = page.locator('[data-testid="user-row"]')
+    this.reportsTable = page.locator('[data-testid="reports-table"]')
+    this.usersTable = page.locator('[data-testid="users-table"]')
+    this.reportStatusFilter = page.locator('[data-testid="report-status-filter"]')
+    this.reportTypeFilter = page.locator('[data-testid="report-type-filter"]')
+    this.userSearchInput = page.locator('[data-testid="user-search-input"]')
+    this.userSearchButton = page.locator('[data-testid="user-search-button"]')
+    this.navReports = page.locator('[data-testid="admin-nav-reports"]')
+    this.navUsers = page.locator('[data-testid="admin-nav-users"]')
+    this.navAudit = page.locator('[data-testid="admin-nav-audit"]')
   }
 
   async goto() {
@@ -28,19 +50,5 @@ export class AdminPage {
   async gotoAuditLog() {
     await this.page.goto('/admin/audit-log')
     await this.page.waitForLoadState('networkidle')
-  }
-
-  /** Report queue table rows. */
-  get reportRows(): Locator {
-    return this.page.locator(
-      '[data-testid="report-row"], tr, [class*="report-item"]',
-    )
-  }
-
-  /** User management rows. */
-  get userRows(): Locator {
-    return this.page.locator(
-      '[data-testid="user-row"], tr, [class*="user-row"]',
-    )
   }
 }

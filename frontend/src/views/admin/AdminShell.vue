@@ -11,15 +11,16 @@ const isAdmin = computed(() => auth.user?.role === 'Admin')
 interface NavItem {
   label: string
   to: string
+  testid: string
   /** When true, only Admin role sees this link. */
   adminOnly?: boolean
 }
 
 const navItems = computed<NavItem[]>(() => {
   const all: NavItem[] = [
-    { label: 'Reports',   to: '/admin/reports' },
-    { label: 'Users',     to: '/admin/users' },
-    { label: 'Audit Log', to: '/admin/audit-log', adminOnly: true },
+    { label: 'Reports',   to: '/admin/reports',   testid: 'admin-nav-reports' },
+    { label: 'Users',     to: '/admin/users',     testid: 'admin-nav-users' },
+    { label: 'Audit Log', to: '/admin/audit-log', testid: 'admin-nav-audit', adminOnly: true },
   ]
   return all.filter(i => !i.adminOnly || isAdmin.value)
 })
@@ -42,6 +43,7 @@ function isActive(item: NavItem): boolean {
             v-for="item in navItems"
             :key="item.to"
             :to="item.to"
+            :data-testid="item.testid"
             class="block px-3 py-2 rounded-lg text-sm font-medium transition-colors"
             :class="isActive(item)
               ? 'bg-indigo-900/50 text-indigo-300'

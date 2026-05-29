@@ -81,6 +81,7 @@ function extractError(e: unknown): string {
     <form class="flex gap-2" @submit.prevent="runSearch">
       <input
         v-model="searchInput"
+        data-testid="user-search-input"
         type="search"
         placeholder="Search by name or email…"
         aria-label="Search users"
@@ -88,6 +89,7 @@ function extractError(e: unknown): string {
       >
       <button
         type="submit"
+        data-testid="user-search-button"
         class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
       >
         Search
@@ -111,7 +113,7 @@ function extractError(e: unknown): string {
       No users found.
     </div>
     <div v-else class="overflow-x-auto bg-slate-800 border border-slate-700 rounded-xl">
-      <table class="min-w-full text-sm" aria-label="Users">
+      <table data-testid="users-table" class="min-w-full text-sm" aria-label="Users">
         <thead class="bg-slate-950 text-slate-400">
           <tr>
             <th class="px-3 py-2 text-left">Name</th>
@@ -122,7 +124,7 @@ function extractError(e: unknown): string {
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-700">
-          <tr v-for="u in store.users" :key="u.id" class="hover:bg-slate-700">
+          <tr v-for="u in store.users" :key="u.id" data-testid="user-row" class="hover:bg-slate-700">
             <td class="px-3 py-2 text-slate-200">{{ u.displayName }}</td>
             <td class="px-3 py-2 text-slate-400">{{ u.email }}</td>
             <td class="px-3 py-2">
