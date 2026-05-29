@@ -241,13 +241,20 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
+
+// ── Static files (Vue SPA served from wwwroot) ────────────────────────────────
+// Registered BEFORE UseAuthentication / UseAuthorization / UseRateLimiter so
+// that requests for index.html, JS bundles, CSS, and other assets short-circuit
+// the pipeline before being counted by the 200 req/min-per-IP global limiter.
+// A single SPA page load can pull in 10+ assets — keeping those out of the
+// limiter bucket leaves headroom for the actual API traffic the bucket is
+// meant to police.
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
-
-// ── Static files (Vue SPA served from wwwroot) ────────────────────────────────
-app.UseDefaultFiles();
-app.UseStaticFiles();
 
 // ── API Controllers ───────────────────────────────────────────────────────────
 app.MapControllers();
@@ -259,6 +266,11 @@ app.MapHub<FeedHub>("/hubs/feed");
 app.MapHub<LiveHub>("/hubs/live");
 
 // ── SPA fallback (must be last) ───────────────────────────────────────────────
-app.MapFallbackToFile("index.html");
+// Vue Router routes like /wall, /profile/:id, etc. don't exist as files on
+// disk, so UseStaticFiles can't serve them — they fall through to this
+// endpoint, which returns index.html. DisableRateLimiting keeps SPA route
+// navigations out of the global limiter bucket for the same reason static
+// assets are: serving the HTML shell is not API traffic.
+app.MapFallbackToFile("index.html").DisableRateLimiting();
 
 app.Run();
