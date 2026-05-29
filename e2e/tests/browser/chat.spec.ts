@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
 import { injectTokens } from '../../support/auth-helpers'
 

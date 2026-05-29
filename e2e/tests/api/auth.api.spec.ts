@@ -1,4 +1,4 @@
-import { test, expect, type APIRequestContext } from '@playwright/test'
+import { test, expect, type APIRequestContext } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
 
 /**
@@ -110,9 +110,7 @@ test.describe('POST /api/auth/otp/request', () => {
     const resp = await request.post(`${baseURL}/api/auth/otp/request`, {
       data: { email: SEED.user2.email },
     })
-    // 200 is expected per spec; 500 may occur when email service is not configured
-    // in the test environment (e.g. SMTP not set up). Both are accepted in scaffolding.
-    expect([200, 500]).toContain(resp.status())
+    expect(resp.status()).toBe(200)
   })
 })
 
@@ -176,19 +174,19 @@ test.describe('POST /api/auth/logout', () => {
 })
 
 test.describe('POST /api/auth/oauth/google', () => {
-  test('returns 401 or 503 for invalid Google token', async ({ request, baseURL }) => {
+  test('returns 401 for invalid Google token', async ({ request, baseURL }) => {
     const resp = await request.post(`${baseURL}/api/auth/oauth/google`, {
       data: { token: 'fake-google-token' },
     })
-    expect([401, 503]).toContain(resp.status())
+    expect(resp.status()).toBe(401)
   })
 })
 
 test.describe('POST /api/auth/oauth/facebook', () => {
-  test('returns 401 or 503 for invalid Facebook token', async ({ request, baseURL }) => {
+  test('returns 401 for invalid Facebook token', async ({ request, baseURL }) => {
     const resp = await request.post(`${baseURL}/api/auth/oauth/facebook`, {
       data: { token: 'fake-facebook-token' },
     })
-    expect([401, 503]).toContain(resp.status())
+    expect(resp.status()).toBe(401)
   })
 })

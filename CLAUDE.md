@@ -389,3 +389,22 @@ the SPA as static files in production.
 - Backend: 95% line coverage (enforced via `coverlet /p:Threshold=95`)
 - Frontend: 95% line/branch/function/statement coverage (enforced in `vite.config.ts`)
 - E2E: Playwright (project `/e2e`, see OMNIJOY-17)
+
+### E2E — 5xx guard
+
+All E2E spec files import `test` and `expect` from `e2e/support/fixtures.ts`
+(not directly from `@playwright/test`).  The fixture automatically:
+
+- **API tests** — wraps `request` to throw immediately on any HTTP 5xx response.
+- **Browser tests** — attaches `page.on('response')` + `page.on('requestfailed')`
+  and fails the test after the test body if any 5xx or network failure was seen.
+
+To intentionally test a 5xx path, opt out for that describe block or test:
+
+```ts
+test.use({ allow5xx: true })
+test('returns 500 when …', async ({ request }) => {
+  const resp = await request.get('/api/broken')
+  expect(resp.status()).toBe(500)
+})
+```

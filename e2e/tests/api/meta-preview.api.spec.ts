@@ -1,4 +1,4 @@
-import { test, expect, type APIRequestContext } from '@playwright/test'
+import { test, expect, type APIRequestContext } from '../../support/fixtures'
 
 /**
  * API E2E tests for /api/meta-preview endpoint.
