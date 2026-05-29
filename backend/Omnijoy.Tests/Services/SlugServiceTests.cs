@@ -122,12 +122,15 @@ public class SlugServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CheckAsync_CaseInsensitive()
+    public async Task CheckAsync_UppercaseInput_ReportsInvalid()
     {
+        // Slugs are stored lowercase. CheckAsync must report any input that
+        // isn't already in canonical lowercase form as Invalid, so callers
+        // see the same answer the (unique-lowercase) store would enforce.
         await CreateUserAsync(slug: "claimed");
         var result = await _sut.CheckAsync("CLAIMED");
         result.Available.Should().BeFalse();
-        result.Reason.Should().Be(SlugUnavailableReason.Taken);
+        result.Reason.Should().Be(SlugUnavailableReason.Invalid);
     }
 
     // ── ResolveAsync ──────────────────────────────────────────────────────────

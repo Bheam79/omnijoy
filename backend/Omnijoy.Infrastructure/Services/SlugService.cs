@@ -26,6 +26,15 @@ public class SlugService : ISlugService
     public async Task<SlugAvailability> CheckAsync(string? slug, CancellationToken ct = default)
     {
         var normalized = SlugValidator.Normalize(slug);
+
+        // Validate() lowercases internally, so passing the raw input through
+        // Normalize() first would let uppercase ('MySlug') and surrounding
+        // whitespace slip through as Valid. If Normalize() had to change the
+        // input at all, the raw form was not in canonical lowercase/trimmed
+        // shape and we report it as Invalid up-front.
+        if (!string.IsNullOrEmpty(slug) && !string.Equals(slug, normalized, StringComparison.Ordinal))
+            return new SlugAvailability(false, SlugUnavailableReason.Invalid);
+
         var validation = SlugValidator.Validate(normalized);
         if (validation == SlugValidationResult.Invalid)
             return new SlugAvailability(false, SlugUnavailableReason.Invalid);
