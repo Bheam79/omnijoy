@@ -19,19 +19,20 @@ interface NavItem {
   icon: 'home' | 'users' | 'calendar' | 'building' | 'broadcast' | 'shield'
   /** If true, also mark active for sub-routes (e.g. /events/123) */
   matchPrefix?: boolean
+  testId: string
 }
 
 const navItems = computed<NavItem[]>(() => {
   const items: NavItem[] = [
-    { label: 'My Wall',       to: '/wall',    icon: 'home' },
-    { label: 'Friends',       to: '/friends', icon: 'users' },
-    { label: 'Events',        to: '/events',  icon: 'calendar',  matchPrefix: true },
-    { label: 'Company Pages', to: '/company', icon: 'building',  matchPrefix: true },
-    { label: 'Live',          to: '/live',    icon: 'broadcast', matchPrefix: true },
+    { label: 'My Wall',       to: '/wall',    icon: 'home',      testId: 'nav-wall' },
+    { label: 'Friends',       to: '/friends', icon: 'users',     testId: 'nav-friends' },
+    { label: 'Events',        to: '/events',  icon: 'calendar',  matchPrefix: true, testId: 'nav-events' },
+    { label: 'Company Pages', to: '/company', icon: 'building',  matchPrefix: true, testId: 'nav-company' },
+    { label: 'Live',          to: '/live',    icon: 'broadcast', matchPrefix: true, testId: 'nav-live' },
   ]
   const role = auth.user?.role
   if (role === 'Admin' || role === 'Moderator') {
-    items.push({ label: 'Admin', to: '/admin', icon: 'shield', matchPrefix: true })
+    items.push({ label: 'Admin', to: '/admin', icon: 'shield', matchPrefix: true, testId: 'nav-admin' })
   }
   return items
 })
@@ -72,6 +73,7 @@ function isActive(item: NavItem): boolean {
         v-for="item in navItems"
         :key="item.to"
         :to="item.to"
+        :data-testid="item.testId"
         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
         :class="isActive(item)
           ? 'bg-indigo-900/50 text-indigo-300'

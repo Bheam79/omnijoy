@@ -106,6 +106,7 @@ function indexOf(item: SuggestItem): number {
       <input
         ref="inputRef"
         v-model="query"
+        data-testid="search-input"
         type="search"
         role="combobox"
         aria-autocomplete="list"
@@ -123,6 +124,7 @@ function indexOf(item: SuggestItem): number {
     <div
       v-if="open && trimmedQuery.length > 0"
       id="search-suggest-listbox"
+      data-testid="search-dropdown"
       role="listbox"
       class="absolute z-50 left-0 right-0 mt-1 bg-slate-800 rounded-xl shadow-lg border border-slate-700 max-h-[28rem] overflow-y-auto"
     >

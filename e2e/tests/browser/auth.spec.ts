@@ -112,13 +112,13 @@ test.describe('Logout flow', () => {
     await login.loginWithPassword(SEED.user1.email, SEED.user1.password)
     await page.waitForURL('**/wall')
 
-    // The logout button is inside a profile dropdown (aria-label="Your account").
-    // Open the dropdown first, then click "Log out".
-    const profileTrigger = page.getByRole('button', { name: 'Your account' })
+    // The logout button is inside a profile dropdown. Open the dropdown first,
+    // then click "Log out".
+    const profileTrigger = page.locator('[data-testid="user-menu-button"]')
     await profileTrigger.click()
 
     // Logout button appears inside the dropdown
-    const logoutButton = page.getByRole('button', { name: /log out/i })
+    const logoutButton = page.locator('[data-testid="logout-button"]')
     await expect(logoutButton).toBeVisible({ timeout: 5_000 })
     await logoutButton.click()
 

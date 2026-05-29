@@ -14,12 +14,8 @@ export class SearchPage {
 
   constructor(page: Page) {
     this.page = page
-    this.topBarInput = page.locator(
-      '[data-testid="search-input"], input[placeholder*="search" i], input[type="search"]',
-    ).first()
-    this.suggestDropdown = page.locator(
-      '[data-testid="search-dropdown"], [data-testid="suggest-dropdown"], .search-suggestions, [class*="search-dropdown"]',
-    ).first()
+    this.topBarInput = page.locator('[data-testid="search-input"]')
+    this.suggestDropdown = page.locator('[data-testid="search-dropdown"]')
     this.resultsContainer = page.locator(
       '[data-testid="search-results"], .search-results, main',
     ).first()

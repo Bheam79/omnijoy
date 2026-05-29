@@ -107,8 +107,9 @@ function timeAgo(iso: string): string {
     @click="close"
   />
 
-  <div class="relative z-50">
+  <div class="relative z-50" data-testid="notification-bell">
     <button
+      data-testid="notification-bell-button"
       class="relative p-2 rounded-full text-slate-400 hover:bg-slate-700 transition-colors"
       :aria-label="`Notifications, ${store.unreadCount} unread`"
       :aria-expanded="store.dropdownOpen"
@@ -136,6 +137,7 @@ function timeAgo(iso: string): string {
     >
       <div
         v-if="store.dropdownOpen"
+        data-testid="notification-panel"
         class="absolute right-0 top-full mt-1 w-80 max-w-[calc(100vw-2rem)] bg-slate-800 rounded-xl shadow-lg border border-slate-700 overflow-hidden flex flex-col"
         style="max-height: min(70vh, 32rem)"
       >
@@ -144,6 +146,7 @@ function timeAgo(iso: string): string {
           <p class="text-sm font-semibold text-slate-100">Notifications</p>
           <button
             v-if="store.hasUnread"
+            data-testid="mark-all-read"
             class="text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
             @click.stop="store.markAllRead()"
           >
@@ -166,6 +169,7 @@ function timeAgo(iso: string): string {
             <li
               v-for="n in store.notifications"
               :key="n.id"
+              data-testid="notification-item"
               class="px-4 py-3 hover:bg-slate-700 cursor-pointer transition-colors flex items-start gap-3"
               :class="{ 'bg-indigo-900/30': !n.isRead }"
               @click.stop="onClick(n)"

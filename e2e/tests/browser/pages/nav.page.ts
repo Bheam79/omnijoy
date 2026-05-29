@@ -23,18 +23,16 @@ export class NavPage {
     this.page = page
     // TopNav
     this.logo = page.locator('a[href="/"], a[aria-label*="home" i], .logo')
-    this.notificationBell = page.locator('[data-testid="notification-bell"], [aria-label*="notification" i]')
-    this.userMenuButton = page.locator('[data-testid="user-menu"], [aria-label*="profile menu" i], button:has([alt*="avatar" i])')
-    this.logoutButton = page.getByRole('button', { name: /log out|logout|sign out/i })
-    // Sidebar — use 'aside' scope to avoid matching TopNav duplicates.
-    // The sidebar links are rendered inside an <aside> element.
-    const sidebar = page.locator('aside')
-    this.wallLink = sidebar.getByRole('link', { name: /wall|home|feed|my wall/i })
-    this.friendsLink = sidebar.getByRole('link', { name: /friends/i })
-    this.eventsLink = sidebar.getByRole('link', { name: /events/i })
-    this.companyLink = sidebar.getByRole('link', { name: /company|pages/i })
-    this.liveLink = sidebar.getByRole('link', { name: /live/i })
-    this.settingsLink = page.getByRole('link', { name: /settings/i })
+    this.notificationBell = page.locator('[data-testid="notification-bell-button"]')
+    this.userMenuButton = page.locator('[data-testid="user-menu-button"]')
+    this.logoutButton = page.locator('[data-testid="logout-button"]')
+    // Sidebar nav links — keyed by data-testid for stability.
+    this.wallLink = page.locator('[data-testid="nav-wall"]')
+    this.friendsLink = page.locator('[data-testid="nav-friends"]')
+    this.eventsLink = page.locator('[data-testid="nav-events"]')
+    this.companyLink = page.locator('[data-testid="nav-company"]')
+    this.liveLink = page.locator('[data-testid="nav-live"]')
+    this.settingsLink = page.locator('[data-testid="nav-settings"]')
     this.messagesLink = page.getByRole('link', { name: /messages|messenger|chat/i })
   }
 }

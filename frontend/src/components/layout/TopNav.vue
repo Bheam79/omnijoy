@@ -142,6 +142,7 @@ async function logout() {
       <!-- Profile dropdown trigger -->
       <div class="relative z-50">
         <button
+          data-testid="user-menu-button"
           class="flex items-center p-1 rounded-full hover:bg-slate-700 transition-colors"
           aria-label="Your account"
           @click.stop="profileOpen = !profileOpen"
@@ -193,6 +194,7 @@ async function logout() {
 
             <RouterLink
               to="/settings"
+              data-testid="nav-settings"
               class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-700 transition-colors"
               @click="profileOpen = false"
             >
@@ -205,6 +207,7 @@ async function logout() {
 
             <div class="border-t border-slate-700 mt-1 pt-1">
               <button
+                data-testid="logout-button"
                 class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-950 transition-colors"
                 @click="logout"
               >
