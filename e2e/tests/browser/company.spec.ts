@@ -29,7 +29,7 @@ test.describe('Company pages', () => {
     // Real cards are rendered as div.bg-white.rounded-xl inside the grid
     const hasGridCards = (await page.locator('div.grid .bg-white.rounded-xl, div.grid > div.bg-white').count()) > 0
     const hasEmpty = await page.getByText(/no pages yet|no company pages|create a page/i).first().isVisible()
-    const hasHeading = await page.getByRole('heading', { name: /company pages/i }).isVisible()
+    const hasHeading = await page.getByRole('heading', { name: /company pages/i }).first().isVisible()
     expect(hasTaggedCards || hasGridCards || hasEmpty || hasHeading).toBeTruthy()
   })
 

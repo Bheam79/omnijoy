@@ -24,7 +24,7 @@ test.describe('Friends page', () => {
     await page.waitForLoadState('networkidle')
 
     const hasFriends = (await friends.friendCards.count()) > 0
-    const hasEmpty = await page.getByText(/no friends yet|find friends|suggestions/i).isVisible()
+    const hasEmpty = await page.getByText(/no friends yet|find friends|suggestions/i).first().isVisible()
     expect(hasFriends || hasEmpty).toBeTruthy()
   })
 
