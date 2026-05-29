@@ -118,11 +118,11 @@ test.describe('Search — browser UI', () => {
     const search = new SearchPage(page)
     if (await search.topBarInput.isVisible()) {
       await search.topBarInput.fill('Bob E2E')
-      await page.keyboard.press('Enter')
-      await page.waitForLoadState('networkidle')
-      // After Enter the app should navigate to /search?q=...
-      const url = page.url()
-      expect(url.includes('/search') || url.includes('q=')).toBeTruthy()
+      await Promise.all([
+        page.waitForURL(/\/search\b.*\bq=/, { timeout: 8_000 }),
+        page.keyboard.press('Enter'),
+      ])
+      expect(page.url()).toMatch(/\/search/)
     }
   })
 })
