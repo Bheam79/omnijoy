@@ -87,9 +87,11 @@ public class AuthController : ControllerBase
             var result = await _auth.LoginWithGoogleAsync(request.Token);
             return Ok(result);
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException)
         {
-            return StatusCode(503, new { error = ex.Message });
+            // OAuth not configured or token unverifiable — always 401 to the client;
+            // configuration state is an internal concern.
+            return Unauthorized(new { error = "Invalid Google token." });
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -106,9 +108,11 @@ public class AuthController : ControllerBase
             var result = await _auth.LoginWithFacebookAsync(request.Token);
             return Ok(result);
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException)
         {
-            return StatusCode(503, new { error = ex.Message });
+            // OAuth not configured or token unverifiable — always 401 to the client;
+            // configuration state is an internal concern.
+            return Unauthorized(new { error = "Invalid Facebook token." });
         }
         catch (UnauthorizedAccessException ex)
         {
