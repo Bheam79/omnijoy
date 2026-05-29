@@ -151,7 +151,9 @@ export function useSearchSuggest(options: UseSearchSuggestOptions = {}) {
       // Drop stale responses (a newer request was issued in the meantime)
       if (myReq !== reqId) return
       response.value    = resp
-      highlighted.value = items.value.length > 0 ? 0 : -1
+      // Do not auto-highlight the first item — Enter should navigate to the
+      // search results page unless the user explicitly moves with arrow keys.
+      highlighted.value = -1
     } catch (e: unknown) {
       if (myReq !== reqId) return
       response.value = null

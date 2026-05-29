@@ -187,7 +187,7 @@ describe('useSearchSuggest', () => {
     stop()
   })
 
-  it('populates items on successful fetchNow and sets highlighted=0', async () => {
+  it('populates items on successful fetchNow and leaves highlighted=-1', async () => {
     mockSearchService.suggest.mockResolvedValue(makeResponse({
       users: [{ id: 'u1', displayName: 'Alice' }],
     }))
@@ -196,7 +196,8 @@ describe('useSearchSuggest', () => {
     await s.fetchNow('alice')
     expect(s.loading.value).toBe(false)
     expect(s.items.value).toHaveLength(1)
-    expect(s.highlighted.value).toBe(0)
+    // No auto-highlight: Enter should always go to /search, not the first item
+    expect(s.highlighted.value).toBe(-1)
     expect(s.hasResults.value).toBe(true)
     stop()
   })
@@ -269,9 +270,11 @@ describe('useSearchSuggest', () => {
     }))
     const { result: s, stop } = withScope(() => useSearchSuggest())
     await s.fetchNow('a')
-    expect(s.highlighted.value).toBe(0)
-    s.moveDown(); expect(s.highlighted.value).toBe(1)
+    // No auto-highlight after fetch; first moveDown starts at index 0
+    expect(s.highlighted.value).toBe(-1)
     s.moveDown(); expect(s.highlighted.value).toBe(0)
+    s.moveDown(); expect(s.highlighted.value).toBe(1)
+    s.moveDown(); expect(s.highlighted.value).toBe(0) // wraps at length 2
     s.moveUp();   expect(s.highlighted.value).toBe(1)
     s.moveUp();   expect(s.highlighted.value).toBe(0)
     stop()
@@ -290,6 +293,10 @@ describe('useSearchSuggest', () => {
     }))
     const { result: s, stop } = withScope(() => useSearchSuggest())
     await s.fetchNow('a')
+    // No auto-highlight; highlighted starts at -1 after fetch
+    expect(s.selectHighlighted()).toBeNull()
+    // Explicitly move to first item
+    s.highlighted.value = 0
     expect(s.selectHighlighted()?.id).toBe('u1')
     s.highlighted.value = -1
     expect(s.selectHighlighted()).toBeNull()
