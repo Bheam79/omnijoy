@@ -61,6 +61,16 @@ public class PostsController : ControllerBase
         if (CurrentUserId is not { } userId)
             return Unauthorized(new { error = "Not authenticated." });
 
+        // Text and Image posts must carry actual content — without this guard
+        // the service would silently accept "" and persist a blank post.
+        var postType = input.PostType ?? "Text";
+        if ((postType.Equals("Text", StringComparison.OrdinalIgnoreCase)
+             || postType.Equals("Image", StringComparison.OrdinalIgnoreCase))
+            && string.IsNullOrWhiteSpace(input.Content))
+        {
+            return BadRequest(new { error = "Content is required for Text and Image posts." });
+        }
+
         try
         {
             var mediaItems = new List<MediaUploadItem>();
