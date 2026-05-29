@@ -18,7 +18,7 @@ const privacyIcon: Record<string, string> = {
 </script>
 
 <template>
-  <article class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 overflow-hidden">
+  <article data-testid="shared-post-card" class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 overflow-hidden">
     <!-- Share header -->
     <div class="flex items-center gap-3 px-4 pt-4 pb-2">
       <RouterLink :to="`/profile/${sharedPost.sharer.id}`">

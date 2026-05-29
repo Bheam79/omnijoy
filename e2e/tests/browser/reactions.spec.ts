@@ -151,12 +151,8 @@ test.describe('Reactions — browser UI', () => {
     await page.waitForLoadState('networkidle')
 
     // Reaction bar or like button should be visible
-    const reactionBar = page.locator(
-      '[data-testid="reaction-bar"], [data-testid="post-reactions"], [class*="reaction"]',
-    ).first()
-    const likeButton = page
-      .getByRole('button', { name: /like|react/i })
-      .first()
+    const reactionBar = page.locator('[data-testid="post-reaction-bar"]').first()
+    const likeButton = page.locator('[data-testid="reaction-button"]').first()
 
     const hasReactions =
       (await reactionBar.isVisible()) || (await likeButton.isVisible())
@@ -176,10 +172,7 @@ test.describe('Reactions — browser UI', () => {
     await page.goto('/wall')
     await page.waitForLoadState('networkidle')
 
-    const likeButton = page
-      .getByRole('button', { name: /^like$/i })
-      .or(page.locator('[data-testid="like-button"]'))
-      .first()
+    const likeButton = page.locator('[data-testid="reaction-button"]').first()
 
     if (await likeButton.isVisible()) {
       await likeButton.click()

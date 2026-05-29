@@ -262,6 +262,7 @@ defineExpose({ open, close })
 <template>
   <!-- Trigger bar (always visible) -->
   <div
+    data-testid="post-composer"
     class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 p-3 flex items-center gap-3 cursor-pointer hover:bg-slate-700 transition"
     @click="open"
   >
@@ -270,7 +271,7 @@ defineExpose({ open, close })
     >
       {{ auth.user?.displayName?.charAt(0)?.toUpperCase() ?? '?' }}
     </div>
-    <div class="flex-1 bg-slate-700 rounded-full px-4 py-2 text-slate-500 text-sm select-none">
+    <div data-testid="post-composer-trigger" class="flex-1 bg-slate-700 rounded-full px-4 py-2 text-slate-500 text-sm select-none">
       What's on your mind?
     </div>
   </div>
@@ -284,6 +285,7 @@ defineExpose({ open, close })
         @mousedown.self="close"
       >
         <div
+          data-testid="post-modal"
           class="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]"
           @click.stop
         >
@@ -358,6 +360,7 @@ defineExpose({ open, close })
             <textarea
               v-if="postType !== 'TextOnBackground'"
               v-model="content"
+              data-testid="post-textarea"
               rows="4"
               class="w-full resize-none border-0 bg-transparent text-slate-100 placeholder-slate-500 focus:outline-none text-lg leading-relaxed"
               placeholder="What's on your mind?"
@@ -504,6 +507,7 @@ defineExpose({ open, close })
           <!-- Footer -->
           <div class="px-5 py-4 border-t border-slate-700">
             <button
+              data-testid="post-submit-button"
               class="w-full py-2.5 rounded-xl font-semibold text-sm transition"
               :class="canSubmit
                 ? 'bg-blue-600 hover:bg-blue-700 text-white'

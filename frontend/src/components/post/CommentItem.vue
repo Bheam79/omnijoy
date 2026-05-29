@@ -126,7 +126,7 @@ async function handleDelete() {
 </script>
 
 <template>
-  <div class="flex gap-2" :class="isReply ? 'ml-9' : ''">
+  <div data-testid="comment-item" class="flex gap-2" :class="isReply ? 'ml-9' : ''">
     <!-- Avatar -->
     <div class="shrink-0 mt-0.5">
       <img

@@ -12,12 +12,10 @@ export class WallPage {
 
   constructor(page: Page) {
     this.page = page
-    this.postComposerInput = page.locator(
-      'textarea[placeholder*="mind" i], textarea[placeholder*="post" i], [data-testid="post-composer"]',
-    )
-    this.postButton = page.getByRole('button', { name: /post|share|publish/i })
-    this.feedItems = page.locator('[data-testid="feed-item"], article, .feed-item')
-    this.notificationBell = page.locator('[data-testid="notification-bell"], [aria-label*="notification" i]')
+    this.postComposerInput = page.locator('[data-testid="post-textarea"]').or(page.locator('[data-testid="post-composer"]'))
+    this.postButton = page.locator('[data-testid="post-submit-button"]')
+    this.feedItems = page.locator('[data-testid="post-card"]')
+    this.notificationBell = page.locator('[data-testid="notification-bell-button"]')
   }
 
   async goto() {
@@ -25,8 +23,14 @@ export class WallPage {
   }
 
   async createTextPost(content: string) {
-    await this.postComposerInput.click()
-    await this.postComposerInput.fill(content)
+    // Click the trigger div to open the modal, then fill the textarea
+    const trigger = this.page.locator('[data-testid="post-composer"]')
+    const textarea = this.page.locator('[data-testid="post-textarea"]')
+    if (await trigger.isVisible()) {
+      await trigger.click()
+    }
+    await textarea.waitFor({ state: 'visible' })
+    await textarea.fill(content)
     await this.postButton.click()
   }
 }

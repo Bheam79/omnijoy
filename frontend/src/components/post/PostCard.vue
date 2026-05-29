@@ -94,7 +94,7 @@ const tobStyle = computed(() => {
 </script>
 
 <template>
-  <article class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 overflow-hidden">
+  <article data-testid="post-card" class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 overflow-hidden">
     <!-- Header -->
     <div class="flex items-center justify-between px-4 pt-4 pb-2">
       <div class="flex items-center gap-3">
@@ -135,6 +135,7 @@ const tobStyle = computed(() => {
       <!-- Options menu (own posts: delete; others: report) -->
       <div v-if="isOwn || isLoggedIn" class="relative group">
         <button
+          data-testid="post-menu-button"
           class="text-slate-500 hover:text-slate-400 p-1 rounded-full hover:bg-slate-700 transition"
           aria-label="Post options"
         >
@@ -142,9 +143,10 @@ const tobStyle = computed(() => {
             <path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z"/>
           </svg>
         </button>
-        <div class="absolute right-0 top-7 z-10 hidden group-focus-within:block bg-slate-800 border border-slate-700 rounded-lg shadow-lg w-36 py-1">
+        <div data-testid="post-menu-dropdown" class="absolute right-0 top-7 z-10 hidden group-focus-within:block bg-slate-800 border border-slate-700 rounded-lg shadow-lg w-36 py-1">
           <button
             v-if="isOwn"
+            data-testid="post-delete-button"
             class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-950 transition"
             @click="handleDelete"
           >
@@ -152,6 +154,7 @@ const tobStyle = computed(() => {
           </button>
           <button
             v-if="!isOwn"
+            data-testid="post-report-button"
             class="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 transition"
             @click="reportModalOpen = true"
           >
@@ -259,6 +262,7 @@ const tobStyle = computed(() => {
     <!-- Actions bar (Comment + Share) -->
     <div class="flex items-center gap-1 px-4 py-2 border-t border-slate-700">
       <button
+        data-testid="post-comment-button"
         class="flex items-center gap-1.5 text-gray-500 hover:text-blue-400 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-blue-900/40 transition flex-1 justify-center"
         :class="{ 'text-blue-400': threadExpanded }"
         @click="handleCommentClick"
@@ -270,6 +274,7 @@ const tobStyle = computed(() => {
         Comment
       </button>
       <button
+        data-testid="post-share-button"
         class="flex items-center gap-1.5 text-gray-500 hover:text-blue-400 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-blue-900/40 transition flex-1 justify-center"
         :title="shareCopied ? 'Link copied!' : 'Share this post'"
         @click="openShareModal"

@@ -16,29 +16,23 @@ export class CommentsPage {
     await this.page.waitForLoadState('networkidle')
   }
 
-  /** Returns the comment input for the first post card. */
+  /** Returns the comment input for a post card. */
   commentInput(postCard: Locator): Locator {
-    return postCard.locator(
-      'textarea[placeholder*="comment" i], input[placeholder*="comment" i], [data-testid="comment-input"]',
-    ).first()
+    return postCard.locator('[data-testid="comment-input"]')
   }
 
   /** Returns the submit button for a comment form. */
   commentSubmitButton(postCard: Locator): Locator {
-    return postCard.getByRole('button', { name: /post|comment|submit|send/i }).first()
+    return postCard.locator('[data-testid="comment-submit"]')
   }
 
   /** Returns all rendered comment items inside a post card. */
   commentItems(postCard: Locator): Locator {
-    return postCard.locator(
-      '[data-testid="comment-item"], .comment-item, li.comment, [class*="comment"]',
-    )
+    return postCard.locator('[data-testid="comment-item"]')
   }
 
   /** First post card on the page. */
   get firstPostCard(): Locator {
-    return this.page.locator(
-      '[data-testid="post-card"], article, [class*="post-card"]',
-    ).first()
+    return this.page.locator('[data-testid="post-card"]').first()
   }
 }

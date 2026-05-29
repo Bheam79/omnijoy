@@ -27,12 +27,10 @@ test.describe('My Wall feed', () => {
   test('post composer is visible on wall page', async ({ page }) => {
     await page.goto('/wall')
     await page.waitForLoadState('networkidle')
-    // The PostComposer renders a trigger bar (div) with text "What's on your mind?".
-    // Clicking it opens a modal with a textarea. We just verify the trigger is visible.
-    const composer = page.getByText("What's on your mind?")
-      .or(page.locator('[data-testid="post-composer"]'))
-      .or(page.locator('textarea').first())
-    await expect(composer.first()).toBeVisible({ timeout: 8_000 })
+    // The PostComposer renders a trigger bar with data-testid="post-composer".
+    // Clicking it opens a modal with a textarea (data-testid="post-textarea").
+    const composer = page.locator('[data-testid="post-composer"]')
+    await expect(composer).toBeVisible({ timeout: 8_000 })
   })
 
   test('unauthenticated user is redirected from /wall to /login', async ({ page }) => {
@@ -62,14 +60,14 @@ test.describe('Post creation', () => {
     await page.goto('/wall')
     await page.waitForLoadState('networkidle')
 
-    // Find composer textarea/input
-    const composer = page.locator(
-      'textarea, [contenteditable="true"]',
-    ).first()
-    if (await composer.isVisible()) {
-      await composer.click()
-      await composer.fill('Test post from E2E suite')
-      await expect(composer).toHaveValue(/test post from e2e suite/i)
+    // Click the trigger to open the modal, then fill the textarea
+    const trigger = page.locator('[data-testid="post-composer"]')
+    if (await trigger.isVisible()) {
+      await trigger.click()
+      const textarea = page.locator('[data-testid="post-textarea"]')
+      await textarea.waitFor({ state: 'visible', timeout: 3_000 })
+      await textarea.fill('Test post from E2E suite')
+      await expect(textarea).toHaveValue(/test post from e2e suite/i)
     }
   })
 })

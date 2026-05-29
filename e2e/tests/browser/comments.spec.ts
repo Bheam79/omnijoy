@@ -169,9 +169,7 @@ test.describe('Comments — browser UI', () => {
     await expect(page.locator('body')).toBeVisible()
 
     // Check for any post card or empty state
-    const postCards = page.locator(
-      '[data-testid="post-card"], article, [class*="post-card"]',
-    )
+    const postCards = page.locator('[data-testid="post-card"]')
     const emptyState = page.getByText(/no posts yet|be the first|start sharing/i)
     const hasContent =
       (await postCards.count()) > 0 || (await emptyState.isVisible())
@@ -190,12 +188,11 @@ test.describe('Comments — browser UI', () => {
     await page.goto('/wall')
     await page.waitForLoadState('networkidle')
 
-    // Look for a comment input, button, or link that opens comments
+    // Look for a comment button (post-comment-button opens the thread)
+    // or a comment input (if thread already expanded)
     const commentTrigger = page
-      .getByRole('button', { name: /comment/i })
+      .locator('[data-testid="post-comment-button"]')
       .or(page.locator('[data-testid="comment-input"]'))
-      .or(page.locator('textarea[placeholder*="comment" i]'))
-      .or(page.getByText(/comment/i))
     const hasCommentUI = await commentTrigger.first().isVisible()
     expect(hasCommentUI).toBeTruthy()
   })

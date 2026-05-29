@@ -212,10 +212,7 @@ test.describe('Reports — browser UI', () => {
     await page.waitForLoadState('networkidle')
 
     // Look for a kebab / options menu on any post card
-    const menuButton = page
-      .locator('[data-testid="post-menu"], [aria-label*="more options" i], [aria-label*="options" i]')
-      .or(page.locator('button:has([class*="ellipsis"]), button:has([class*="dots"]), button:has([class*="menu"])'))
-      .first()
+    const menuButton = page.locator('[data-testid="post-menu-button"]').first()
 
     const hasMenu = await menuButton.isVisible()
     // It's acceptable that no menu is visible (the other user's post may not be on page 1)
