@@ -18,6 +18,7 @@ export const SEED: Record<string, SeedUser> & {
   user1: SeedUser
   user2: SeedUser
   user3: SeedUser
+  admin: SeedUser
 } = {
   /** Primary test user — used for most browser flows */
   user1: {
@@ -42,5 +43,17 @@ export const SEED: Record<string, SeedUser> & {
     displayName: 'Carol E2E',
     gender: 'NotDisclosed',
     birthDate: '1995-07-04',
+  },
+  /**
+   * Admin user — promoted to the Admin platform role by global-setup via a
+   * direct DB update so that admin/moderator endpoint tests work without
+   * circular bootstrapping through the API.
+   */
+  admin: {
+    email: 'e2e_admin@omnijoy.test',
+    password: 'Test@12345!',
+    displayName: 'Admin E2E',
+    gender: 'NotDisclosed',
+    birthDate: '1985-06-15',
   },
 }

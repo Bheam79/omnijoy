@@ -1,3 +1,4 @@
+import { execSync } from 'child_process'
 import { request, FullConfig } from '@playwright/test'
 import { SEED } from '../fixtures/seed-data'
 
@@ -14,7 +15,7 @@ async function globalSetup(config: FullConfig) {
   // Use Playwright's API request context — no browser needed
   const context = await request.newContext({ baseURL })
 
-  const users = [SEED.user1, SEED.user2, SEED.user3]
+  const users = [SEED.user1, SEED.user2, SEED.user3, SEED.admin]
 
   console.log('\n[global-setup] Seeding test users...')
 
@@ -42,6 +43,22 @@ async function globalSetup(config: FullConfig) {
     } catch (err) {
       console.warn(`  ✗ Error registering ${user.email}: ${err}`)
     }
+  }
+
+  // ── Promote the admin seed user to Admin role via a direct DB update ─────────
+  // Registration via the API always creates a "User" role account.  There is no
+  // public bootstrap endpoint, so we escalate through the MariaDB container.
+  // This is idempotent: re-running the setup leaves the role at "Admin".
+  console.log('[global-setup] Promoting admin seed user...')
+  try {
+    const sql = `UPDATE Users SET Role='Admin' WHERE Email='${SEED.admin.email}';`
+    execSync(
+      `docker exec 07ad0b82_omnijoy_mysql mariadb -uomnijoy -pomnijoy_pass omnijoy -e "${sql}"`,
+      { stdio: 'pipe' },
+    )
+    console.log(`  ✓ Promoted ${SEED.admin.email} to Admin`)
+  } catch (err) {
+    console.warn(`  ✗ Failed to promote admin user: ${err}`)
   }
 
   await context.dispose()
