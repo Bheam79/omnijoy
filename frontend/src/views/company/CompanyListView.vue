@@ -151,12 +151,12 @@ function extractError(e: unknown): string {
     <!-- Tabs -->
     <div class="flex gap-1 mb-6 bg-slate-700 rounded-xl p-1 w-fit">
       <button
-        class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all"
+        class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer"
         :class="activeTab === 'all' ? 'bg-slate-800 text-indigo-300 shadow-sm' : 'text-slate-400 hover:text-slate-200'"
         @click="setTab('all')"
       >All Pages</button>
       <button
-        class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all"
+        class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer"
         :class="activeTab === 'mine' ? 'bg-slate-800 text-indigo-300 shadow-sm' : 'text-slate-400 hover:text-slate-200'"
         @click="setTab('mine')"
       >My Pages</button>
