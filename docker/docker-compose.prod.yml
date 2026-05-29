@@ -104,14 +104,17 @@ services:
 
       # ── Rate-limit overrides (optional) ────────────────────────────────────
       # Leave these unset to use the production defaults from RateLimitConstants
-      # (20 uploads/hour per user, 10 strict-policy requests/min per IP). Set
-      # RATELIMIT_* in docker/.env when running `make test-e2e-prod` or when a
-      # particular deployment needs different thresholds. The variables expand
-      # to the empty string when unset, which the backend treats as "no override".
+      # (20 uploads/hour per user, 10 strict-policy requests/min per IP,
+      # 600 req/min per userId for the global limiter). Set RATELIMIT_* in
+      # docker/.env when running `make test-e2e-prod` or when a particular
+      # deployment needs different thresholds. The variables expand to the empty
+      # string when unset, which the backend treats as "no override".
       RateLimiting__Upload__PermitLimit:   ${RATELIMIT_UPLOAD_PERMITS:-}
       RateLimiting__Upload__WindowSeconds: ${RATELIMIT_UPLOAD_WINDOW_SECONDS:-}
       RateLimiting__Strict__PermitLimit:   ${RATELIMIT_STRICT_PERMITS:-}
       RateLimiting__Strict__WindowSeconds: ${RATELIMIT_STRICT_WINDOW_SECONDS:-}
+      RateLimiting__Global__UserPermitLimit: ${RATELIMIT_GLOBAL_USER_PERMITS:-}
+      RateLimiting__Global__IpPermitLimit:   ${RATELIMIT_GLOBAL_IP_PERMITS:-}
     volumes:
       - media_data:/var/omnijoy/media
     networks:

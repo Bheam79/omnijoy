@@ -344,9 +344,15 @@ profile (1000 uploads/hr, 200 strict/min) so the Playwright suite isn't
 cascade-failed by the 20/hour upload bucket. Keys: `RateLimiting:Upload:PermitLimit`,
 `RateLimiting:Upload:WindowSeconds` (`WindowMinutes` also accepted),
 plus `Strict:` and `Global:Ip|UserPermitLimit` siblings. For
-`make test-e2e-prod`, set `RATELIMIT_UPLOAD_PERMITS=1000` (etc.) in
-`docker/.env` — `docker-compose.prod.yml` already plumbs them into
-the backend container as `RateLimiting__Upload__PermitLimit`.
+`make test-e2e-prod`, set the following in `docker/.env` —
+`docker-compose.prod.yml` plumbs them into the backend container:
+
+| `docker/.env` variable | compose key | Why needed for E2E |
+|---|---|---|
+| `RATELIMIT_UPLOAD_PERMITS=1000` | `RateLimiting__Upload__PermitLimit` | ~50 upload requests per user |
+| `RATELIMIT_STRICT_PERMITS=200` | `RateLimiting__Strict__PermitLimit` | repeated auth calls |
+| `RATELIMIT_GLOBAL_USER_PERMITS=6000` | `RateLimiting__Global__UserPermitLimit` | 300+ API tests/user exhaust 600/min global limit, causing cascading browser 429s |
+| `RATELIMIT_GLOBAL_IP_PERMITS=2000` | `RateLimiting__Global__IpPermitLimit` | same as above for IP-keyed paths |
 
 ---
 
