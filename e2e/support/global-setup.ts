@@ -11,7 +11,27 @@ import { SHARED_AUTH_PATH, type SharedAuth } from './shared-auth'
  * Registers the three seed users via the API so all tests can rely on them
  * existing. If a user already exists (409 Conflict), registration is silently
  * skipped — this makes the setup idempotent across re-runs.
+ *
+ * ## Rate-limit isolation
+ *
+ * The `strict` policy on AuthController is 10 req/min per IP. Without
+ * isolation, global-setup's 4 register + 4 login = 8 calls would drain
+ * 8/10 of the bucket used by the rest of the suite, leaving only 2 slots
+ * for `auth.api.spec.ts`, the admin ban test (which registers a fresh
+ * user), and the browser login flow.
+ *
+ * We sidestep this by sending every global-setup auth call with a
+ * synthetic `X-Forwarded-For` header. nginx forwards client-supplied
+ * X-Forwarded-For via `$proxy_add_x_forwarded_for` and the backend
+ * keys the strict limiter on the leftmost entry — so global-setup's
+ * counter is completely separate from the real client IP used by tests.
+ *
+ * The synthetic prefix uses 198.51.100.0/24 (TEST-NET-2, RFC 5737)
+ * which is never routed on the public internet, plus a per-run nonce.
  */
+const SETUP_FORWARDED_FOR = `198.51.100.7-setup-${Date.now().toString(36)}`
+const SETUP_AUTH_HEADERS = { 'X-Forwarded-For': SETUP_FORWARDED_FOR }
+
 async function globalSetup(config: FullConfig) {
   const baseURL = config.projects[0]?.use?.baseURL ?? 'http://localhost:80'
 
@@ -25,6 +45,7 @@ async function globalSetup(config: FullConfig) {
   for (const user of users) {
     try {
       const resp = await context.post(`${baseURL}/api/auth/register`, {
+        headers: SETUP_AUTH_HEADERS,
         data: {
           email: user.email,
           displayName: user.displayName,
@@ -86,6 +107,7 @@ async function globalSetup(config: FullConfig) {
     for (let attempt = 1; attempt <= 6 && !cached; attempt++) {
       try {
         const resp = await context.post(`${baseURL}/api/auth/login`, {
+          headers: SETUP_AUTH_HEADERS,
           data: { email: user.email, password: user.password },
         })
         if (resp.ok()) {
