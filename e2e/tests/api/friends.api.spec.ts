@@ -77,12 +77,18 @@ test.describe('Friend request lifecycle', () => {
     const { token: token1, userId: userId1 } = getSharedTokenFor(SEED.user1)
     const { token: token2, userId: userId2 } = getSharedTokenFor(SEED.user2)
 
-    // Clean up: remove any existing friendship / request
+    // Clean up: remove any existing friendship / request (both directions)
     await request.delete(`${baseURL}/api/friends/${userId2}`, {
       headers: { Authorization: `Bearer ${token1}` },
     })
     await request.delete(`${baseURL}/api/friends/request/${userId2}`, {
       headers: { Authorization: `Bearer ${token1}` },
+    })
+    // Also cancel any pending request Bob may have sent to Alice from a prior run.
+    // If Bob→Alice is Pending and Alice sends a request, SendRequestAsync auto-accepts
+    // it, so there is no Alice→Bob Pending record to cancel → 404 on cancel.
+    await request.delete(`${baseURL}/api/friends/request/${userId1}`, {
+      headers: { Authorization: `Bearer ${token2}` },
     })
 
     // Send request
