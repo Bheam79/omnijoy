@@ -22,9 +22,9 @@ test.describe('Live streaming pages', () => {
     // The live page always has a "Go Live" header button. The empty state shows
     // "No live streams right now". Use .first() to avoid strict mode violation
     // since "Go Live" text appears in multiple elements (header + empty state).
-    const hasStreams = (await page.locator('[data-testid="stream-card"], article.stream').count()) > 0
+    const hasStreams = (await page.locator('[data-testid="stream-card"]').count()) > 0
     const hasEmpty = await page.getByText(/no live streams right now/i).first().isVisible()
-    const hasGoLiveButton = await page.getByRole('button', { name: 'Go Live' }).isVisible()
+    const hasGoLiveButton = await page.locator('[data-testid="go-live-button"]').isVisible()
     expect(hasStreams || hasEmpty || hasGoLiveButton).toBeTruthy()
   })
 

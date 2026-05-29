@@ -43,10 +43,10 @@ function formatDate(iso: string) {
 
 const isUpcoming = computed(() => event.value ? new Date(event.value.startAt) > new Date() : false)
 
-const rsvpOptions: { label: string; value: RsvpStatus; icon: string; color: string }[] = [
-  { label: 'Going',     value: 'Going',    icon: '✅', color: 'green' },
-  { label: 'Maybe',     value: 'Maybe',    icon: '🤔', color: 'yellow' },
-  { label: 'Not Going', value: 'NotGoing', icon: '❌', color: 'red' },
+const rsvpOptions: { label: string; value: RsvpStatus; icon: string; color: string; testid: string }[] = [
+  { label: 'Going',     value: 'Going',    icon: '✅', color: 'green',  testid: 'rsvp-going' },
+  { label: 'Maybe',     value: 'Maybe',    icon: '🤔', color: 'yellow', testid: 'rsvp-maybe' },
+  { label: 'Not Going', value: 'NotGoing', icon: '❌', color: 'red',    testid: 'rsvp-not-going' },
 ]
 
 async function fetchEvent() {
@@ -152,7 +152,7 @@ onMounted(fetchEvent)
 
       <!-- Title & meta -->
       <div>
-        <h1 class="text-2xl font-bold text-slate-100 mb-1">{{ event.title }}</h1>
+        <h1 data-testid="event-title" class="text-2xl font-bold text-slate-100 mb-1">{{ event.title }}</h1>
 
         <!-- Creator -->
         <div class="flex items-center gap-2 text-sm text-gray-500 mb-3">
@@ -195,6 +195,7 @@ onMounted(fetchEvent)
           <button
             v-for="opt in rsvpOptions"
             :key="opt.value"
+            :data-testid="opt.testid"
             class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all"
             :class="event.myRsvp === opt.value
               ? opt.value === 'Going'    ? 'bg-green-600 text-white border-green-600'

@@ -74,7 +74,7 @@ async function handleDelete() {
 </script>
 
 <template>
-  <article class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 overflow-hidden hover:shadow-md transition-shadow">
+  <article data-testid="event-card" class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 overflow-hidden hover:shadow-md transition-shadow">
     <!-- Cover image -->
     <RouterLink :to="`/events/${event.id}`" class="block">
       <div

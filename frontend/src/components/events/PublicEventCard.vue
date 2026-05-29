@@ -43,7 +43,7 @@ void props
 </script>
 
 <template>
-  <article class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 overflow-hidden hover:shadow-md transition-shadow">
+  <article data-testid="event-card" class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 overflow-hidden hover:shadow-md transition-shadow">
     <!-- Cover -->
     <div class="relative h-40 bg-gradient-to-br from-indigo-500 to-purple-600 overflow-hidden">
       <img

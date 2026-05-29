@@ -68,6 +68,7 @@ function setFilter(f: FilterOption) {
         <p class="text-sm text-gray-500 mt-0.5">Upcoming events from friends and pages you follow</p>
       </div>
       <button
+        data-testid="create-event-button"
         class="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition shadow-sm"
         @click="showCreateModal = true"
       >
@@ -138,7 +139,7 @@ function setFilter(f: FilterOption) {
     </div>
 
     <!-- Events grid -->
-    <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div v-else data-testid="events-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <EventCard
         v-for="event in eventsStore.events"
         :key="event.id"

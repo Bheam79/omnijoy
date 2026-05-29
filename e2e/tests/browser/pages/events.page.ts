@@ -18,16 +18,16 @@ export class EventsPage {
 
   constructor(page: Page) {
     this.page = page
-    this.createEventButton = page.getByRole('button', { name: /create event|new event/i })
-    this.eventCards = page.locator('[data-testid="event-card"], article.event')
+    this.createEventButton = page.locator('[data-testid="create-event-button"]')
+    this.eventCards = page.locator('[data-testid="event-card"]')
     this.titleInput = page.locator('input[name*="title"], input[placeholder*="title" i]')
     this.descriptionInput = page.locator('textarea[name*="desc"], textarea[placeholder*="desc" i]')
     this.startAtInput = page.locator('input[type="datetime-local"], input[name*="start"]')
     this.locationInput = page.locator('input[name*="location"], input[placeholder*="location" i]')
     this.submitButton = page.getByRole('button', { name: /create|save/i })
-    this.rsvpGoingButton = page.getByRole('button', { name: /going/i })
-    this.rsvpMaybeButton = page.getByRole('button', { name: /maybe/i })
-    this.rsvpDeclineButton = page.getByRole('button', { name: /not going|decline/i })
+    this.rsvpGoingButton = page.locator('[data-testid="rsvp-going"]')
+    this.rsvpMaybeButton = page.locator('[data-testid="rsvp-maybe"]')
+    this.rsvpDeclineButton = page.locator('[data-testid="rsvp-not-going"]')
   }
 
   async goto() {

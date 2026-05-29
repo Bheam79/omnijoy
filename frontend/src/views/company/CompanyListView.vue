@@ -138,6 +138,7 @@ function extractError(e: unknown): string {
         <p class="text-sm text-gray-500 mt-0.5">Discover and follow organization pages</p>
       </div>
       <button
+        data-testid="create-company-button"
         class="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition shadow-sm"
         @click="showCreateModal = true"
       >
@@ -201,6 +202,7 @@ function extractError(e: unknown): string {
       <div
         v-for="p in pages"
         :key="p.id"
+        data-testid="company-card"
         class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden hover:shadow-md transition-shadow"
       >
         <!-- Cover -->

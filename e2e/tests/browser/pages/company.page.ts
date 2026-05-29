@@ -16,11 +16,11 @@ export class CompanyPage {
 
   constructor(page: Page) {
     this.page = page
-    this.createPageButton = page.getByRole('button', { name: /create page|new page/i })
+    this.createPageButton = page.locator('[data-testid="create-company-button"]')
     this.nameInput = page.locator('input[name*="name"], input[placeholder*="name" i]')
     this.descriptionInput = page.locator('textarea[name*="desc"], textarea[placeholder*="desc" i]')
     this.submitButton = page.getByRole('button', { name: /create|save/i })
-    this.companyCards = page.locator('[data-testid="company-card"], article.company')
+    this.companyCards = page.locator('[data-testid="company-card"]')
     this.addAdminButton = page.getByRole('button', { name: /add admin/i })
     this.followButton = page.getByRole('button', { name: /follow/i })
     this.unfollowButton = page.getByRole('button', { name: /unfollow/i })

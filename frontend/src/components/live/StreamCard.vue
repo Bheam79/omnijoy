@@ -8,6 +8,7 @@ defineProps<{ stream: LiveStreamDto }>()
 <template>
   <RouterLink
     :to="`/live/${stream.id}`"
+    data-testid="stream-card"
     class="group block bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden hover:shadow-md transition-shadow"
   >
     <!-- Thumbnail placeholder -->
