@@ -17,8 +17,13 @@ namespace Omnijoy.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _auth;
+    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IAuthService auth) => _auth = auth;
+    public AuthController(IAuthService auth, ILogger<AuthController> logger)
+    {
+        _auth   = auth;
+        _logger = logger;
+    }
 
     // POST /api/auth/register
     [HttpPost("register")]
@@ -58,8 +63,24 @@ public class AuthController : ControllerBase
     [HttpPost("otp/request")]
     public async Task<IActionResult> OtpRequest([FromBody] OtpRequestDto request)
     {
-        // Always return 200 to prevent email enumeration
-        await _auth.RequestOtpAsync(request);
+        // Always return 200 to prevent email enumeration. If SMTP is not
+        // configured or the send otherwise fails, log the error but do not
+        // surface it — the client must never learn whether the address exists.
+        try
+        {
+            await _auth.RequestOtpAsync(request);
+        }
+        catch (Exception ex) when (
+            ex is System.Net.Mail.SmtpException ||
+            ex.InnerException is System.Net.Mail.SmtpException)
+        {
+            _logger.LogError(ex, "Failed to send OTP email (SMTP not configured or unavailable); continuing silently.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while sending OTP email; continuing silently.");
+        }
+
         return Ok(new { message = "If your email is registered, you will receive a code shortly." });
     }
 
