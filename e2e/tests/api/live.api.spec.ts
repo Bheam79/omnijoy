@@ -1,21 +1,15 @@
-import { test, expect, type APIRequestContext } from '../../support/fixtures'
+import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 
 /**
  * API E2E tests for /api/live/* endpoints.
  */
 
-async function loginAs(request: APIRequestContext, baseURL: string | undefined, user: typeof SEED.user1) {
-  const resp = await request.post(`${baseURL}/api/auth/login`, {
-    data: { email: user.email, password: user.password },
-  })
-  const body = await resp.json()
-  return { token: body.accessToken as string, userId: body.user.id as string }
-}
 
 test.describe('GET /api/live/active', () => {
   test('returns list of active streams', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/live/active`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -32,7 +26,7 @@ test.describe('GET /api/live/active', () => {
 
 test.describe('POST /api/live/start', () => {
   test('starts a live stream or returns service unavailable', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/live/start`, {
       headers: { Authorization: `Bearer ${token}` },
       data: {
@@ -66,7 +60,7 @@ test.describe('POST /api/live/start', () => {
 
 test.describe('GET /api/live/:id', () => {
   test('returns 404 for unknown stream ID', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/live/00000000-0000-0000-0000-000000000000`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -81,7 +75,7 @@ test.describe('GET /api/live/:id', () => {
 
 test.describe('POST /api/live/:id/end', () => {
   test('returns 404 for unknown stream ID', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/live/00000000-0000-0000-0000-000000000000/end`, {
       headers: { Authorization: `Bearer ${token}` },
     })

@@ -1,5 +1,6 @@
-import { test, expect, type APIRequestContext } from '../../support/fixtures'
+import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 
 /**
  * API E2E tests for SlugsController endpoints:
@@ -10,13 +11,6 @@ import { SEED } from '../../fixtures/seed-data'
  * UsersController and are tested in users.api.spec.ts.
  */
 
-async function loginAs(request: APIRequestContext, baseURL: string | undefined, user: typeof SEED.user1) {
-  const resp = await request.post(`${baseURL}/api/auth/login`, {
-    data: { email: user.email, password: user.password },
-  })
-  const body = await resp.json()
-  return { token: body.accessToken as string, userId: body.user.id as string }
-}
 
 // ── GET /api/slugs/check ──────────────────────────────────────────────────────
 
@@ -81,7 +75,7 @@ test.describe('GET /api/slugs/check', () => {
   })
 
   test('reports a taken slug after assignment', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const slug = `taken-slug-${Date.now()}`
 
     // Assign the slug to user1
@@ -122,7 +116,7 @@ test.describe('GET /api/slugs/resolve/:slug', () => {
   })
 
   test('resolves a user slug after assignment', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user2)
+    const { token } = getSharedTokenFor(SEED.user2)
     const slug = `resolve-test-${Date.now()}`
 
     const setResp = await request.put(`${baseURL}/api/users/me/slug`, {

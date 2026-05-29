@@ -1,5 +1,6 @@
 import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 import { injectTokens } from '../../support/auth-helpers'
 
 test.describe('Messenger / Chat', () => {
@@ -21,15 +22,9 @@ test.describe('Messenger / Chat', () => {
   })
 
   test('can open a direct conversation (API-backed browser flow)', async ({ page, request, baseURL }) => {
-    const loginResp1 = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token1, user: user1 } = await loginResp1.json()
+    const { token: token1, user: user1 } = getSharedTokenFor(SEED.user1)
 
-    const loginResp2 = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user2.email, password: SEED.user2.password },
-    })
-    const { user: user2 } = await loginResp2.json()
+    const { user: user2 } = getSharedTokenFor(SEED.user2)
 
     // Create or get direct conversation via API
     const convResp = await request.post(`${baseURL}/api/conversations/direct/${user2.id}`, {
@@ -62,10 +57,7 @@ test.describe('Messenger / Chat', () => {
   })
 
   test('conversation list API returns conversations', async ({ request, baseURL }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     const resp = await request.get(`${baseURL}/api/conversations`, {
       headers: { Authorization: `Bearer ${token}` },

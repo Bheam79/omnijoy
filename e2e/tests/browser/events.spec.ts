@@ -1,5 +1,6 @@
 import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 import { injectTokens } from '../../support/auth-helpers'
 import { EventsPage } from './pages/events.page'
 
@@ -34,10 +35,7 @@ test.describe('Events page', () => {
   })
 
   test('event creation and RSVP flow (API-backed)', async ({ page, request, baseURL }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token, user } = await loginResp.json()
+    const { token: token, user } = getSharedTokenFor(SEED.user1)
 
     // Create an event via API
     const createResp = await request.post(`${baseURL}/api/events`, {

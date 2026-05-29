@@ -1,5 +1,6 @@
 import { test, expect, type APIRequestContext } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 
 /**
  * API E2E tests for ReportsController endpoints:
@@ -7,14 +8,6 @@ import { SEED } from '../../fixtures/seed-data'
  *   GET   /api/admin/reports            (Admin / Moderator only)
  *   PATCH /api/admin/reports/{id}       (Admin / Moderator only)
  */
-
-async function loginAs(request: APIRequestContext, baseURL: string | undefined, user: typeof SEED.user1) {
-  const resp = await request.post(`${baseURL}/api/auth/login`, {
-    data: { email: user.email, password: user.password },
-  })
-  const body = await resp.json()
-  return { token: body.accessToken as string, userId: body.user.id as string }
-}
 
 /** Creates a public text post and returns its id. */
 async function createPost(request: APIRequestContext, baseURL: string | undefined, token: string) {
@@ -30,10 +23,10 @@ async function createPost(request: APIRequestContext, baseURL: string | undefine
 
 test.describe('POST /api/reports', () => {
   test('submits a report against a post', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
     const postId = await createPost(request, baseURL, token1)
 
-    const { token: token2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token2 } = getSharedTokenFor(SEED.user2)
     const resp = await request.post(`${baseURL}/api/reports`, {
       headers: { Authorization: `Bearer ${token2}` },
       data: {
@@ -52,8 +45,8 @@ test.describe('POST /api/reports', () => {
   })
 
   test('submits a report against a user', async ({ request, baseURL }) => {
-    const { token, userId: targetId } = await loginAs(request, baseURL, SEED.user1)
-    const { token: token2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token, userId: targetId } = getSharedTokenFor(SEED.user1)
+    const { token: token2 } = getSharedTokenFor(SEED.user2)
 
     const resp = await request.post(`${baseURL}/api/reports`, {
       headers: { Authorization: `Bearer ${token2}` },
@@ -69,8 +62,8 @@ test.describe('POST /api/reports', () => {
   })
 
   test('returns 400 for an invalid reason', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
-    const { token: token2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token } = getSharedTokenFor(SEED.user1)
+    const { token: token2 } = getSharedTokenFor(SEED.user2)
     const postId = await createPost(request, baseURL, token)
 
     const resp = await request.post(`${baseURL}/api/reports`, {
@@ -85,7 +78,7 @@ test.describe('POST /api/reports', () => {
   })
 
   test('returns 404 for a non-existent target', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/reports`, {
       headers: { Authorization: `Bearer ${token}` },
       data: {
@@ -113,7 +106,7 @@ test.describe('POST /api/reports', () => {
 
 test.describe('GET /api/admin/reports', () => {
   test('admin can list all reports', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.admin)
+    const { token } = getSharedTokenFor(SEED.admin)
     const resp = await request.get(`${baseURL}/api/admin/reports`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -123,7 +116,7 @@ test.describe('GET /api/admin/reports', () => {
   })
 
   test('supports filtering by status', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.admin)
+    const { token } = getSharedTokenFor(SEED.admin)
     const resp = await request.get(`${baseURL}/api/admin/reports?status=Pending`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -131,7 +124,7 @@ test.describe('GET /api/admin/reports', () => {
   })
 
   test('supports filtering by type', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.admin)
+    const { token } = getSharedTokenFor(SEED.admin)
     const resp = await request.get(`${baseURL}/api/admin/reports?type=Post`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -139,7 +132,7 @@ test.describe('GET /api/admin/reports', () => {
   })
 
   test('returns 403 for a regular user', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/admin/reports`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -157,11 +150,11 @@ test.describe('GET /api/admin/reports', () => {
 test.describe('PATCH /api/admin/reports/:id', () => {
   test('admin can update a report status to Reviewed', async ({ request, baseURL }) => {
     // First submit a report so we have an ID to work with
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
     const postId = await createPost(request, baseURL, token1)
 
     // Use user3 to avoid duplicate-report conflicts with other tests
-    const { token: token3 } = await loginAs(request, baseURL, SEED.user3)
+    const { token: token3 } = getSharedTokenFor(SEED.user3)
     const submitResp = await request.post(`${baseURL}/api/reports`, {
       headers: { Authorization: `Bearer ${token3}` },
       data: { targetType: 'Post', targetId: postId, reason: 'Violence' },
@@ -170,7 +163,7 @@ test.describe('PATCH /api/admin/reports/:id', () => {
     // we just need a report to exist in the queue for the admin to action.
     expect([201, 409]).toContain(submitResp.status())
 
-    const { token: adminToken } = await loginAs(request, baseURL, SEED.admin)
+    const { token: adminToken } = getSharedTokenFor(SEED.admin)
     const listResp = await request.get(`${baseURL}/api/admin/reports?status=Pending&pageSize=1`, {
       headers: { Authorization: `Bearer ${adminToken}` },
     })
@@ -192,7 +185,7 @@ test.describe('PATCH /api/admin/reports/:id', () => {
   })
 
   test('admin can dismiss a report', async ({ request, baseURL }) => {
-    const { token: adminToken } = await loginAs(request, baseURL, SEED.admin)
+    const { token: adminToken } = getSharedTokenFor(SEED.admin)
 
     // Get any pending report to dismiss
     const listResp = await request.get(`${baseURL}/api/admin/reports?status=Pending&pageSize=1`, {
@@ -211,7 +204,7 @@ test.describe('PATCH /api/admin/reports/:id', () => {
   })
 
   test('returns 404 for a non-existent report ID', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.admin)
+    const { token } = getSharedTokenFor(SEED.admin)
     const resp = await request.patch(
       `${baseURL}/api/admin/reports/00000000-0000-0000-0000-000000000000`,
       {
@@ -223,7 +216,7 @@ test.describe('PATCH /api/admin/reports/:id', () => {
   })
 
   test('returns 400 for an invalid status value', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.admin)
+    const { token } = getSharedTokenFor(SEED.admin)
     const resp = await request.patch(
       `${baseURL}/api/admin/reports/00000000-0000-0000-0000-000000000000`,
       {
@@ -235,7 +228,7 @@ test.describe('PATCH /api/admin/reports/:id', () => {
   })
 
   test('returns 403 for a regular user', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.patch(
       `${baseURL}/api/admin/reports/00000000-0000-0000-0000-000000000000`,
       {

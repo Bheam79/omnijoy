@@ -1,5 +1,6 @@
 import { test, expect, type APIRequestContext } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 import {
   MINIMAL_PNG,
   MINIMAL_JPEG,
@@ -27,18 +28,6 @@ import {
  */
 
 // ── helpers ──────────────────────────────────────────────────────────────────
-
-async function loginAs(
-  request: APIRequestContext,
-  baseURL: string | undefined,
-  user: typeof SEED.user1,
-) {
-  const resp = await request.post(`${baseURL}/api/auth/login`, {
-    data: { email: user.email, password: user.password },
-  })
-  const body = await resp.json()
-  return { token: body.accessToken as string, userId: body.user.id as string }
-}
 
 async function createCompanyPage(
   request: APIRequestContext,
@@ -91,7 +80,7 @@ const RUN_ID = Date.now().toString(36)
 
 test.describe('POST /api/users/me/avatar — MIME type coverage', () => {
   test('accepts JPEG upload', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/users/me/avatar`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -102,7 +91,7 @@ test.describe('POST /api/users/me/avatar — MIME type coverage', () => {
   })
 
   test('accepts PNG upload', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/users/me/avatar`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -113,7 +102,7 @@ test.describe('POST /api/users/me/avatar — MIME type coverage', () => {
   })
 
   test('accepts GIF upload', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/users/me/avatar`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -124,7 +113,7 @@ test.describe('POST /api/users/me/avatar — MIME type coverage', () => {
   })
 
   test('accepts WebP upload', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/users/me/avatar`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -139,7 +128,7 @@ test.describe('POST /api/users/me/avatar — MIME type coverage', () => {
 
 test.describe('POST /api/users/me/avatar — negative', () => {
   test('returns 400 for wrong file type (garbage bytes as .exe)', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/users/me/avatar`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -152,7 +141,7 @@ test.describe('POST /api/users/me/avatar — negative', () => {
   })
 
   test('returns 400 for zero-byte file', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/users/me/avatar`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -166,7 +155,7 @@ test.describe('POST /api/users/me/avatar — negative', () => {
     request,
     baseURL,
   }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     // 11 MB random bytes — exceeds the [RequestSizeLimit(10 * 1024 * 1024)] on the endpoint
     const bigBuffer = Buffer.alloc(11 * 1024 * 1024, 0xab)
     const resp = await request.post(`${baseURL}/api/users/me/avatar`, {
@@ -185,7 +174,7 @@ test.describe('POST /api/users/me/avatar — negative', () => {
 
 test.describe('POST /api/users/me/cover (previously untested)', () => {
   test('uploads cover image successfully (PNG)', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/users/me/cover`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -198,7 +187,7 @@ test.describe('POST /api/users/me/cover (previously untested)', () => {
   })
 
   test('uploads cover image successfully (JPEG)', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/users/me/cover`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -209,7 +198,7 @@ test.describe('POST /api/users/me/cover (previously untested)', () => {
   })
 
   test('returns 400 for wrong file type', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/users/me/cover`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -221,7 +210,7 @@ test.describe('POST /api/users/me/cover (previously untested)', () => {
   })
 
   test('returns 400 for zero-byte file', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/users/me/cover`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -245,7 +234,7 @@ test.describe('POST /api/users/me/cover (previously untested)', () => {
 
 test.describe('POST /api/company-pages — with images (previously untested)', () => {
   test('creates a company page with logo and cover', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/company-pages`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -261,7 +250,7 @@ test.describe('POST /api/company-pages — with images (previously untested)', (
   })
 
   test('creates a company page with WebP logo', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/company-pages`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -273,7 +262,7 @@ test.describe('POST /api/company-pages — with images (previously untested)', (
   })
 
   test('returns 400 for wrong logo type', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/company-pages`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -290,7 +279,7 @@ test.describe('POST /api/company-pages — with images (previously untested)', (
 
 test.describe('PUT /api/company-pages/:id — with images (previously untested)', () => {
   test('updates a company page with new logo and cover', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const pageId = await createCompanyPage(request, baseURL, token, RUN_ID + '_upd')
 
     const resp = await request.put(`${baseURL}/api/company-pages/${pageId}`, {
@@ -305,7 +294,7 @@ test.describe('PUT /api/company-pages/:id — with images (previously untested)'
   })
 
   test('returns 400 for wrong cover type', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const pageId = await createCompanyPage(request, baseURL, token, RUN_ID + '_badcover')
 
     const resp = await request.put(`${baseURL}/api/company-pages/${pageId}`, {
@@ -324,7 +313,7 @@ test.describe('PUT /api/company-pages/:id — with images (previously untested)'
 
 test.describe('POST /api/events — MIME type coverage', () => {
   test('creates event with JPEG cover', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/events`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -338,7 +327,7 @@ test.describe('POST /api/events — MIME type coverage', () => {
   })
 
   test('creates event with GIF cover', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/events`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -352,7 +341,7 @@ test.describe('POST /api/events — MIME type coverage', () => {
   })
 
   test('creates event with WebP cover', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/events`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -366,7 +355,7 @@ test.describe('POST /api/events — MIME type coverage', () => {
   })
 
   test('returns 400 for wrong cover type', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/events`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -384,7 +373,7 @@ test.describe('POST /api/events — MIME type coverage', () => {
 
 test.describe('PUT /api/events/:id — with cover image (previously untested)', () => {
   test('updates event cover image', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const eventId = await createEvent(request, baseURL, token, RUN_ID + '_ev')
 
     const resp = await request.put(`${baseURL}/api/events/${eventId}`, {
@@ -404,7 +393,7 @@ test.describe('PUT /api/events/:id — with cover image (previously untested)', 
 
 test.describe('POST /api/posts — multi-file (N > 1)', () => {
   test('creates an image post with 3 files', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
 
     // Use the platform FormData to repeat the same field name (media[])
     const fd = new FormData()
@@ -429,7 +418,7 @@ test.describe('POST /api/posts — multi-file (N > 1)', () => {
 
 test.describe('POST /api/posts — MIME type coverage (image)', () => {
   test('creates post with JPEG image', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/posts`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -443,7 +432,7 @@ test.describe('POST /api/posts — MIME type coverage (image)', () => {
   })
 
   test('creates post with GIF image', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/posts`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -457,7 +446,7 @@ test.describe('POST /api/posts — MIME type coverage (image)', () => {
   })
 
   test('creates post with WebP image', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/posts`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -473,7 +462,7 @@ test.describe('POST /api/posts — MIME type coverage (image)', () => {
 
 test.describe('POST /api/posts — video upload', () => {
   test('creates a video post with MP4 attachment', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/posts`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -491,7 +480,7 @@ test.describe('POST /api/posts — video upload', () => {
 
 test.describe('POST /api/posts — negative (wrong type / zero-byte)', () => {
   test('returns 400 for wrong file type on image post', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/posts`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -510,8 +499,8 @@ test.describe('POST /api/posts — negative (wrong type / zero-byte)', () => {
 
 test.describe('POST /api/messages — file attachment', () => {
   test('sends a message with a PNG attachment', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { userId: userId2 } = getSharedTokenFor(SEED.user2)
     const convId = await getDirectConversation(request, baseURL, token1, userId2)
 
     const resp = await request.post(`${baseURL}/api/messages`, {
@@ -528,8 +517,8 @@ test.describe('POST /api/messages — file attachment', () => {
   })
 
   test('sends a message with a JPEG attachment', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { userId: userId2 } = getSharedTokenFor(SEED.user2)
     const convId = await getDirectConversation(request, baseURL, token1, userId2)
 
     const resp = await request.post(`${baseURL}/api/messages`, {
@@ -543,8 +532,8 @@ test.describe('POST /api/messages — file attachment', () => {
   })
 
   test('sends a message with a WebP attachment', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { userId: userId2 } = getSharedTokenFor(SEED.user2)
     const convId = await getDirectConversation(request, baseURL, token1, userId2)
 
     const resp = await request.post(`${baseURL}/api/messages`, {
@@ -558,8 +547,8 @@ test.describe('POST /api/messages — file attachment', () => {
   })
 
   test('returns 400 for wrong file type (message attachment)', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { userId: userId2 } = getSharedTokenFor(SEED.user2)
     const convId = await getDirectConversation(request, baseURL, token1, userId2)
 
     const resp = await request.post(`${baseURL}/api/messages`, {
@@ -575,8 +564,8 @@ test.describe('POST /api/messages — file attachment', () => {
   })
 
   test('returns 400 for zero-byte file attachment', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { userId: userId2 } = getSharedTokenFor(SEED.user2)
     const convId = await getDirectConversation(request, baseURL, token1, userId2)
 
     const resp = await request.post(`${baseURL}/api/messages`, {

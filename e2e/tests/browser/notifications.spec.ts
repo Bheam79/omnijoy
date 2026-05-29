@@ -1,5 +1,6 @@
 import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 import { injectTokens } from '../../support/auth-helpers'
 
 test.describe('Notification bell', () => {
@@ -38,10 +39,7 @@ test.describe('Notification bell', () => {
   })
 
   test('notifications API returns unread count', async ({ request, baseURL }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     const resp = await request.get(`${baseURL}/api/notifications/unread/count`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -52,10 +50,7 @@ test.describe('Notification bell', () => {
   })
 
   test('mark all read via API returns 204', async ({ request, baseURL }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     const resp = await request.post(`${baseURL}/api/notifications/read-all`, {
       headers: { Authorization: `Bearer ${token}` },

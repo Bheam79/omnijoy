@@ -1,5 +1,6 @@
 import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 import { injectTokens } from '../../support/auth-helpers'
 import { SettingsPage } from './pages/settings.page'
 
@@ -46,10 +47,7 @@ test.describe('Settings — change password (API)', () => {
     request,
     baseURL,
   }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     // Change to the same password (idempotent-safe; no actual change in state)
     const resp = await request.post(`${baseURL}/api/account/change-password`, {
@@ -68,10 +66,7 @@ test.describe('Settings — change password (API)', () => {
     request,
     baseURL,
   }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     const resp = await request.post(`${baseURL}/api/account/change-password`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -90,10 +85,7 @@ test.describe('Settings — notification preferences (API)', () => {
     request,
     baseURL,
   }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     const resp = await request.get(`${baseURL}/api/account/notification-preferences`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -106,10 +98,7 @@ test.describe('Settings — notification preferences (API)', () => {
   })
 
   test('PUT notification preferences succeeds', async ({ request, baseURL }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     // Fetch current prefs to build a valid payload
     const getResp = await request.get(`${baseURL}/api/account/notification-preferences`, {
@@ -131,10 +120,7 @@ test.describe('Settings — deactivate account (API)', () => {
     baseURL,
   }) => {
     // Use user3 for destructive tests to avoid interfering with other specs
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user3.email, password: SEED.user3.password },
-    })
-    const { accessToken: token, user } = await loginResp.json()
+    const { token: token, user } = getSharedTokenFor(SEED.user3)
 
     // Deactivate
     const deactivateResp = await request.post(`${baseURL}/api/account/deactivate`, {

@@ -1,18 +1,12 @@
-import { test, expect, type APIRequestContext } from '../../support/fixtures'
+import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 
 /**
  * API E2E tests for /share/* endpoints (OG meta tag rendering).
  * These are server-rendered HTML responses.
  */
 
-async function loginAs(request: APIRequestContext, baseURL: string | undefined, user: typeof SEED.user1) {
-  const resp = await request.post(`${baseURL}/api/auth/login`, {
-    data: { email: user.email, password: user.password },
-  })
-  const body = await resp.json()
-  return { token: body.accessToken as string, userId: body.user.id as string }
-}
 
 test.describe('GET /share/posts/:id', () => {
   test('returns 200 for an unknown post ID with "not found" content', async ({ request, baseURL }) => {
@@ -23,7 +17,7 @@ test.describe('GET /share/posts/:id', () => {
   })
 
   test('returns OG meta tags for a public post', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const postResp = await request.post(`${baseURL}/api/posts`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -47,7 +41,7 @@ test.describe('GET /share/posts/:id', () => {
   })
 
   test('includes twitter:card for private post', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const postResp = await request.post(`${baseURL}/api/posts`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -68,7 +62,7 @@ test.describe('GET /share/posts/:id', () => {
 
 test.describe('GET /share/users/:id', () => {
   test('returns OG meta for a valid user', async ({ request, baseURL }) => {
-    const { userId } = await loginAs(request, baseURL, SEED.user1)
+    const { userId } = getSharedTokenFor(SEED.user1)
 
     const resp = await request.get(`${baseURL}/share/users/${userId}`)
     expect(resp.status()).toBe(200)
@@ -84,7 +78,7 @@ test.describe('GET /share/users/:id', () => {
   })
 
   test('sets og:type to profile', async ({ request, baseURL }) => {
-    const { userId } = await loginAs(request, baseURL, SEED.user1)
+    const { userId } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/share/users/${userId}`)
     const html = await resp.text()
     expect(html).toContain('og:type')
@@ -94,7 +88,7 @@ test.describe('GET /share/users/:id', () => {
 
 test.describe('GET /share/events/:id', () => {
   test('returns OG meta for a valid event', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const createResp = await request.post(`${baseURL}/api/events`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {

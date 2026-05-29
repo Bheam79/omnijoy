@@ -1,5 +1,6 @@
 import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 import { injectTokens } from '../../support/auth-helpers'
 
 test.describe('Privacy settings page', () => {
@@ -29,10 +30,7 @@ test.describe('Privacy settings page', () => {
   })
 
   test('can update privacy settings via API and reflect in page', async ({ page, request, baseURL }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     // Update privacy via API
     const updateResp = await request.put(`${baseURL}/api/users/me/privacy`, {

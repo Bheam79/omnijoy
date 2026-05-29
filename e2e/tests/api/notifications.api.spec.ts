@@ -1,21 +1,15 @@
-import { test, expect, type APIRequestContext } from '../../support/fixtures'
+import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 
 /**
  * API E2E tests for /api/notifications/* endpoints.
  */
 
-async function loginAs(request: APIRequestContext, baseURL: string | undefined, user: typeof SEED.user1) {
-  const resp = await request.post(`${baseURL}/api/auth/login`, {
-    data: { email: user.email, password: user.password },
-  })
-  const body = await resp.json()
-  return { token: body.accessToken as string, userId: body.user.id as string }
-}
 
 test.describe('GET /api/notifications', () => {
   test('returns paginated notifications', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/notifications`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -25,7 +19,7 @@ test.describe('GET /api/notifications', () => {
   })
 
   test('supports pagination parameters', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/notifications?page=1&pageSize=5`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -40,7 +34,7 @@ test.describe('GET /api/notifications', () => {
 
 test.describe('GET /api/notifications/unread/count', () => {
   test('returns unread count', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/notifications/unread/count`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -58,7 +52,7 @@ test.describe('GET /api/notifications/unread/count', () => {
 
 test.describe('POST /api/notifications/read-all', () => {
   test('marks all notifications as read', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/notifications/read-all`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -66,7 +60,7 @@ test.describe('POST /api/notifications/read-all', () => {
   })
 
   test('unread count is 0 after mark-all-read', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     await request.post(`${baseURL}/api/notifications/read-all`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -85,7 +79,7 @@ test.describe('POST /api/notifications/read-all', () => {
 
 test.describe('POST /api/notifications/:id/read', () => {
   test('returns 204 for a valid notification ID belonging to the user', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
 
     // Get a notification to mark as read
     const notifResp = await request.get(`${baseURL}/api/notifications?page=1&pageSize=1`, {

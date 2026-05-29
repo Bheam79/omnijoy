@@ -1,5 +1,6 @@
 import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 import { injectTokens } from '../../support/auth-helpers'
 import { FriendsPage } from './pages/friends.page'
 
@@ -49,16 +50,10 @@ test.describe('Friends page', () => {
 test.describe('Friend request lifecycle (API-backed browser test)', () => {
   test('send + accept friend request flow', async ({ page, request, baseURL }) => {
     // Log in as user1
-    const loginResp1 = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token1, user: user1 } = await loginResp1.json()
+    const { token: token1, user: user1 } = getSharedTokenFor(SEED.user1)
 
     // Log in as user2
-    const loginResp2 = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user2.email, password: SEED.user2.password },
-    })
-    const { accessToken: token2, user: user2 } = await loginResp2.json()
+    const { token: token2, user: user2 } = getSharedTokenFor(SEED.user2)
 
     // user1 sends friend request to user2 (clean up first)
     await request.delete(`${baseURL}/api/friends/${user2.id}`, {
@@ -89,15 +84,9 @@ test.describe('Friend request lifecycle (API-backed browser test)', () => {
   })
 
   test('decline friend request', async ({ request, baseURL }) => {
-    const loginResp1 = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user3.email, password: SEED.user3.password },
-    })
-    const { accessToken: token3, user: user3 } = await loginResp1.json()
+    const { token: token3, user: user3 } = getSharedTokenFor(SEED.user3)
 
-    const loginResp2 = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user2.email, password: SEED.user2.password },
-    })
-    const { accessToken: token2, user: user2 } = await loginResp2.json()
+    const { token: token2, user: user2 } = getSharedTokenFor(SEED.user2)
 
     // user3 sends to user2
     await request.delete(`${baseURL}/api/friends/request/${user2.id}`, {

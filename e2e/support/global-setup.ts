@@ -91,9 +91,11 @@ async function globalSetup(config: FullConfig) {
         if (resp.ok()) {
           const body = await resp.json()
           auth.users[key] = {
-            email:  user.email,
-            token:  body.accessToken,
-            userId: body.user.id,
+            email:        user.email,
+            token:        body.accessToken,
+            userId:       body.user.id,
+            refreshToken: body.refreshToken,
+            user:         body.user,
           }
           console.log(`  ✓ Cached token for ${user.email}`)
           cached = true

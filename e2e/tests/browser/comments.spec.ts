@@ -1,5 +1,6 @@
 import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 import { injectTokens } from '../../support/auth-helpers'
 
 // ── Helper: create a public text post via API and return its ID ───────────────
@@ -28,10 +29,7 @@ async function createPost(
 
 test.describe('Comments — API (create, reply, edit, delete)', () => {
   test('create a top-level comment on a post', async ({ request, baseURL }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     const postId = await createPost(request, baseURL!, token)
     if (!postId) {
@@ -50,10 +48,7 @@ test.describe('Comments — API (create, reply, edit, delete)', () => {
   })
 
   test('fetch comments for a post returns array', async ({ request, baseURL }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     const postId = await createPost(request, baseURL!, token)
     if (!postId) {
@@ -76,10 +71,7 @@ test.describe('Comments — API (create, reply, edit, delete)', () => {
   })
 
   test('create a reply to a comment', async ({ request, baseURL }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     const postId = await createPost(request, baseURL!, token)
     if (!postId) {
@@ -107,10 +99,7 @@ test.describe('Comments — API (create, reply, edit, delete)', () => {
   })
 
   test('edit own comment', async ({ request, baseURL }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     const postId = await createPost(request, baseURL!, token)
     if (!postId) {
@@ -140,10 +129,7 @@ test.describe('Comments — API (create, reply, edit, delete)', () => {
   })
 
   test('delete own comment returns 204', async ({ request, baseURL }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     const postId = await createPost(request, baseURL!, token)
     if (!postId) {
@@ -198,10 +184,7 @@ test.describe('Comments — browser UI', () => {
     baseURL,
   }) => {
     // Create a post via API so there is something to comment on
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
     await createPost(request, baseURL!, token)
 
     await page.goto('/wall')

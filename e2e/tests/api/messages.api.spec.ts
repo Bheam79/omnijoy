@@ -1,5 +1,6 @@
 import { test, expect, type APIRequestContext } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 
 /**
  * API E2E tests for MessagesController endpoints:
@@ -12,14 +13,6 @@ import { SEED } from '../../fixtures/seed-data'
  * This file adds focused edge-case tests for the MessagesController in
  * isolation and ensures the controller surface is explicitly audited.
  */
-
-async function loginAs(request: APIRequestContext, baseURL: string | undefined, user: typeof SEED.user1) {
-  const resp = await request.post(`${baseURL}/api/auth/login`, {
-    data: { email: user.email, password: user.password },
-  })
-  const body = await resp.json()
-  return { token: body.accessToken as string, userId: body.user.id as string }
-}
 
 /** Opens or reuses the direct conversation between user1 and user2. */
 async function getDirectConversation(
@@ -39,8 +32,8 @@ async function getDirectConversation(
 
 test.describe('POST /api/messages', () => {
   test('sends a text message to a direct conversation', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { userId: userId2 } = getSharedTokenFor(SEED.user2)
     const convId = await getDirectConversation(request, baseURL, token1, userId2)
 
     const resp = await request.post(`${baseURL}/api/messages`, {
@@ -54,7 +47,7 @@ test.describe('POST /api/messages', () => {
   })
 
   test('returns 400 when conversationId is missing', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/messages`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: { content: 'No conv' },
@@ -63,7 +56,7 @@ test.describe('POST /api/messages', () => {
   })
 
   test('returns 400 when conversationId is not a valid GUID', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/messages`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: { conversationId: 'not-a-guid', content: 'Bad conv' },
@@ -76,12 +69,12 @@ test.describe('POST /api/messages', () => {
     baseURL,
   }) => {
     // Create a conversation between user1 and user2
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { userId: userId2 } = getSharedTokenFor(SEED.user2)
     const convId = await getDirectConversation(request, baseURL, token1, userId2)
 
     // User3 tries to send a message to that conversation
-    const { token: token3 } = await loginAs(request, baseURL, SEED.user3)
+    const { token: token3 } = getSharedTokenFor(SEED.user3)
     const resp = await request.post(`${baseURL}/api/messages`, {
       headers: { Authorization: `Bearer ${token3}` },
       multipart: { conversationId: convId, content: 'Intruder message' },
@@ -104,8 +97,8 @@ test.describe('POST /api/messages', () => {
 
 test.describe('DELETE /api/messages/:id', () => {
   test('sender can soft-delete their own message', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { userId: userId2 } = getSharedTokenFor(SEED.user2)
     const convId = await getDirectConversation(request, baseURL, token1, userId2)
 
     const sendResp = await request.post(`${baseURL}/api/messages`, {
@@ -121,7 +114,7 @@ test.describe('DELETE /api/messages/:id', () => {
   })
 
   test('returns 404 for a non-existent message ID', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.delete(
       `${baseURL}/api/messages/00000000-0000-0000-0000-000000000000`,
       { headers: { Authorization: `Bearer ${token}` } },
@@ -133,8 +126,8 @@ test.describe('DELETE /api/messages/:id', () => {
     request,
     baseURL,
   }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { token: token2, userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { token: token2, userId: userId2 } = getSharedTokenFor(SEED.user2)
     const convId = await getDirectConversation(request, baseURL, token1, userId2)
 
     const sendResp = await request.post(`${baseURL}/api/messages`, {

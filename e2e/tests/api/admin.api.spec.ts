@@ -1,5 +1,6 @@
-import { test, expect, type APIRequestContext } from '../../support/fixtures'
+import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 
 /**
  * API E2E tests for AdminController endpoints:
@@ -13,19 +14,12 @@ import { SEED } from '../../fixtures/seed-data'
  * global-setup (via docker exec on the MariaDB container).
  */
 
-async function loginAs(request: APIRequestContext, baseURL: string | undefined, user: typeof SEED.user1) {
-  const resp = await request.post(`${baseURL}/api/auth/login`, {
-    data: { email: user.email, password: user.password },
-  })
-  const body = await resp.json()
-  return { token: body.accessToken as string, userId: body.user.id as string }
-}
 
 // ── GET /api/admin/users ──────────────────────────────────────────────────────
 
 test.describe('GET /api/admin/users', () => {
   test('admin can list all users', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.admin)
+    const { token } = getSharedTokenFor(SEED.admin)
     const resp = await request.get(`${baseURL}/api/admin/users`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -36,7 +30,7 @@ test.describe('GET /api/admin/users', () => {
   })
 
   test('supports search query parameter', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.admin)
+    const { token } = getSharedTokenFor(SEED.admin)
     const resp = await request.get(`${baseURL}/api/admin/users?q=alice`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -46,7 +40,7 @@ test.describe('GET /api/admin/users', () => {
   })
 
   test('supports pagination parameters', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.admin)
+    const { token } = getSharedTokenFor(SEED.admin)
     const resp = await request.get(`${baseURL}/api/admin/users?page=1&pageSize=5`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -54,7 +48,7 @@ test.describe('GET /api/admin/users', () => {
   })
 
   test('returns 403 for a regular user', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/admin/users`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -71,8 +65,8 @@ test.describe('GET /api/admin/users', () => {
 
 test.describe('PATCH /api/admin/users/:id/role', () => {
   test('admin can change a user role to Moderator and back', async ({ request, baseURL }) => {
-    const { token: adminToken } = await loginAs(request, baseURL, SEED.admin)
-    const { userId: targetId } = await loginAs(request, baseURL, SEED.user3)
+    const { token: adminToken } = getSharedTokenFor(SEED.admin)
+    const { userId: targetId } = getSharedTokenFor(SEED.user3)
 
     // Promote to Moderator
     const promoteResp = await request.patch(
@@ -100,8 +94,8 @@ test.describe('PATCH /api/admin/users/:id/role', () => {
   })
 
   test('returns 400 for an invalid role value', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.admin)
-    const { userId: targetId } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.admin)
+    const { userId: targetId } = getSharedTokenFor(SEED.user1)
     const resp = await request.patch(
       `${baseURL}/api/admin/users/${targetId}/role`,
       {
@@ -113,7 +107,7 @@ test.describe('PATCH /api/admin/users/:id/role', () => {
   })
 
   test('returns 404 for a non-existent user', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.admin)
+    const { token } = getSharedTokenFor(SEED.admin)
     const resp = await request.patch(
       `${baseURL}/api/admin/users/00000000-0000-0000-0000-000000000000/role`,
       {
@@ -125,8 +119,8 @@ test.describe('PATCH /api/admin/users/:id/role', () => {
   })
 
   test('returns 403 for a regular user', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: targetId } = await loginAs(request, baseURL, SEED.user2)
+    const { token } = getSharedTokenFor(SEED.user1)
+    const { userId: targetId } = getSharedTokenFor(SEED.user2)
     const resp = await request.patch(
       `${baseURL}/api/admin/users/${targetId}/role`,
       {
@@ -150,7 +144,7 @@ test.describe('PATCH /api/admin/users/:id/role', () => {
 
 test.describe('POST /api/admin/users/:id/ban', () => {
   test('admin can ban and then unban a user', async ({ request, baseURL }) => {
-    const { token: adminToken } = await loginAs(request, baseURL, SEED.admin)
+    const { token: adminToken } = getSharedTokenFor(SEED.admin)
 
     // Register a fresh user to ban (avoid disrupting other tests that use seeded users)
     const ts = Date.now()
@@ -198,7 +192,7 @@ test.describe('POST /api/admin/users/:id/ban', () => {
   })
 
   test('returns 404 when target user does not exist', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.admin)
+    const { token } = getSharedTokenFor(SEED.admin)
     const resp = await request.post(
       `${baseURL}/api/admin/users/00000000-0000-0000-0000-000000000000/ban`,
       {
@@ -210,8 +204,8 @@ test.describe('POST /api/admin/users/:id/ban', () => {
   })
 
   test('returns 403 for a regular user', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: targetId } = await loginAs(request, baseURL, SEED.user2)
+    const { token } = getSharedTokenFor(SEED.user1)
+    const { userId: targetId } = getSharedTokenFor(SEED.user2)
     const resp = await request.post(
       `${baseURL}/api/admin/users/${targetId}/ban`,
       {
@@ -235,7 +229,7 @@ test.describe('POST /api/admin/users/:id/ban', () => {
 
 test.describe('POST /api/admin/users/:id/unban', () => {
   test('returns 404 when target user does not exist', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.admin)
+    const { token } = getSharedTokenFor(SEED.admin)
     const resp = await request.post(
       `${baseURL}/api/admin/users/00000000-0000-0000-0000-000000000000/unban`,
       {
@@ -247,8 +241,8 @@ test.describe('POST /api/admin/users/:id/unban', () => {
   })
 
   test('returns 403 for a regular user', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: targetId } = await loginAs(request, baseURL, SEED.user2)
+    const { token } = getSharedTokenFor(SEED.user1)
+    const { userId: targetId } = getSharedTokenFor(SEED.user2)
     const resp = await request.post(
       `${baseURL}/api/admin/users/${targetId}/unban`,
       {
@@ -272,7 +266,7 @@ test.describe('POST /api/admin/users/:id/unban', () => {
 
 test.describe('GET /api/admin/audit-log', () => {
   test('admin can retrieve the audit log', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.admin)
+    const { token } = getSharedTokenFor(SEED.admin)
     const resp = await request.get(`${baseURL}/api/admin/audit-log`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -282,7 +276,7 @@ test.describe('GET /api/admin/audit-log', () => {
   })
 
   test('supports pagination parameters', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.admin)
+    const { token } = getSharedTokenFor(SEED.admin)
     const resp = await request.get(`${baseURL}/api/admin/audit-log?page=1&pageSize=5`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -290,7 +284,7 @@ test.describe('GET /api/admin/audit-log', () => {
   })
 
   test('supports filtering by actorId', async ({ request, baseURL }) => {
-    const { token, userId: adminId } = await loginAs(request, baseURL, SEED.admin)
+    const { token, userId: adminId } = getSharedTokenFor(SEED.admin)
     const resp = await request.get(`${baseURL}/api/admin/audit-log?actorId=${adminId}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -298,7 +292,7 @@ test.describe('GET /api/admin/audit-log', () => {
   })
 
   test('supports filtering by action', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.admin)
+    const { token } = getSharedTokenFor(SEED.admin)
     const resp = await request.get(`${baseURL}/api/admin/audit-log?action=BanUser`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -306,7 +300,7 @@ test.describe('GET /api/admin/audit-log', () => {
   })
 
   test('audit log contains entries from this test run', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.admin)
+    const { token } = getSharedTokenFor(SEED.admin)
     const resp = await request.get(`${baseURL}/api/admin/audit-log`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -317,7 +311,7 @@ test.describe('GET /api/admin/audit-log', () => {
   })
 
   test('returns 403 for a regular user', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/admin/audit-log`, {
       headers: { Authorization: `Bearer ${token}` },
     })

@@ -3,6 +3,7 @@ import * as fs from 'fs'
 import * as os from 'os'
 import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 import { injectTokens } from '../../support/auth-helpers'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -26,10 +27,7 @@ function createTestImageFile(): string {
 
 test.describe('Media upload — API (image post)', () => {
   test('create an image post via multipart form-data', async ({ request, baseURL }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     const imagePath = createTestImageFile()
     try {
@@ -59,10 +57,7 @@ test.describe('Media upload — API (image post)', () => {
   })
 
   test('create a text post (no media) succeeds', async ({ request, baseURL }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     const resp = await request.post(`${baseURL}/api/posts`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -78,10 +73,7 @@ test.describe('Media upload — API (image post)', () => {
   })
 
   test('post with missing content returns 400', async ({ request, baseURL }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     const resp = await request.post(`${baseURL}/api/posts`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -169,10 +161,7 @@ test.describe('Media upload — browser UI', () => {
     baseURL,
   }) => {
     // Create a post via API to avoid depending on the full UI composer flow
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     const content = `Wall post ${Date.now()}`
     const postResp = await request.post(`${baseURL}/api/posts`, {

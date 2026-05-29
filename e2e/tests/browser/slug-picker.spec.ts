@@ -1,5 +1,6 @@
 import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 import { injectTokens } from '../../support/auth-helpers'
 
 // ── API-level slug tests ──────────────────────────────────────────────────────
@@ -54,10 +55,7 @@ test.describe('Slug picker — API availability checks', () => {
     request,
     baseURL,
   }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     // Pick a unique slug so re-runs don't collide
     const slug = `alice${Date.now().toString().slice(-6)}`
@@ -75,10 +73,7 @@ test.describe('Slug picker — API availability checks', () => {
     baseURL,
   }) => {
     // First set a known slug
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     const slug = `alicee2e${Date.now().toString().slice(-5)}`
     const setResp = await request.put(`${baseURL}/api/users/me/slug`, {

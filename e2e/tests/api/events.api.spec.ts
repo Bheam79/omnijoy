@@ -1,22 +1,16 @@
-import { test, expect, type APIRequestContext } from '../../support/fixtures'
+import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 import { MINIMAL_PNG } from '../../fixtures/image-fixtures'
 
 /**
  * API E2E tests for /api/events/* endpoints.
  */
 
-async function loginAs(request: APIRequestContext, baseURL: string | undefined, user: typeof SEED.user1) {
-  const resp = await request.post(`${baseURL}/api/auth/login`, {
-    data: { email: user.email, password: user.password },
-  })
-  const body = await resp.json()
-  return { token: body.accessToken as string, userId: body.user.id as string }
-}
 
 test.describe('POST /api/events', () => {
   test('creates an event successfully', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/events`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -34,7 +28,7 @@ test.describe('POST /api/events', () => {
   })
 
   test('creates an event with cover image', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/events`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -61,7 +55,7 @@ test.describe('POST /api/events', () => {
 
 test.describe('GET /api/events', () => {
   test('returns list of events', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/events`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -71,7 +65,7 @@ test.describe('GET /api/events', () => {
   })
 
   test('supports filter=mine parameter', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/events?filter=mine`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -86,7 +80,7 @@ test.describe('GET /api/events', () => {
 
 test.describe('GET /api/events/:id', () => {
   test('returns an event by ID', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const createResp = await request.post(`${baseURL}/api/events`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -106,7 +100,7 @@ test.describe('GET /api/events/:id', () => {
   })
 
   test('returns 404 for unknown event ID', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/events/00000000-0000-0000-0000-000000000000`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -116,7 +110,7 @@ test.describe('GET /api/events/:id', () => {
 
 test.describe('PUT /api/events/:id', () => {
   test('updates event title', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const createResp = await request.post(`${baseURL}/api/events`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: { title: 'Original Title', startAt: new Date(Date.now() + 86400000).toISOString(), privacy: 'Everyone' },
@@ -133,14 +127,14 @@ test.describe('PUT /api/events/:id', () => {
   })
 
   test('returns 403 when non-owner tries to update', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
     const createResp = await request.post(`${baseURL}/api/events`, {
       headers: { Authorization: `Bearer ${token1}` },
       multipart: { title: 'User1 Event', startAt: new Date(Date.now() + 86400000).toISOString(), privacy: 'Everyone' },
     })
     const event = await createResp.json()
 
-    const { token: token2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token2 } = getSharedTokenFor(SEED.user2)
     const updateResp = await request.put(`${baseURL}/api/events/${event.id}`, {
       headers: { Authorization: `Bearer ${token2}` },
       multipart: { title: 'Hacked Title' },
@@ -151,7 +145,7 @@ test.describe('PUT /api/events/:id', () => {
 
 test.describe('DELETE /api/events/:id', () => {
   test('deletes own event', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const createResp = await request.post(`${baseURL}/api/events`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: { title: 'To Be Deleted', startAt: new Date(Date.now() + 86400000).toISOString(), privacy: 'Everyone' },
@@ -167,8 +161,8 @@ test.describe('DELETE /api/events/:id', () => {
 
 test.describe('POST /api/events/:id/rsvp', () => {
   test('RSVP Going to an event', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { token: token2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { token: token2 } = getSharedTokenFor(SEED.user2)
     const createResp = await request.post(`${baseURL}/api/events`, {
       headers: { Authorization: `Bearer ${token1}` },
       multipart: { title: 'RSVP Test Event', startAt: new Date(Date.now() + 86400000).toISOString(), privacy: 'Everyone' },
@@ -183,8 +177,8 @@ test.describe('POST /api/events/:id/rsvp', () => {
   })
 
   test('RSVP Maybe to an event', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { token: token2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { token: token2 } = getSharedTokenFor(SEED.user2)
     const createResp = await request.post(`${baseURL}/api/events`, {
       headers: { Authorization: `Bearer ${token1}` },
       multipart: { title: 'Maybe Test Event', startAt: new Date(Date.now() + 86400000).toISOString(), privacy: 'Everyone' },
@@ -199,7 +193,7 @@ test.describe('POST /api/events/:id/rsvp', () => {
   })
 
   test('returns 400 for invalid RSVP status', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const createResp = await request.post(`${baseURL}/api/events`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: { title: 'Invalid RSVP Event', startAt: new Date(Date.now() + 86400000).toISOString(), privacy: 'Everyone' },
@@ -216,7 +210,7 @@ test.describe('POST /api/events/:id/rsvp', () => {
 
 test.describe('GET /api/events/:id/attendees', () => {
   test('returns attendee list', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const createResp = await request.post(`${baseURL}/api/events`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: { title: 'Attendees Test', startAt: new Date(Date.now() + 86400000).toISOString(), privacy: 'Everyone' },

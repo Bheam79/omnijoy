@@ -1,5 +1,6 @@
 import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 import { injectTokens } from '../../support/auth-helpers'
 
 const REPORT_REASONS = ['Spam', 'Harassment', 'Misinformation', 'Nudity', 'Violence', 'Other'] as const
@@ -30,20 +31,14 @@ async function createPublicPost(
 test.describe('Reports — API (submit)', () => {
   test('submit a Spam report against a post', async ({ request, baseURL }) => {
     // user2 creates the post; user1 reports it
-    const login2 = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user2.email, password: SEED.user2.password },
-    })
-    const { accessToken: token2 } = await login2.json()
+    const { token: token2 } = getSharedTokenFor(SEED.user2)
     const postId = await createPublicPost(request, baseURL!, token2)
     if (!postId) {
       test.skip()
       return
     }
 
-    const login1 = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token1 } = await login1.json()
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
 
     const resp = await request.post(`${baseURL}/api/reports`, {
       headers: { Authorization: `Bearer ${token1}` },
@@ -64,15 +59,9 @@ test.describe('Reports — API (submit)', () => {
   })
 
   test('submit a report against a user', async ({ request, baseURL }) => {
-    const login1 = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token1 } = await login1.json()
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
 
-    const login3 = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user3.email, password: SEED.user3.password },
-    })
-    const { user: user3 } = await login3.json()
+    const { user: user3 } = getSharedTokenFor(SEED.user3)
 
     const resp = await request.post(`${baseURL}/api/reports`, {
       headers: { Authorization: `Bearer ${token1}` },
@@ -98,10 +87,7 @@ test.describe('Reports — API (submit)', () => {
   })
 
   test('report with unknown targetId returns 404', async ({ request, baseURL }) => {
-    const login1 = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token1 } = await login1.json()
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
 
     const resp = await request.post(`${baseURL}/api/reports`, {
       headers: { Authorization: `Bearer ${token1}` },
@@ -116,20 +102,14 @@ test.describe('Reports — API (submit)', () => {
 
   for (const reason of REPORT_REASONS) {
     test(`can submit report with reason: ${reason}`, async ({ request, baseURL }) => {
-      const login2 = await request.post(`${baseURL}/api/auth/login`, {
-        data: { email: SEED.user2.email, password: SEED.user2.password },
-      })
-      const { accessToken: token2 } = await login2.json()
+      const { token: token2 } = getSharedTokenFor(SEED.user2)
       const postId = await createPublicPost(request, baseURL!, token2)
       if (!postId) {
         test.skip()
         return
       }
 
-      const login1 = await request.post(`${baseURL}/api/auth/login`, {
-        data: { email: SEED.user1.email, password: SEED.user1.password },
-      })
-      const { accessToken: token1 } = await login1.json()
+      const { token: token1 } = getSharedTokenFor(SEED.user1)
 
       const resp = await request.post(`${baseURL}/api/reports`, {
         headers: { Authorization: `Bearer ${token1}` },
@@ -147,10 +127,7 @@ test.describe('Reports — admin queue API', () => {
     request,
     baseURL,
   }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.admin.email, password: SEED.admin.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.admin)
 
     const resp = await request.get(`${baseURL}/api/admin/reports?status=Pending`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -167,22 +144,13 @@ test.describe('Reports — admin queue API', () => {
     request,
     baseURL,
   }) => {
-    const adminLogin = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.admin.email, password: SEED.admin.password },
-    })
-    const { accessToken: adminToken } = await adminLogin.json()
+    const { token: adminToken } = getSharedTokenFor(SEED.admin)
 
     // First, ensure there is at least one report by creating one
-    const login2 = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user2.email, password: SEED.user2.password },
-    })
-    const { accessToken: token2 } = await login2.json()
+    const { token: token2 } = getSharedTokenFor(SEED.user2)
     const postId = await createPublicPost(request, baseURL!, token2)
 
-    const login1 = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token1 } = await login1.json()
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
 
     if (postId) {
       await request.post(`${baseURL}/api/reports`, {
@@ -230,10 +198,7 @@ test.describe('Reports — browser UI', () => {
     baseURL,
   }) => {
     // Create a post by another user so user1 can report it
-    const login2 = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user2.email, password: SEED.user2.password },
-    })
-    const { accessToken: token2 } = await login2.json()
+    const { token: token2 } = getSharedTokenFor(SEED.user2)
     await request.post(`${baseURL}/api/posts`, {
       headers: { Authorization: `Bearer ${token2}` },
       multipart: {

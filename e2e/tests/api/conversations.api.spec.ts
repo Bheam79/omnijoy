@@ -1,22 +1,16 @@
-import { test, expect, type APIRequestContext } from '../../support/fixtures'
+import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 import { MINIMAL_PNG } from '../../fixtures/image-fixtures'
 
 /**
  * API E2E tests for /api/conversations/* and /api/messages/* endpoints.
  */
 
-async function loginAs(request: APIRequestContext, baseURL: string | undefined, user: typeof SEED.user1) {
-  const resp = await request.post(`${baseURL}/api/auth/login`, {
-    data: { email: user.email, password: user.password },
-  })
-  const body = await resp.json()
-  return { token: body.accessToken as string, userId: body.user.id as string }
-}
 
 test.describe('GET /api/conversations', () => {
   test('returns conversation list', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/conversations`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -33,8 +27,8 @@ test.describe('GET /api/conversations', () => {
 
 test.describe('POST /api/conversations/direct/:userId', () => {
   test('creates or returns a direct conversation', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { userId: userId2 } = getSharedTokenFor(SEED.user2)
 
     const resp = await request.post(`${baseURL}/api/conversations/direct/${userId2}`, {
       headers: { Authorization: `Bearer ${token1}` },
@@ -52,8 +46,8 @@ test.describe('POST /api/conversations/direct/:userId', () => {
 
 test.describe('GET /api/conversations/:id/messages', () => {
   test('returns messages for a conversation', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { userId: userId2 } = getSharedTokenFor(SEED.user2)
 
     // Create conversation
     const convResp = await request.post(`${baseURL}/api/conversations/direct/${userId2}`, {
@@ -70,8 +64,8 @@ test.describe('GET /api/conversations/:id/messages', () => {
   })
 
   test('supports limit and before parameters', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { userId: userId2 } = getSharedTokenFor(SEED.user2)
 
     const convResp = await request.post(`${baseURL}/api/conversations/direct/${userId2}`, {
       headers: { Authorization: `Bearer ${token1}` },
@@ -86,9 +80,9 @@ test.describe('GET /api/conversations/:id/messages', () => {
   })
 
   test('returns 403 for non-participant', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
-    const { token: token3 } = await loginAs(request, baseURL, SEED.user3)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { userId: userId2 } = getSharedTokenFor(SEED.user2)
+    const { token: token3 } = getSharedTokenFor(SEED.user3)
 
     const convResp = await request.post(`${baseURL}/api/conversations/direct/${userId2}`, {
       headers: { Authorization: `Bearer ${token1}` },
@@ -104,8 +98,8 @@ test.describe('GET /api/conversations/:id/messages', () => {
 
 test.describe('PUT /api/conversations/:id/read', () => {
   test('marks conversation as read', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { userId: userId2 } = getSharedTokenFor(SEED.user2)
 
     const convResp = await request.post(`${baseURL}/api/conversations/direct/${userId2}`, {
       headers: { Authorization: `Bearer ${token1}` },
@@ -121,8 +115,8 @@ test.describe('PUT /api/conversations/:id/read', () => {
 
 test.describe('POST /api/messages', () => {
   test('sends a text message', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { userId: userId2 } = getSharedTokenFor(SEED.user2)
 
     const convResp = await request.post(`${baseURL}/api/conversations/direct/${userId2}`, {
       headers: { Authorization: `Bearer ${token1}` },
@@ -143,8 +137,8 @@ test.describe('POST /api/messages', () => {
   })
 
   test('sends a message with file attachment', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { userId: userId2 } = getSharedTokenFor(SEED.user2)
 
     const convResp = await request.post(`${baseURL}/api/conversations/direct/${userId2}`, {
       headers: { Authorization: `Bearer ${token1}` },
@@ -163,7 +157,7 @@ test.describe('POST /api/messages', () => {
   })
 
   test('returns 400 for missing conversationId', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/messages`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: { content: 'No conv ID' },
@@ -181,8 +175,8 @@ test.describe('POST /api/messages', () => {
 
 test.describe('DELETE /api/messages/:id', () => {
   test('deletes own message', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { userId: userId2 } = getSharedTokenFor(SEED.user2)
 
     const convResp = await request.post(`${baseURL}/api/conversations/direct/${userId2}`, {
       headers: { Authorization: `Bearer ${token1}` },
@@ -202,8 +196,8 @@ test.describe('DELETE /api/messages/:id', () => {
   })
 
   test('returns 403 when non-sender tries to delete', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { token: token2, userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { token: token2, userId: userId2 } = getSharedTokenFor(SEED.user2)
 
     const convResp = await request.post(`${baseURL}/api/conversations/direct/${userId2}`, {
       headers: { Authorization: `Bearer ${token1}` },

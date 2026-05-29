@@ -1,5 +1,6 @@
 import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 import { injectTokens } from '../../support/auth-helpers'
 import { SearchPage } from './pages/search.page'
 
@@ -7,10 +8,7 @@ import { SearchPage } from './pages/search.page'
 
 test.describe('Search — API', () => {
   test('GET /api/search?q=<term> returns structured result', async ({ request, baseURL }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     const resp = await request.get(`${baseURL}/api/search?q=e2e`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -51,10 +49,7 @@ test.describe('Search — API', () => {
   })
 
   test('search for a known seed user returns that user', async ({ request, baseURL }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     const resp = await request.get(`${baseURL}/api/search?q=Alice+E2E&type=users`, {
       headers: { Authorization: `Bearer ${token}` },

@@ -1,5 +1,6 @@
-import { test, expect, type APIRequestContext } from '../../support/fixtures'
+import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 
 /**
  * API E2E tests for SearchController endpoints:
@@ -7,19 +8,12 @@ import { SEED } from '../../fixtures/seed-data'
  *   GET /api/search/suggest
  */
 
-async function loginAs(request: APIRequestContext, baseURL: string | undefined, user: typeof SEED.user1) {
-  const resp = await request.post(`${baseURL}/api/auth/login`, {
-    data: { email: user.email, password: user.password },
-  })
-  const body = await resp.json()
-  return { token: body.accessToken as string, userId: body.user.id as string }
-}
 
 // ── GET /api/search ───────────────────────────────────────────────────────────
 
 test.describe('GET /api/search', () => {
   test('returns search results for a simple query (authenticated)', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/search?q=test`, {
       headers: { Authorization: `Bearer ${token}` },
     })

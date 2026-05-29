@@ -1,5 +1,6 @@
 import { test, expect, type APIRequestContext } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 
 /**
  * API E2E tests for AccountController endpoints:
@@ -10,14 +11,6 @@ import { SEED } from '../../fixtures/seed-data'
  *   POST /api/account/deactivate
  *   POST /api/account/delete
  */
-
-async function loginAs(request: APIRequestContext, baseURL: string | undefined, user: typeof SEED.user1) {
-  const resp = await request.post(`${baseURL}/api/auth/login`, {
-    data: { email: user.email, password: user.password },
-  })
-  const body = await resp.json()
-  return { token: body.accessToken as string, userId: body.user.id as string }
-}
 
 /** Registers a fresh disposable user and returns login credentials. */
 async function registerDisposable(
@@ -53,7 +46,7 @@ test.describe('POST /api/account/change-email', () => {
 
   test('returns 401 when current password is wrong', async ({ request, baseURL }) => {
     // Use allow5xx:false (default) — wrong password should 401, not 500
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/account/change-email`, {
       headers: { Authorization: `Bearer ${token}` },
       data: { newEmail: 'new-valid@omnijoy.test', currentPassword: 'wrong-password' },
@@ -62,7 +55,7 @@ test.describe('POST /api/account/change-email', () => {
   })
 
   test('returns 400 for an invalid email format', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/account/change-email`, {
       headers: { Authorization: `Bearer ${token}` },
       data: { newEmail: 'not-an-email', currentPassword: SEED.user1.password },
@@ -82,7 +75,7 @@ test.describe('POST /api/account/change-password', () => {
   })
 
   test('returns 400 or 401 when current password is wrong', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/account/change-password`, {
       headers: { Authorization: `Bearer ${token}` },
       data: {
@@ -98,7 +91,7 @@ test.describe('POST /api/account/change-password', () => {
     request,
     baseURL,
   }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/account/change-password`, {
       headers: { Authorization: `Bearer ${token}` },
       data: {
@@ -115,7 +108,7 @@ test.describe('POST /api/account/change-password', () => {
 
 test.describe('GET /api/account/notification-preferences', () => {
   test('returns notification preferences for authenticated user', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/account/notification-preferences`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -138,7 +131,7 @@ test.describe('GET /api/account/notification-preferences', () => {
 
 test.describe('PUT /api/account/notification-preferences', () => {
   test('updates notification preferences successfully', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
 
     const prefs = {
       likesOnMyPosts: false,
@@ -167,7 +160,7 @@ test.describe('PUT /api/account/notification-preferences', () => {
   })
 
   test('round-trips: get reflects what was put', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user3)
+    const { token } = getSharedTokenFor(SEED.user3)
 
     const prefs = {
       likesOnMyPosts: false,
@@ -236,7 +229,7 @@ test.describe('POST /api/account/delete', () => {
     request,
     baseURL,
   }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/account/delete`, {
       headers: { Authorization: `Bearer ${token}` },
       data: { confirmEmail: 'wrong-email@example.com' },

@@ -1,22 +1,15 @@
-import { test, expect, type APIRequestContext } from '../../support/fixtures'
+import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
 import { MINIMAL_PNG } from '../../fixtures/image-fixtures'
+import { getSharedTokenFor } from '../../support/shared-auth'
 
 /**
  * API E2E tests for /api/users/* endpoints.
  */
 
-async function getToken(request: APIRequestContext, baseURL: string | undefined, user: typeof SEED.user1) {
-  const resp = await request.post(`${baseURL}/api/auth/login`, {
-    data: { email: user.email, password: user.password },
-  })
-  const body = await resp.json()
-  return { token: body.accessToken as string, userId: body.user.id as string }
-}
-
 test.describe('GET /api/users/:id', () => {
   test('returns public profile for a valid user ID', async ({ request, baseURL }) => {
-    const { token, userId } = await getToken(request, baseURL, SEED.user1)
+    const { token, userId } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/users/${userId}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -27,7 +20,7 @@ test.describe('GET /api/users/:id', () => {
   })
 
   test('returns 404 for unknown user ID', async ({ request, baseURL }) => {
-    const { token } = await getToken(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/users/00000000-0000-0000-0000-000000000000`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -35,7 +28,7 @@ test.describe('GET /api/users/:id', () => {
   })
 
   test('allows anonymous access to public profiles', async ({ request, baseURL }) => {
-    const { userId } = await getToken(request, baseURL, SEED.user1)
+    const { userId } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/users/${userId}`)
     // May return 200 or 403 depending on privacy setting
     expect([200, 403]).toContain(resp.status())
@@ -44,7 +37,7 @@ test.describe('GET /api/users/:id', () => {
 
 test.describe('PUT /api/users/me', () => {
   test('updates display name successfully', async ({ request, baseURL }) => {
-    const { token } = await getToken(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.put(`${baseURL}/api/users/me`, {
       headers: { Authorization: `Bearer ${token}` },
       data: { displayName: SEED.user1.displayName, bio: 'Updated by E2E test' },
@@ -62,7 +55,7 @@ test.describe('PUT /api/users/me', () => {
   })
 
   test('returns 400 for invalid data', async ({ request, baseURL }) => {
-    const { token } = await getToken(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.put(`${baseURL}/api/users/me`, {
       headers: { Authorization: `Bearer ${token}` },
       data: { displayName: '' },
@@ -73,7 +66,7 @@ test.describe('PUT /api/users/me', () => {
 
 test.describe('POST /api/users/me/avatar', () => {
   test('returns 400 when no file is uploaded', async ({ request, baseURL }) => {
-    const { token } = await getToken(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/users/me/avatar`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -81,7 +74,7 @@ test.describe('POST /api/users/me/avatar', () => {
   })
 
   test('uploads avatar image successfully', async ({ request, baseURL }) => {
-    const { token } = await getToken(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/users/me/avatar`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -98,7 +91,7 @@ test.describe('POST /api/users/me/avatar', () => {
 
 test.describe('GET /api/users/:id/friends', () => {
   test('returns friends list for a user', async ({ request, baseURL }) => {
-    const { token, userId } = await getToken(request, baseURL, SEED.user1)
+    const { token, userId } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/users/${userId}/friends`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -108,7 +101,7 @@ test.describe('GET /api/users/:id/friends', () => {
   })
 
   test('supports pagination parameters', async ({ request, baseURL }) => {
-    const { token, userId } = await getToken(request, baseURL, SEED.user1)
+    const { token, userId } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/users/${userId}/friends?page=1&pageSize=5`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -118,7 +111,7 @@ test.describe('GET /api/users/:id/friends', () => {
 
 test.describe('GET /api/users/me/privacy', () => {
   test('returns privacy settings for authenticated user', async ({ request, baseURL }) => {
-    const { token } = await getToken(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/users/me/privacy`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -135,7 +128,7 @@ test.describe('GET /api/users/me/privacy', () => {
 
 test.describe('PUT /api/users/me/privacy', () => {
   test('updates privacy settings successfully', async ({ request, baseURL }) => {
-    const { token } = await getToken(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.put(`${baseURL}/api/users/me/privacy`, {
       headers: { Authorization: `Bearer ${token}` },
       data: {
@@ -158,7 +151,7 @@ test.describe('PUT /api/users/me/privacy', () => {
 
 test.describe('GET /api/users/presence', () => {
   test('returns presence for a list of user IDs', async ({ request, baseURL }) => {
-    const { token, userId } = await getToken(request, baseURL, SEED.user1)
+    const { token, userId } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/users/presence?userIds=${userId}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -168,7 +161,7 @@ test.describe('GET /api/users/presence', () => {
   })
 
   test('returns empty array for no userIds param', async ({ request, baseURL }) => {
-    const { token } = await getToken(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/users/presence`, {
       headers: { Authorization: `Bearer ${token}` },
     })

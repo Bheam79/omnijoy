@@ -1,5 +1,6 @@
 import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 import { injectTokens } from '../../support/auth-helpers'
 import { CompanyPage } from './pages/company.page'
 
@@ -40,15 +41,9 @@ test.describe('Company pages', () => {
   })
 
   test('create company page + add admin flow (API-backed)', async ({ page, request, baseURL }) => {
-    const loginResp1 = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token1, user: user1 } = await loginResp1.json()
+    const { token: token1, user: user1 } = getSharedTokenFor(SEED.user1)
 
-    const loginResp2 = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user2.email, password: SEED.user2.password },
-    })
-    const { user: user2 } = await loginResp2.json()
+    const { user: user2 } = getSharedTokenFor(SEED.user2)
 
     // Create company page
     const createResp = await request.post(`${baseURL}/api/company-pages`, {
@@ -79,10 +74,7 @@ test.describe('Company pages', () => {
   })
 
   test('company page detail is accessible', async ({ page, request, baseURL }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     const pagesResp = await request.get(`${baseURL}/api/company-pages?mine=true`, {
       headers: { Authorization: `Bearer ${token}` },

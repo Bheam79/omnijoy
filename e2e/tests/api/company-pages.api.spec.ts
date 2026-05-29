@@ -1,23 +1,17 @@
-import { test, expect, type APIRequestContext } from '../../support/fixtures'
+import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 
 /**
  * API E2E tests for /api/company-pages/* endpoints.
  */
 
-async function loginAs(request: APIRequestContext, baseURL: string | undefined, user: typeof SEED.user1) {
-  const resp = await request.post(`${baseURL}/api/auth/login`, {
-    data: { email: user.email, password: user.password },
-  })
-  const body = await resp.json()
-  return { token: body.accessToken as string, userId: body.user.id as string }
-}
 
 const RUN_ID = Date.now().toString(36)
 
 test.describe('POST /api/company-pages', () => {
   test('creates a company page', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/company-pages`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: {
@@ -32,7 +26,7 @@ test.describe('POST /api/company-pages', () => {
   })
 
   test('returns 400 for missing name', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/company-pages`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: { description: 'No name provided' },
@@ -50,7 +44,7 @@ test.describe('POST /api/company-pages', () => {
 
 test.describe('GET /api/company-pages', () => {
   test('returns paginated list of company pages', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/company-pages`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -60,7 +54,7 @@ test.describe('GET /api/company-pages', () => {
   })
 
   test('supports mine=true parameter', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/company-pages?mine=true`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -70,7 +64,7 @@ test.describe('GET /api/company-pages', () => {
 
 test.describe('GET /api/company-pages/mine', () => {
   test('returns pages where current user is admin', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/company-pages/mine`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -82,7 +76,7 @@ test.describe('GET /api/company-pages/mine', () => {
 
 test.describe('GET /api/company-pages/:id', () => {
   test('returns company page by ID', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const createResp = await request.post(`${baseURL}/api/company-pages`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: { name: `GetById Co ${RUN_ID}` },
@@ -105,7 +99,7 @@ test.describe('GET /api/company-pages/:id', () => {
 
 test.describe('PUT /api/company-pages/:id', () => {
   test('updates page name and description', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const createResp = await request.post(`${baseURL}/api/company-pages`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: { name: `Update Me ${RUN_ID}` },
@@ -122,8 +116,8 @@ test.describe('PUT /api/company-pages/:id', () => {
   })
 
   test('returns 403 when non-admin tries to update', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { token: token2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { token: token2 } = getSharedTokenFor(SEED.user2)
     const createResp = await request.post(`${baseURL}/api/company-pages`, {
       headers: { Authorization: `Bearer ${token1}` },
       multipart: { name: `Protected Co ${RUN_ID}` },
@@ -140,7 +134,7 @@ test.describe('PUT /api/company-pages/:id', () => {
 
 test.describe('Admin management', () => {
   test('get admins of a company page', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const createResp = await request.post(`${baseURL}/api/company-pages`, {
       headers: { Authorization: `Bearer ${token}` },
       multipart: { name: `Admin Test Co ${RUN_ID}` },
@@ -158,8 +152,8 @@ test.describe('Admin management', () => {
   })
 
   test('add admin to a company page', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { userId: userId2 } = getSharedTokenFor(SEED.user2)
 
     const createResp = await request.post(`${baseURL}/api/company-pages`, {
       headers: { Authorization: `Bearer ${token1}` },
@@ -175,8 +169,8 @@ test.describe('Admin management', () => {
   })
 
   test('remove admin from a company page', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { userId: userId2 } = getSharedTokenFor(SEED.user2)
 
     const createResp = await request.post(`${baseURL}/api/company-pages`, {
       headers: { Authorization: `Bearer ${token1}` },
@@ -198,8 +192,8 @@ test.describe('Admin management', () => {
 
 test.describe('Follow/Unfollow', () => {
   test('follow a company page', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { token: token2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { token: token2 } = getSharedTokenFor(SEED.user2)
 
     const createResp = await request.post(`${baseURL}/api/company-pages`, {
       headers: { Authorization: `Bearer ${token1}` },

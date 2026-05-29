@@ -1,5 +1,6 @@
 import { test, expect, type APIRequestContext } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 
 /**
  * API E2E tests for CommentsController endpoints:
@@ -9,14 +10,6 @@ import { SEED } from '../../fixtures/seed-data'
  *   PUT    /api/comments/{commentId}
  *   DELETE /api/comments/{commentId}
  */
-
-async function loginAs(request: APIRequestContext, baseURL: string | undefined, user: typeof SEED.user1) {
-  const resp = await request.post(`${baseURL}/api/auth/login`, {
-    data: { email: user.email, password: user.password },
-  })
-  const body = await resp.json()
-  return { token: body.accessToken as string, userId: body.user.id as string }
-}
 
 /** Creates a public text post and returns its id. */
 async function createPost(request: APIRequestContext, baseURL: string | undefined, token: string) {
@@ -32,7 +25,7 @@ async function createPost(request: APIRequestContext, baseURL: string | undefine
 
 test.describe('POST /api/posts/:postId/comments', () => {
   test('creates a top-level comment on a post', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const postId = await createPost(request, baseURL, token)
 
     const resp = await request.post(`${baseURL}/api/posts/${postId}/comments`, {
@@ -48,7 +41,7 @@ test.describe('POST /api/posts/:postId/comments', () => {
   })
 
   test('creates a threaded reply to an existing comment', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const postId = await createPost(request, baseURL, token)
 
     // Create parent comment
@@ -70,7 +63,7 @@ test.describe('POST /api/posts/:postId/comments', () => {
   })
 
   test('returns 404 for a non-existent post', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(
       `${baseURL}/api/posts/00000000-0000-0000-0000-000000000000/comments`,
       {
@@ -94,7 +87,7 @@ test.describe('POST /api/posts/:postId/comments', () => {
 
 test.describe('GET /api/posts/:postId/comments', () => {
   test('returns paginated comments for a post', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const postId = await createPost(request, baseURL, token)
 
     // Add a comment so the list is non-empty
@@ -112,7 +105,7 @@ test.describe('GET /api/posts/:postId/comments', () => {
   })
 
   test('supports page and pageSize query parameters', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const postId = await createPost(request, baseURL, token)
 
     const resp = await request.get(`${baseURL}/api/posts/${postId}/comments?page=1&pageSize=5`)
@@ -120,7 +113,7 @@ test.describe('GET /api/posts/:postId/comments', () => {
   })
 
   test('is accessible anonymously for public posts', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const postId = await createPost(request, baseURL, token)
 
     const resp = await request.get(`${baseURL}/api/posts/${postId}/comments`)
@@ -139,7 +132,7 @@ test.describe('GET /api/posts/:postId/comments', () => {
 
 test.describe('GET /api/comments/:commentId/replies', () => {
   test('returns replies for a top-level comment', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const postId = await createPost(request, baseURL, token)
 
     // Create parent + reply
@@ -172,7 +165,7 @@ test.describe('GET /api/comments/:commentId/replies', () => {
 
 test.describe('PUT /api/comments/:commentId', () => {
   test('owner can update their comment', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const postId = await createPost(request, baseURL, token)
 
     const createResp = await request.post(`${baseURL}/api/posts/${postId}/comments`, {
@@ -191,8 +184,8 @@ test.describe('PUT /api/comments/:commentId', () => {
   })
 
   test('returns 403 when a non-owner tries to update', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { token: token2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { token: token2 } = getSharedTokenFor(SEED.user2)
     const postId = await createPost(request, baseURL, token1)
 
     const createResp = await request.post(`${baseURL}/api/posts/${postId}/comments`, {
@@ -209,7 +202,7 @@ test.describe('PUT /api/comments/:commentId', () => {
   })
 
   test('returns 404 for a non-existent comment', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.put(
       `${baseURL}/api/comments/00000000-0000-0000-0000-000000000000`,
       {
@@ -233,7 +226,7 @@ test.describe('PUT /api/comments/:commentId', () => {
 
 test.describe('DELETE /api/comments/:commentId', () => {
   test('owner can delete their comment', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const postId = await createPost(request, baseURL, token)
 
     const createResp = await request.post(`${baseURL}/api/posts/${postId}/comments`, {
@@ -249,8 +242,8 @@ test.describe('DELETE /api/comments/:commentId', () => {
   })
 
   test('returns 403 when a non-owner tries to delete', async ({ request, baseURL }) => {
-    const { token: token1 } = await loginAs(request, baseURL, SEED.user1)
-    const { token: token2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1 } = getSharedTokenFor(SEED.user1)
+    const { token: token2 } = getSharedTokenFor(SEED.user2)
     const postId = await createPost(request, baseURL, token1)
 
     const createResp = await request.post(`${baseURL}/api/posts/${postId}/comments`, {
@@ -266,7 +259,7 @@ test.describe('DELETE /api/comments/:commentId', () => {
   })
 
   test('returns 404 for a non-existent comment', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.delete(
       `${baseURL}/api/comments/00000000-0000-0000-0000-000000000000`,
       { headers: { Authorization: `Bearer ${token}` } },

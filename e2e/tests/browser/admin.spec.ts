@@ -1,5 +1,6 @@
 import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 import { injectTokens } from '../../support/auth-helpers'
 import { AdminPage } from './pages/admin.page'
 
@@ -89,10 +90,7 @@ test.describe('Admin — API endpoints', () => {
     request,
     baseURL,
   }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.admin.email, password: SEED.admin.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.admin)
 
     const resp = await request.get(`${baseURL}/api/admin/users`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -109,10 +107,7 @@ test.describe('Admin — API endpoints', () => {
     request,
     baseURL,
   }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.user1.email, password: SEED.user1.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.user1)
 
     const resp = await request.get(`${baseURL}/api/admin/users`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -124,10 +119,7 @@ test.describe('Admin — API endpoints', () => {
     request,
     baseURL,
   }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.admin.email, password: SEED.admin.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.admin)
 
     const resp = await request.get(`${baseURL}/api/admin/reports`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -143,10 +135,7 @@ test.describe('Admin — API endpoints', () => {
     request,
     baseURL,
   }) => {
-    const loginResp = await request.post(`${baseURL}/api/auth/login`, {
-      data: { email: SEED.admin.email, password: SEED.admin.password },
-    })
-    const { accessToken: token } = await loginResp.json()
+    const { token: token } = getSharedTokenFor(SEED.admin)
 
     const resp = await request.get(`${baseURL}/api/admin/audit-log`, {
       headers: { Authorization: `Bearer ${token}` },

@@ -1,21 +1,15 @@
-import { test, expect, type APIRequestContext } from '../../support/fixtures'
+import { test, expect } from '../../support/fixtures'
 import { SEED } from '../../fixtures/seed-data'
+import { getSharedTokenFor } from '../../support/shared-auth'
 
 /**
  * API E2E tests for /api/friends/* endpoints.
  */
 
-async function loginAs(request: APIRequestContext, baseURL: string | undefined, user: typeof SEED.user1) {
-  const resp = await request.post(`${baseURL}/api/auth/login`, {
-    data: { email: user.email, password: user.password },
-  })
-  const body = await resp.json()
-  return { token: body.accessToken as string, userId: body.user.id as string }
-}
 
 test.describe('GET /api/friends', () => {
   test('returns friend list for authenticated user', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/friends`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -32,7 +26,7 @@ test.describe('GET /api/friends', () => {
 
 test.describe('GET /api/friends/requests', () => {
   test('returns pending friend requests', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user2)
+    const { token } = getSharedTokenFor(SEED.user2)
     const resp = await request.get(`${baseURL}/api/friends/requests`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -44,7 +38,7 @@ test.describe('GET /api/friends/requests', () => {
 
 test.describe('GET /api/friends/sent', () => {
   test('returns sent friend requests', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/friends/sent`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -56,7 +50,7 @@ test.describe('GET /api/friends/sent', () => {
 
 test.describe('GET /api/friends/suggestions', () => {
   test('returns friend suggestions', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/friends/suggestions?limit=5`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -68,7 +62,7 @@ test.describe('GET /api/friends/suggestions', () => {
 
 test.describe('GET /api/friends/requests/count', () => {
   test('returns pending request count', async ({ request, baseURL }) => {
-    const { token } = await loginAs(request, baseURL, SEED.user1)
+    const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.get(`${baseURL}/api/friends/requests/count`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -80,8 +74,8 @@ test.describe('GET /api/friends/requests/count', () => {
 
 test.describe('Friend request lifecycle', () => {
   test('send, check status, cancel friend request', async ({ request, baseURL }) => {
-    const { token: token1, userId: userId1 } = await loginAs(request, baseURL, SEED.user1)
-    const { token: token2, userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1, userId: userId1 } = getSharedTokenFor(SEED.user1)
+    const { token: token2, userId: userId2 } = getSharedTokenFor(SEED.user2)
 
     // Clean up: remove any existing friendship / request
     await request.delete(`${baseURL}/api/friends/${userId2}`, {
@@ -113,8 +107,8 @@ test.describe('Friend request lifecycle', () => {
   })
 
   test('send, accept, remove friend', async ({ request, baseURL }) => {
-    const { token: token1, userId: userId1 } = await loginAs(request, baseURL, SEED.user1)
-    const { token: token2, userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1, userId: userId1 } = getSharedTokenFor(SEED.user1)
+    const { token: token2, userId: userId2 } = getSharedTokenFor(SEED.user2)
 
     // Clean state
     await request.delete(`${baseURL}/api/friends/${userId2}`, {
@@ -161,8 +155,8 @@ test.describe('Friend request lifecycle', () => {
   })
 
   test('decline friend request', async ({ request, baseURL }) => {
-    const { token: token1, userId: userId1 } = await loginAs(request, baseURL, SEED.user3)
-    const { token: token2, userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1, userId: userId1 } = getSharedTokenFor(SEED.user3)
+    const { token: token2, userId: userId2 } = getSharedTokenFor(SEED.user2)
 
     await request.delete(`${baseURL}/api/friends/request/${userId2}`, {
       headers: { Authorization: `Bearer ${token1}` },
@@ -182,8 +176,8 @@ test.describe('Friend request lifecycle', () => {
 
 test.describe('Block/Unblock', () => {
   test('block and unblock a user', async ({ request, baseURL }) => {
-    const { token: token1, userId: userId1 } = await loginAs(request, baseURL, SEED.user1)
-    const { userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1, userId: userId1 } = getSharedTokenFor(SEED.user1)
+    const { userId: userId2 } = getSharedTokenFor(SEED.user2)
 
     const blockResp = await request.post(`${baseURL}/api/friends/block/${userId2}`, {
       headers: { Authorization: `Bearer ${token1}` },
@@ -199,8 +193,8 @@ test.describe('Block/Unblock', () => {
 
 test.describe('PUT /api/friends/:userId/relation (family relation)', () => {
   test('sets a family relation on a friend', async ({ request, baseURL }) => {
-    const { token: token1, userId: userId1 } = await loginAs(request, baseURL, SEED.user1)
-    const { token: token2, userId: userId2 } = await loginAs(request, baseURL, SEED.user2)
+    const { token: token1, userId: userId1 } = getSharedTokenFor(SEED.user1)
+    const { token: token2, userId: userId2 } = getSharedTokenFor(SEED.user2)
 
     // Ensure they are friends first
     await request.delete(`${baseURL}/api/friends/${userId2}`, { headers: { Authorization: `Bearer ${token1}` } })
