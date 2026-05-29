@@ -59,7 +59,10 @@ test.describe('POST /api/posts (create post)', () => {
     expect([200, 201]).toContain(resp.status())
     const body = await resp.json()
     expect(body.media).toHaveLength(1)
-    expect(body.media[0].url).toMatch(/\/media\/posts\/images\//)
+    // URL prefix depends on the storage backend: `/media/...` for S3/MinIO
+    // (prod stack) and `/uploads/...` for LocalMediaStorageService (dev).
+    // Both flows place post images under `posts/images/` — match either prefix.
+    expect(body.media[0].url).toMatch(/\/(?:media|uploads)\/posts\/images\//)
   })
 
   test('creates a post with link preview metadata', async ({ request, baseURL }) => {
