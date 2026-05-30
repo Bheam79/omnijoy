@@ -55,12 +55,21 @@ test.describe('Friend request lifecycle (API-backed browser test)', () => {
     // Log in as user2
     const { token: token2, user: user2 } = getSharedTokenFor(SEED.user2)
 
-    // user1 sends friend request to user2 (clean up first)
+    // user1 sends friend request to user2 (clean up first — both sides)
     await request.delete(`${baseURL}/api/friends/${user2.id}`, {
       headers: { Authorization: `Bearer ${token1}` },
     })
     await request.delete(`${baseURL}/api/friends/request/${user2.id}`, {
       headers: { Authorization: `Bearer ${token1}` },
+    })
+    // Also clear any pending request that user2 sent to user1 from a previous run.
+    // Without this, POST /api/friends/request/{user2.id} (as user1) hits the
+    // auto-accept branch and the subsequent accept call returns 404.
+    await request.delete(`${baseURL}/api/friends/${user1.id}`, {
+      headers: { Authorization: `Bearer ${token2}` },
+    })
+    await request.delete(`${baseURL}/api/friends/request/${user1.id}`, {
+      headers: { Authorization: `Bearer ${token2}` },
     })
 
     const sendResp = await request.post(`${baseURL}/api/friends/request/${user2.id}`, {
