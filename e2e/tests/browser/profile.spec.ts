@@ -10,7 +10,7 @@ test.describe('Profile view and edit', () => {
   test('can navigate to own profile', async ({ page, baseURL }) => {
     // Navigate to wall and find own profile link
     await page.goto('/wall')
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('load')
     // Profile link should be reachable via sidebar or avatar
     const profileLink = page.getByRole('link', { name: /profile|my profile/i })
       .or(page.locator('a[href*="/profile/"]').first())
@@ -25,7 +25,7 @@ test.describe('Profile view and edit', () => {
 
   test('profile page displays display name', async ({ page }) => {
     await page.goto('/wall')
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('load')
     // Find own profile
     const profileLink = page.locator('a[href*="/profile/"]').first()
     if (await profileLink.isVisible()) {
@@ -42,7 +42,7 @@ test.describe('Profile page navigation (public)', () => {
   test('visiting /profile/:id with unknown ID shows 404 or error', async ({ page, baseURL }) => {
     await injectTokens(page, baseURL!, SEED.user1.email, SEED.user1.password)
     await page.goto('/profile/00000000-0000-0000-0000-000000000000')
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('load')
     // Expect some error indicator
     const errorText = page.getByText(/not found|does not exist|error/i)
     await expect(errorText).toBeVisible({ timeout: 8_000 })
