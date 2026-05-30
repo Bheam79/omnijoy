@@ -150,6 +150,15 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
+// ── Global exception handling ────────────────────────────────────────────────
+// Catches every uncaught exception that escapes a controller and produces a
+// consistent JSON ProblemDetails response. Without this the framework returns
+// a 500 with an empty body, making "post returns 500" reports hard to
+// diagnose — see OMNIJOY-125 for the symptom. Also maps known infrastructure
+// outages (e.g. MinIO unavailable → 502) to more accurate status codes.
+builder.Services.AddExceptionHandler<Omnijoy.Api.Middleware.GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 // ── HTTP Client (for OG meta fetching & OAuth) ───────────────────────────────
 builder.Services.AddHttpClient();
 
@@ -239,6 +248,11 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+// Catch-all exception handler — registered first so it wraps every downstream
+// middleware (auth, rate limiter, controllers, hubs).  Logs + returns
+// ProblemDetails. See Middleware/GlobalExceptionHandler.cs.
+app.UseExceptionHandler();
 
 app.UseCors();
 

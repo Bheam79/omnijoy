@@ -187,6 +187,25 @@ DB is **not published to the host** in production — only nginx publishes `PUBL
 - **Omnijoy.Infrastructure** — `OmnijoyDbContext`, repository implementations, services
 - **Omnijoy.Tests** — xUnit tests, uses EF InMemory + Moq + FluentAssertions
 
+### Global exception handler
+
+- `Omnijoy.Api/Middleware/GlobalExceptionHandler.cs` (registered via
+  `AddExceptionHandler<>()` + `UseExceptionHandler()` in `Program.cs`) catches
+  every uncaught exception that escapes a controller / hub.
+- Logs at **Error** level with `{Method} {Path} (user=…) → {StatusCode}` —
+  the production `Logging:LogLevel:Microsoft.AspNetCore` is `Warning`, so
+  without this handler an uncaught 500 would produce no useful log line.
+  When a 500 is reported in production, look for the `GlobalExceptionHandler`
+  log entry first; the request path + user id are right there.
+- Maps `AmazonS3Exception` → **502 Bad Gateway** ("Media storage temporarily
+  unavailable"). MinIO / S3 outages no longer surface as opaque 500s — the
+  502 tells the client to retry instead of treating the request as a backend
+  bug. Add other infrastructure-down exception types to the `MapException`
+  switch as needed.
+- Response body is a standard ASP.NET Core `ProblemDetails` JSON document
+  (so the Vue error extractor still works — it reads `data.detail` /
+  `data.title`).
+
 ### SignalR hubs
 
 | Hub | Path | Purpose |
