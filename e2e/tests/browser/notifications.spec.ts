@@ -14,7 +14,7 @@ test.describe('Notification bell', () => {
 
     const bell = page.locator(
       '[data-testid="notification-bell"], [aria-label*="notification" i], button:has([class*="bell"])',
-    )
+    ).first()
     await expect(bell).toBeVisible({ timeout: 8_000 })
   })
 
