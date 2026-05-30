@@ -1,6 +1,6 @@
 using Amazon.Runtime;
 using Amazon.S3;
-using Amazon.S3.Transfer;
+using Amazon.S3.Model;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Omnijoy.Core.Interfaces;
@@ -63,6 +63,22 @@ public class S3MediaStorageService : IMediaStorageService
         _s3 = new AmazonS3Client(accessKey, secretKey, s3Config);
     }
 
+    /// <summary>
+    /// Test-only constructor that accepts a pre-built <see cref="IAmazonS3"/> client,
+    /// bypassing configuration-based setup.
+    /// </summary>
+    internal S3MediaStorageService(
+        IAmazonS3 s3,
+        string bucketName,
+        string publicBaseUrl,
+        ILogger<S3MediaStorageService> logger)
+    {
+        _s3             = s3;
+        _bucketName     = bucketName;
+        _publicBaseUrl  = publicBaseUrl;
+        _logger         = logger;
+    }
+
     public async Task<string> StoreAsync(Stream content, string fileName, string folder)
     {
         if (content.Length == 0)
@@ -78,13 +94,19 @@ public class S3MediaStorageService : IMediaStorageService
         var key = $"{folder}/{Guid.NewGuid()}{ext}";
         var contentType = GetContentType(ext);
 
-        var transferUtility = new TransferUtility(_s3);
-        var uploadRequest = new TransferUtilityUploadRequest
+        // Use PutObjectAsync directly rather than TransferUtility so that
+        //   a) the method is unit-testable via IAmazonS3 mocks, and
+        //   b) we avoid the TransferUtility telemetry bootstrap that crashes
+        //      against the older OTEL shim that ships in some test environments.
+        // All uploaded files are < 5 MB (enforced above), so single-part upload
+        // is always the right strategy.  TransferUtility adds multi-part
+        // splitting only beyond 16 MB anyway.
+        var putRequest = new PutObjectRequest
         {
-            InputStream = content,
-            Key = key,
-            BucketName = _bucketName,
-            ContentType = contentType,
+            InputStream  = content,
+            Key          = key,
+            BucketName   = _bucketName,
+            ContentType  = contentType,
             // Do NOT set CannedACL — MinIO rejects per-object ACL operations.
             // Public read access is handled by the bucket-level anonymous download policy.
 
@@ -99,7 +121,7 @@ public class S3MediaStorageService : IMediaStorageService
 
         try
         {
-            await transferUtility.UploadAsync(uploadRequest);
+            await _s3.PutObjectAsync(putRequest);
         }
         catch (AmazonS3Exception ex)
         {
