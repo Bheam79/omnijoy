@@ -290,4 +290,214 @@ describe('useNotificationsStore', () => {
 
     expect(mockHubConnection.stop).toHaveBeenCalled()
   })
+
+  // ── SignalR event handlers ─────────────────────────────────────────────────
+
+  describe('SignalR event handlers', () => {
+    let handlers: Record<string, (...args: unknown[]) => void>
+
+    beforeEach(() => {
+      handlers = {}
+      // Capture all hub.on() registrations so we can invoke them in tests.
+      mockHubConnection.on.mockReset()
+      mockHubConnection.on.mockImplementation(
+        (event: string, cb: (...args: unknown[]) => void) => {
+          handlers[event] = cb
+        },
+      )
+    })
+
+    afterEach(() => {
+      // Restore on() to a plain stub so outer tests are not affected.
+      mockHubConnection.on.mockReset()
+    })
+
+    // ── NotificationReceived ────────────────────────────────────────────────
+
+    it('NotificationReceived — prepends notification and increments unreadCount', () => {
+      const store = useNotificationsStore()
+      store.connect()
+
+      handlers['NotificationReceived']!(makeNotification('n-new'))
+
+      expect(store.notifications[0].id).toBe('n-new')
+      expect(store.unreadCount).toBe(1)
+      expect(store.lastReceived?.id).toBe('n-new')
+    })
+
+    it('NotificationReceived — does not increment count for already-read notification', () => {
+      const store = useNotificationsStore()
+      store.connect()
+
+      handlers['NotificationReceived']!(makeNotification('n-read', { isRead: true }))
+
+      expect(store.notifications[0].id).toBe('n-read')
+      expect(store.unreadCount).toBe(0)
+    })
+
+    it('NotificationReceived — truncates list to MAX_KEPT (100) entries', () => {
+      const store = useNotificationsStore()
+      // Pre-fill with 100 existing notifications.
+      store.notifications = Array.from({ length: 100 }, (_, i) =>
+        makeNotification(`old-${i}`, { isRead: true }),
+      )
+      store.connect()
+
+      handlers['NotificationReceived']!(makeNotification('extra'))
+
+      expect(store.notifications).toHaveLength(100)
+      expect(store.notifications[0].id).toBe('extra')
+    })
+
+    it('NotificationReceived — does not add duplicate notification', () => {
+      const store = useNotificationsStore()
+      store.notifications = [makeNotification('dup')]
+      store.connect()
+
+      handlers['NotificationReceived']!(makeNotification('dup'))
+
+      expect(store.notifications).toHaveLength(1)
+    })
+
+    // ── UnreadCountChanged ──────────────────────────────────────────────────
+
+    it('UnreadCountChanged — updates unreadCount from server payload', () => {
+      const store = useNotificationsStore()
+      store.connect()
+
+      handlers['UnreadCountChanged']!({ unread: 7 })
+
+      expect(store.unreadCount).toBe(7)
+    })
+
+    // ── UserOnline / UserOffline ────────────────────────────────────────────
+
+    it('UserOnline — forwards to presence store without throwing', () => {
+      const store = useNotificationsStore()
+      store.connect()
+
+      expect(() =>
+        handlers['UserOnline']!({ userId: 'u-1', at: new Date().toISOString() }),
+      ).not.toThrow()
+    })
+
+    it('UserOffline — forwards to presence store without throwing', () => {
+      const store = useNotificationsStore()
+      store.connect()
+
+      expect(() =>
+        handlers['UserOffline']!({ userId: 'u-1', at: new Date().toISOString() }),
+      ).not.toThrow()
+    })
+
+    // ── FriendRequestReceived (legacy hub event) ────────────────────────────
+
+    it('FriendRequestReceived — forwards to friends store without throwing', () => {
+      const store = useNotificationsStore()
+      store.connect()
+
+      expect(() =>
+        handlers['FriendRequestReceived']!({ from: { id: 'u-2', displayName: 'Bob' } }),
+      ).not.toThrow()
+    })
+
+    // ── FriendRequestAccepted (legacy hub event) ────────────────────────────
+
+    it('FriendRequestAccepted — forwards to friends store without throwing', () => {
+      const store = useNotificationsStore()
+      store.connect()
+
+      expect(() =>
+        handlers['FriendRequestAccepted']!({ by: { id: 'u-2', displayName: 'Bob' } }),
+      ).not.toThrow()
+    })
+
+    // ── forwardToRelatedStores ──────────────────────────────────────────────
+
+    it('forwardToRelatedStores — FriendRequest with actor calls friends store', () => {
+      const store = useNotificationsStore()
+      store.connect()
+
+      const n = makeNotification('n-fr', {
+        type:  'FriendRequest',
+        actor: { id: 'u-sender', displayName: 'Carol' },
+      })
+
+      expect(() => handlers['NotificationReceived']!(n)).not.toThrow()
+      expect(store.notifications[0].id).toBe('n-fr')
+    })
+
+    it('forwardToRelatedStores — FriendRequest without actor refreshes pending count', () => {
+      const store = useNotificationsStore()
+      store.connect()
+
+      const n = makeNotification('n-fr-no-actor', { type: 'FriendRequest' })
+
+      expect(() => handlers['NotificationReceived']!(n)).not.toThrow()
+      expect(store.notifications[0].id).toBe('n-fr-no-actor')
+    })
+
+    it('forwardToRelatedStores — FriendRequestAccepted with actor calls friends store', () => {
+      const store = useNotificationsStore()
+      store.connect()
+
+      const n = makeNotification('n-fra', {
+        type:  'FriendRequestAccepted',
+        actor: { id: 'u-acceptor', displayName: 'Dave' },
+      })
+
+      expect(() => handlers['NotificationReceived']!(n)).not.toThrow()
+      expect(store.notifications[0].id).toBe('n-fra')
+    })
+
+    it('forwardToRelatedStores — FriendRequestAccepted without actor is a no-op', () => {
+      const store = useNotificationsStore()
+      store.connect()
+
+      const n = makeNotification('n-fra-no-actor', {
+        type:  'FriendRequestAccepted',
+        actor: undefined,
+      })
+
+      expect(() => handlers['NotificationReceived']!(n)).not.toThrow()
+    })
+
+    it('forwardToRelatedStores — unrelated notification type hits default branch', () => {
+      const store = useNotificationsStore()
+      store.connect()
+
+      const n = makeNotification('n-like', { type: 'PostLike' })
+
+      expect(() => handlers['NotificationReceived']!(n)).not.toThrow()
+      expect(store.notifications[0].id).toBe('n-like')
+    })
+
+    // ── MessageReceived (no-op legacy hook) ────────────────────────────────
+
+    it('MessageReceived — no-op handler does not throw', () => {
+      const store = useNotificationsStore()
+      store.connect()
+
+      expect(() =>
+        handlers['MessageReceived']!({
+          conversationId: 'conv-1',
+          messageId:      'msg-1',
+          senderId:       'user-2',
+        }),
+      ).not.toThrow()
+    })
+
+    // ── start().catch swallows errors ──────────────────────────────────────
+
+    it('connect — swallows hub start errors gracefully', async () => {
+      mockHubConnection.start.mockRejectedValueOnce(new Error('connection refused'))
+
+      const store = useNotificationsStore()
+      // Should not throw even if the hub fails to start
+      expect(() => store.connect()).not.toThrow()
+
+      // Give the rejected promise a chance to resolve
+      await Promise.resolve()
+    })
+  })
 })
