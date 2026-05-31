@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import type { EventDto } from '@/services/eventService'
 import { useEventsStore } from '@/stores/events'
+import { companyPageService, type CompanyPageDto } from '@/services/companyPageService'
 
 const emit = defineEmits<{
   close: []
@@ -9,6 +10,19 @@ const emit = defineEmits<{
 }>()
 
 const eventsStore = useEventsStore()
+
+// ── Company pages (admin) ─────────────────────────────────────────────────────
+
+const myCompanyPages  = ref<CompanyPageDto[]>([])
+const companyPageId   = ref<string | null>(null)
+
+onMounted(async () => {
+  try {
+    myCompanyPages.value = await companyPageService.getMyAdminPages()
+  } catch {
+    // Non-fatal — user just won't see the company selector
+  }
+})
 
 // ── Form state ────────────────────────────────────────────────────────────────
 
@@ -62,13 +76,14 @@ async function handleSubmit() {
   submitting.value = true
   try {
     const ev = await eventsStore.createEvent({
-      title:       title.value.trim(),
-      description: description.value.trim() || undefined,
-      startAt:     new Date(startAt.value).toISOString(),
-      endAt:       endAt.value ? new Date(endAt.value).toISOString() : undefined,
-      location:    location.value.trim() || undefined,
-      privacy:     privacy.value,
-      coverImage:  coverFile.value ?? undefined,
+      title:         title.value.trim(),
+      description:   description.value.trim() || undefined,
+      startAt:       new Date(startAt.value).toISOString(),
+      endAt:         endAt.value ? new Date(endAt.value).toISOString() : undefined,
+      location:      location.value.trim() || undefined,
+      privacy:       privacy.value,
+      companyPageId: companyPageId.value ?? undefined,
+      coverImage:    coverFile.value ?? undefined,
     })
     emit('created', ev)
     emit('close')
@@ -210,6 +225,24 @@ async function handleSubmit() {
               <option value="FriendsOfFriends">👥 Friends of friends</option>
               <option value="Friends">👥 Friends only</option>
               <option value="OnlyMe">🔒 Only me</option>
+            </select>
+          </div>
+
+          <!-- Organize on behalf of a company page -->
+          <div v-if="myCompanyPages.length > 0">
+            <label class="block text-sm font-medium text-slate-300 mb-1">Organizer</label>
+            <select
+              v-model="companyPageId"
+              class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-slate-800"
+            >
+              <option :value="null">Myself (personal event)</option>
+              <option
+                v-for="page in myCompanyPages"
+                :key="page.id"
+                :value="page.id"
+              >
+                {{ page.name }}
+              </option>
             </select>
           </div>
 

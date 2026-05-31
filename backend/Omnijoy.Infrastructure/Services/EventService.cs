@@ -39,6 +39,19 @@ public class EventService : IEventService
         if (request.StartAt == default)
             throw new ArgumentException("StartAt is required.");
 
+        // Validate company page membership when posting on behalf of a page
+        if (request.CompanyPageId.HasValue)
+        {
+            var pageExists = await _db.CompanyPages.AnyAsync(p => p.Id == request.CompanyPageId.Value);
+            if (!pageExists)
+                throw new KeyNotFoundException($"Company page {request.CompanyPageId.Value} not found.");
+
+            var isMember = await _db.CompanyPageAdmins.AnyAsync(a =>
+                a.CompanyPageId == request.CompanyPageId.Value && a.UserId == userId);
+            if (!isMember)
+                throw new UnauthorizedAccessException("You are not an admin of that company page.");
+        }
+
         string? coverUrl = null;
         if (cover is not null)
         {

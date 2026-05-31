@@ -77,6 +77,28 @@ public class EventServiceTests : IDisposable
         CompanyPageId: null
     );
 
+    // ── Helpers (company pages) ───────────────────────────────────────────────
+
+    private async Task<CompanyPage> CreateCompanyPageAsync(Guid ownerId, string name = "Acme Corp")
+    {
+        var page = new CompanyPage
+        {
+            Id                = Guid.NewGuid(),
+            Name              = name,
+            CreatedByUserId   = ownerId,
+            CreatedAt         = DateTime.UtcNow,
+        };
+        _db.CompanyPages.Add(page);
+        _db.CompanyPageAdmins.Add(new CompanyPageAdmin
+        {
+            CompanyPageId = page.Id,
+            UserId        = ownerId,
+            Role          = CompanyPageRole.Owner,
+        });
+        await _db.SaveChangesAsync();
+        return page;
+    }
+
     // ── CreateEvent ───────────────────────────────────────────────────────────
 
     [Fact]
@@ -128,6 +150,69 @@ public class EventServiceTests : IDisposable
         var dto = await _sut.CreateEventAsync(user.Id, DefaultRequest(), cover);
 
         dto.CoverImageUrl.Should().Be("/uploads/events/covers/cover.jpg");
+    }
+
+    [Fact]
+    public async Task CreateEvent_WithCompanyPage_AsAdmin_Succeeds()
+    {
+        var owner = await CreateUserAsync("Owner");
+        var page  = await CreateCompanyPageAsync(owner.Id);
+
+        var request = new CreateEventRequest(
+            Title:         "Company Event",
+            Description:   null,
+            StartAt:       DateTime.UtcNow.AddDays(3),
+            EndAt:         null,
+            Location:      "HQ",
+            Privacy:       "Everyone",
+            CompanyPageId: page.Id
+        );
+
+        var dto = await _sut.CreateEventAsync(owner.Id, request, null);
+
+        dto.CompanyPageId.Should().Be(page.Id);
+        dto.Title.Should().Be("Company Event");
+    }
+
+    [Fact]
+    public async Task CreateEvent_WithCompanyPage_AsNonMember_ThrowsUnauthorized()
+    {
+        var owner   = await CreateUserAsync("Owner");
+        var other   = await CreateUserAsync("Stranger");
+        var page    = await CreateCompanyPageAsync(owner.Id);
+
+        var request = new CreateEventRequest(
+            Title:         "Hack Event",
+            Description:   null,
+            StartAt:       DateTime.UtcNow.AddDays(3),
+            EndAt:         null,
+            Location:      null,
+            Privacy:       "Everyone",
+            CompanyPageId: page.Id
+        );
+
+        await _sut.Invoking(s => s.CreateEventAsync(other.Id, request, null))
+            .Should().ThrowAsync<UnauthorizedAccessException>()
+            .WithMessage("*admin*");
+    }
+
+    [Fact]
+    public async Task CreateEvent_WithNonExistentCompanyPage_ThrowsKeyNotFound()
+    {
+        var user = await CreateUserAsync();
+
+        var request = new CreateEventRequest(
+            Title:         "Ghost Company Event",
+            Description:   null,
+            StartAt:       DateTime.UtcNow.AddDays(3),
+            EndAt:         null,
+            Location:      null,
+            Privacy:       "Everyone",
+            CompanyPageId: Guid.NewGuid()
+        );
+
+        await _sut.Invoking(s => s.CreateEventAsync(user.Id, request, null))
+            .Should().ThrowAsync<KeyNotFoundException>();
     }
 
     // ── GetEvent ──────────────────────────────────────────────────────────────
