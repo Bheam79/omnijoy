@@ -19,6 +19,8 @@ export interface EventDto {
   id: string
   creator: EventCreator
   companyPageId?: string
+  companyPageName?: string
+  companyPageLogoUrl?: string
   title: string
   description?: string
   startAt: string

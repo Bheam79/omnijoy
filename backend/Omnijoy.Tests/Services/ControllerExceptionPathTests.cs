@@ -43,7 +43,7 @@ public class ControllerExceptionPathTests
         0, false, "Owner", DateTime.UtcNow);
 
     private static EventDto SampleEvent(Guid id) => new(
-        id, new EventCreatorDto(Guid.NewGuid(), "Alice", null), null,
+        id, new EventCreatorDto(Guid.NewGuid(), "Alice", null), null, null, null,
         "Event", null, DateTime.UtcNow.AddDays(1), null, null, null,
         "Everyone", null, 0, 0, 0, DateTime.UtcNow);
 

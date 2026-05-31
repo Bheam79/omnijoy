@@ -44,21 +44,23 @@ public class EventsControllerExtendedTests
     }
 
     private static EventDto SampleEvent(Guid id, Guid creatorId) => new(
-        Id:            id,
-        Creator:       new EventCreatorDto(creatorId, "Alice", null),
-        CompanyPageId: null,
-        Title:         "Test Event",
-        Description:   null,
-        StartAt:       DateTime.UtcNow.AddDays(1),
-        EndAt:         null,
-        Location:      null,
-        CoverImageUrl: null,
-        Privacy:       "Everyone",
-        MyRsvp:        null,
-        GoingCount:    0,
-        MaybeCount:    0,
-        NotGoingCount: 0,
-        CreatedAt:     DateTime.UtcNow
+        Id:                  id,
+        Creator:             new EventCreatorDto(creatorId, "Alice", null),
+        CompanyPageId:       null,
+        CompanyPageName:     null,
+        CompanyPageLogoUrl:  null,
+        Title:               "Test Event",
+        Description:         null,
+        StartAt:             DateTime.UtcNow.AddDays(1),
+        EndAt:               null,
+        Location:            null,
+        CoverImageUrl:       null,
+        Privacy:             "Everyone",
+        MyRsvp:              null,
+        GoingCount:          0,
+        MaybeCount:          0,
+        NotGoingCount:       0,
+        CreatedAt:           DateTime.UtcNow
     );
 
     // ── CreateEvent ──────────────────────────────────────────────────────────

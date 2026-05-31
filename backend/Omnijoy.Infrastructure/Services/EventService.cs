@@ -99,6 +99,7 @@ public class EventService : IEventService
         IQueryable<Event> query = _db.Events
             .AsNoTracking()
             .Include(e => e.CreatorUser)
+            .Include(e => e.CompanyPage)
             .Include(e => e.Attendees)
             .Where(e => e.StartAt >= cutoff);
 
@@ -196,6 +197,7 @@ public class EventService : IEventService
         IQueryable<Event> query = _db.Events
             .AsNoTracking()
             .Include(e => e.CreatorUser)
+            .Include(e => e.CompanyPage)
             .Include(e => e.Attendees)
             .Where(e => e.Privacy == PrivacyLevel.Everyone)
             .Where(e => e.StartAt >= cutoff);
@@ -234,6 +236,7 @@ public class EventService : IEventService
         var ev = await _db.Events
             .AsNoTracking()
             .Include(e => e.CreatorUser)
+            .Include(e => e.CompanyPage)
             .Include(e => e.Attendees)
             .FirstOrDefaultAsync(e => e.Id == eventId)
             ?? throw new KeyNotFoundException($"Event {eventId} not found.");
@@ -262,6 +265,7 @@ public class EventService : IEventService
     {
         var ev = await _db.Events
             .Include(e => e.CreatorUser)
+            .Include(e => e.CompanyPage)
             .Include(e => e.Attendees)
             .FirstOrDefaultAsync(e => e.Id == eventId)
             ?? throw new KeyNotFoundException($"Event {eventId} not found.");
@@ -336,6 +340,7 @@ public class EventService : IEventService
         // Ensure event exists
         var ev = await _db.Events
             .Include(e => e.CreatorUser)
+            .Include(e => e.CompanyPage)
             .Include(e => e.Attendees)
             .FirstOrDefaultAsync(e => e.Id == eventId)
             ?? throw new KeyNotFoundException($"Event {eventId} not found.");
@@ -408,6 +413,7 @@ public class EventService : IEventService
         var ev = await _db.Events
             .AsNoTracking()
             .Include(e => e.CreatorUser)
+            .Include(e => e.CompanyPage)
             .Include(e => e.Attendees)
             .FirstOrDefaultAsync(e => e.Id == eventId);
 
@@ -458,10 +464,12 @@ public class EventService : IEventService
         int notGoing = ev.Attendees.Count(a => a.RSVP == RSVPStatus.NotGoing);
 
         return new EventDto(
-            Id:            ev.Id,
-            Creator:       creator,
-            CompanyPageId: ev.CompanyPageId,
-            Title:         ev.Title,
+            Id:                  ev.Id,
+            Creator:             creator,
+            CompanyPageId:       ev.CompanyPageId,
+            CompanyPageName:     ev.CompanyPage?.Name,
+            CompanyPageLogoUrl:  ev.CompanyPage?.LogoUrl,
+            Title:               ev.Title,
             Description:   ev.Description,
             StartAt:       ev.StartAt,
             EndAt:         ev.EndAt,

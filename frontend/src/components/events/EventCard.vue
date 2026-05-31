@@ -109,11 +109,24 @@ async function handleDelete() {
         </h3>
       </RouterLink>
 
-      <!-- Creator -->
+      <!-- Organizer: company page or personal creator -->
       <div class="flex items-center gap-1.5 text-xs text-gray-500 mb-2">
-        <RouterLink :to="`/profile/${event.creator.id}`" class="hover:underline font-medium text-slate-300">
-          {{ event.creator.displayName }}
-        </RouterLink>
+        <template v-if="event.companyPageId">
+          <img
+            v-if="event.companyPageLogoUrl"
+            :src="event.companyPageLogoUrl"
+            :alt="event.companyPageName"
+            class="w-4 h-4 rounded object-cover"
+          />
+          <RouterLink :to="`/company/${event.companyPageId}`" class="hover:underline font-medium text-slate-300">
+            {{ event.companyPageName }}
+          </RouterLink>
+        </template>
+        <template v-else>
+          <RouterLink :to="`/profile/${event.creator.id}`" class="hover:underline font-medium text-slate-300">
+            {{ event.creator.displayName }}
+          </RouterLink>
+        </template>
       </div>
 
       <!-- Date/time details -->

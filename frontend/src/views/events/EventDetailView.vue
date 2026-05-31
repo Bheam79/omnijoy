@@ -16,6 +16,72 @@ const rsvpLoading = ref(false)
 
 const isOwn = computed(() => auth.user?.id === event.value?.creator.id)
 
+// ── Edit state ────────────────────────────────────────────────────────────────
+const showEditForm   = ref(false)
+const editTitle      = ref('')
+const editDesc       = ref('')
+const editStartAt    = ref('')
+const editEndAt      = ref('')
+const editLocation   = ref('')
+const editPrivacy    = ref<'Everyone' | 'FriendsOfFriends' | 'Friends' | 'OnlyMe'>('Everyone')
+const editCoverFile  = ref<File | null>(null)
+const editCoverPreview = ref<string | null>(null)
+const editSaving     = ref(false)
+const editError      = ref<string | null>(null)
+
+function openEdit() {
+  if (!event.value) return
+  editTitle.value    = event.value.title
+  editDesc.value     = event.value.description ?? ''
+  // datetime-local input expects "YYYY-MM-DDTHH:mm"
+  editStartAt.value  = event.value.startAt.slice(0, 16)
+  editEndAt.value    = event.value.endAt ? event.value.endAt.slice(0, 16) : ''
+  editLocation.value = event.value.location ?? ''
+  editPrivacy.value  = event.value.privacy as typeof editPrivacy.value
+  editCoverFile.value    = null
+  editCoverPreview.value = null
+  editError.value    = null
+  showEditForm.value = true
+}
+
+function onEditCoverChange(e: Event) {
+  const f = (e.target as HTMLInputElement).files?.[0]
+  if (!f) return
+  editCoverFile.value = f
+  const reader = new FileReader()
+  reader.onload = (ev) => { editCoverPreview.value = ev.target?.result as string }
+  reader.readAsDataURL(f)
+}
+
+async function saveEdit() {
+  if (!event.value) return
+  editError.value = null
+  if (!editTitle.value.trim()) { editError.value = 'Title is required.'; return }
+  if (!editStartAt.value)      { editError.value = 'Start date/time is required.'; return }
+  editSaving.value = true
+  try {
+    event.value = await eventService.updateEvent(event.value.id, {
+      title:       editTitle.value.trim(),
+      description: editDesc.value.trim() || undefined,
+      startAt:     new Date(editStartAt.value).toISOString(),
+      endAt:       editEndAt.value ? new Date(editEndAt.value).toISOString() : undefined,
+      location:    editLocation.value.trim() || undefined,
+      privacy:     editPrivacy.value,
+      coverImage:  editCoverFile.value ?? undefined,
+    })
+    showEditForm.value = false
+  } catch (e: unknown) {
+    if (typeof e === 'object' && e !== null) {
+      const axiosError = e as { response?: { data?: { error?: string } }; message?: string }
+      editError.value = axiosError.response?.data?.error ?? axiosError.message ?? 'Something went wrong.'
+    } else {
+      editError.value = 'Something went wrong.'
+    }
+  } finally {
+    editSaving.value = false
+  }
+}
+
 const privacyLabel: Record<string, string> = {
   Everyone:          'Public',
   FriendsOfFriends:  'Friends of friends',
@@ -154,15 +220,33 @@ onMounted(fetchEvent)
       <div>
         <h1 data-testid="event-title" class="text-2xl font-bold text-slate-100 mb-1">{{ event.title }}</h1>
 
-        <!-- Creator -->
+        <!-- Organizer: company page or personal creator -->
         <div class="flex items-center gap-2 text-sm text-gray-500 mb-3">
           <span>Organised by</span>
-          <RouterLink
-            :to="`/profile/${event.creator.id}`"
-            class="font-semibold text-slate-200 hover:text-indigo-400 transition"
-          >
-            {{ event.creator.displayName }}
-          </RouterLink>
+          <template v-if="event.companyPageId">
+            <div class="flex items-center gap-1.5">
+              <img
+                v-if="event.companyPageLogoUrl"
+                :src="event.companyPageLogoUrl"
+                :alt="event.companyPageName"
+                class="w-5 h-5 rounded object-cover"
+              />
+              <RouterLink
+                :to="`/company/${event.companyPageId}`"
+                class="font-semibold text-slate-200 hover:text-indigo-400 transition"
+              >
+                {{ event.companyPageName }}
+              </RouterLink>
+            </div>
+          </template>
+          <template v-else>
+            <RouterLink
+              :to="`/profile/${event.creator.id}`"
+              class="font-semibold text-slate-200 hover:text-indigo-400 transition"
+            >
+              {{ event.creator.displayName }}
+            </RouterLink>
+          </template>
         </div>
 
         <!-- Date/time -->
@@ -320,11 +404,116 @@ onMounted(fetchEvent)
       <!-- Owner actions -->
       <div v-if="isOwn" class="flex gap-3 pt-2">
         <button
+          class="px-4 py-2 text-sm font-medium text-indigo-400 border border-indigo-700 rounded-xl hover:bg-indigo-900/50 transition"
+          @click="openEdit"
+        >
+          Edit Event
+        </button>
+        <button
           class="px-4 py-2 text-sm font-medium text-red-400 border border-red-800 rounded-xl hover:bg-red-950 transition"
           @click="handleDelete"
         >
           Delete Event
         </button>
+      </div>
+
+      <!-- Edit form (inline, toggleable) -->
+      <div v-if="showEditForm && isOwn" class="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-semibold text-slate-100">Edit Event</h2>
+          <button class="text-slate-500 hover:text-slate-300 p-1" @click="showEditForm = false">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Cover image -->
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-1">Cover Image</label>
+          <div v-if="editCoverPreview" class="relative h-32 rounded-xl overflow-hidden">
+            <img :src="editCoverPreview" class="w-full h-full object-cover"/>
+            <button type="button" class="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1"
+              @click="editCoverFile = null; editCoverPreview = null">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <label v-else class="flex flex-col items-center justify-center h-20 border-2 border-dashed border-slate-600 rounded-xl cursor-pointer hover:border-indigo-400 transition">
+            <span class="text-xs text-gray-500">Click to change cover photo</span>
+            <input type="file" class="hidden" accept="image/*" @change="onEditCoverChange"/>
+          </label>
+        </div>
+
+        <!-- Title -->
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-1">Title <span class="text-red-500">*</span></label>
+          <input v-model="editTitle" type="text" maxlength="256"
+            class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+
+        <!-- Description -->
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-1">Description</label>
+          <textarea v-model="editDesc" rows="3"
+            class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+          />
+        </div>
+
+        <!-- Start / End -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Starts <span class="text-red-500">*</span></label>
+            <input v-model="editStartAt" type="datetime-local"
+              class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Ends</label>
+            <input v-model="editEndAt" type="datetime-local" :min="editStartAt"
+              class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+
+        <!-- Location -->
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-1">Location</label>
+          <input v-model="editLocation" type="text" maxlength="512"
+            class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+
+        <!-- Privacy -->
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-1">Privacy</label>
+          <select v-model="editPrivacy"
+            class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="Everyone">🌐 Public</option>
+            <option value="FriendsOfFriends">👥 Friends of friends</option>
+            <option value="Friends">👥 Friends only</option>
+            <option value="OnlyMe">🔒 Only me</option>
+          </select>
+        </div>
+
+        <!-- Error -->
+        <div v-if="editError" class="text-sm text-red-400 bg-red-950 rounded-lg px-3 py-2">{{ editError }}</div>
+
+        <!-- Actions -->
+        <div class="flex justify-end gap-3">
+          <button type="button"
+            class="px-4 py-2 text-sm font-medium text-slate-300 border border-slate-600 rounded-lg hover:bg-slate-700 transition"
+            @click="showEditForm = false">Cancel</button>
+          <button type="button" :disabled="editSaving"
+            class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition"
+            @click="saveEdit">
+            <span v-if="editSaving">Saving…</span>
+            <span v-else>Save Changes</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>

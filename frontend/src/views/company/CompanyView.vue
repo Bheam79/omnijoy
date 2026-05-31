@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { companyPageService, type CompanyPageDto, type AdminsResult } from '@/services/companyPageService'
 import { postService, type PostDto } from '@/services/postService'
@@ -70,13 +70,9 @@ function toggleCompanyMode() {
   }
 }
 
-// When navigating away from this page, deactivate company mode if it was
-// activated for this company — so the global state stays clean.
-onUnmounted(() => {
-  if (isCompanyModeActive.value) {
-    companyMode.deactivate()
-  }
-})
+// Note: company mode is NOT deactivated on unmount — the user may navigate to
+// an event detail or other related page and should stay in company mode.
+// Company mode deactivates only when the user explicitly clicks "Exit" in the banner.
 
 function onPostCreated(post: PostDto) {
   posts.value.unshift(post)

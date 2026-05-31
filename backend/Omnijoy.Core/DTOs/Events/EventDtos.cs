@@ -12,6 +12,10 @@ public record EventDto(
     Guid Id,
     EventCreatorDto Creator,
     Guid? CompanyPageId,
+    /// <summary>Display name of the organising company page; null for personal events.</summary>
+    string? CompanyPageName,
+    /// <summary>Logo URL of the organising company page; null for personal events.</summary>
+    string? CompanyPageLogoUrl,
     string Title,
     string? Description,
     DateTime StartAt,
