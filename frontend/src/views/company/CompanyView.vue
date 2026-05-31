@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { companyPageService, type CompanyPageDto, type AdminsResult } from '@/services/companyPageService'
 import { postService, type PostDto } from '@/services/postService'
 import { useAuthStore } from '@/stores/auth'
+import { useCompanyModeStore } from '@/stores/companyMode'
 import PostCard from '@/components/post/PostCard.vue'
 import PostComposer from '@/components/post/PostComposer.vue'
 import SlugPicker from '@/components/shared/SlugPicker.vue'
 
 const route = useRoute()
 const auth  = useAuthStore()
+const companyMode = useCompanyModeStore()
 
 const page     = ref<CompanyPageDto | null>(null)
 const posts    = ref<PostDto[]>([])
@@ -42,6 +44,28 @@ const isAdmin = computed(() =>
 const isOwner = computed(() => page.value?.myRole === 'Owner')
 // Anyone with a role on the page (Owner / Admin / Editor) can post on its behalf.
 const canPostAsPage = computed(() => page.value?.myRole != null)
+
+// Whether company mode is active for this specific page.
+const isCompanyModeActive = computed(() =>
+  companyMode.isActive && companyMode.activeCompany?.id === page.value?.id
+)
+
+function toggleCompanyMode() {
+  if (!page.value) return
+  if (isCompanyModeActive.value) {
+    companyMode.deactivate()
+  } else {
+    companyMode.activate(page.value)
+  }
+}
+
+// When navigating away from this page, deactivate company mode if it was
+// activated for this company — so the global state stays clean.
+onUnmounted(() => {
+  if (isCompanyModeActive.value) {
+    companyMode.deactivate()
+  }
+})
 
 function onPostCreated(post: PostDto) {
   posts.value.unshift(post)
@@ -227,10 +251,24 @@ onMounted(fetchData)
           </div>
 
           <!-- Actions -->
-          <div class="flex gap-2 pb-1">
+          <div class="flex gap-2 pb-1 flex-wrap justify-end">
             <button v-if="isAdmin" @click="openEdit"
               class="px-3 py-1.5 text-xs font-medium border border-slate-600 rounded-lg text-slate-300 hover:bg-slate-700 transition"
             >Edit Page</button>
+
+            <!-- Company mode toggle (Owner / Admin / Editor only) -->
+            <button
+              v-if="canPostAsPage"
+              class="px-3 py-1.5 text-xs font-medium rounded-lg transition border"
+              :class="isCompanyModeActive
+                ? 'bg-indigo-900 border-indigo-500 text-indigo-300 hover:bg-indigo-950'
+                : 'border-slate-600 text-slate-300 hover:bg-slate-700'"
+              @click="toggleCompanyMode"
+            >
+              <span v-if="isCompanyModeActive">✓ Acting as {{ page.name }}</span>
+              <span v-else>Act as {{ page.name }}</span>
+            </button>
+
             <button
               class="px-4 py-1.5 text-sm font-medium rounded-lg transition border"
               :class="page.isFollowing
@@ -256,11 +294,9 @@ onMounted(fetchData)
 
         <!-- Posts tab -->
         <div v-if="activeTab === 'posts'" class="space-y-4 pb-8">
-          <!-- Composer (only for Owner/Admin/Editor) -->
+          <!-- Composer (only for Owner/Admin/Editor, and only while in company mode) -->
           <PostComposer
-            v-if="canPostAsPage"
-            :default-company-page-id="page.id"
-            :default-company-page="page"
+            v-if="canPostAsPage && isCompanyModeActive"
             @created="onPostCreated"
           />
 

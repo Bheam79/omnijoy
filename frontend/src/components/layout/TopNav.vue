@@ -7,6 +7,7 @@ import { useChatStore } from '@/stores/chat'
 import { useLiveStore } from '@/stores/live'
 import { useNotificationsStore } from '@/stores/notifications'
 import { usePresenceStore } from '@/stores/presence'
+import { useCompanyModeStore } from '@/stores/companyMode'
 import NotificationBell from './NotificationBell.vue'
 import SearchSuggest from './SearchSuggest.vue'
 
@@ -19,6 +20,7 @@ const chatStore     = useChatStore()
 const liveStore     = useLiveStore()
 const notifications = useNotificationsStore()
 const presence      = usePresenceStore()
+const companyMode   = useCompanyModeStore()
 const router        = useRouter()
 
 const profileOpen = ref(false)
@@ -56,6 +58,24 @@ async function logout() {
     class="fixed inset-0 z-40"
     @click="profileOpen = false"
   />
+
+  <!-- Company mode banner (shown below the main nav bar) -->
+  <Transition name="slide-down">
+    <div
+      v-if="companyMode.isActive"
+      class="fixed top-16 inset-x-0 z-40 flex items-center justify-center gap-3 px-4 py-1.5 bg-indigo-900/90 border-b border-indigo-700 backdrop-blur-sm text-sm"
+    >
+      <span class="text-indigo-200">
+        🏢 Acting as <strong class="text-white">{{ companyMode.activeCompany?.name }}</strong>
+      </span>
+      <button
+        class="text-indigo-400 hover:text-white text-xs font-medium border border-indigo-700 rounded-full px-2 py-0.5 hover:border-indigo-400 transition"
+        @click="companyMode.deactivate()"
+      >
+        Exit
+      </button>
+    </div>
+  </Transition>
 
   <header class="fixed top-0 inset-x-0 z-50 h-16 bg-slate-900 border-b border-slate-700 flex items-center px-3 gap-2 lg:gap-4">
     <!-- Hamburger (mobile only) -->
@@ -223,3 +243,15 @@ async function logout() {
     </div>
   </header>
 </template>
+
+<style scoped>
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.slide-down-enter-from,
+.slide-down-leave-to {
+  transform: translateY(-100%);
+  opacity: 0;
+}
+</style>

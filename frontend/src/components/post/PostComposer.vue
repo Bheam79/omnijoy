@@ -1,30 +1,15 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { postService, type PostDto, type PostLinkPreview } from '@/services/postService'
 import { useFeedStore } from '@/stores/feed'
 import { useAuthStore } from '@/stores/auth'
-import { companyPageService, type CompanyPageDto } from '@/services/companyPageService'
-
-const props = defineProps<{
-  /**
-   * When set, the "Posting as" selector defaults to this company page on open.
-   * The user can still switch back to their personal identity or to another
-   * page they administer. Use this on a company page view to make the
-   * composer post on behalf of that page by default.
-   */
-  defaultCompanyPageId?: string | null
-  /**
-   * Optional — when the caller already has the company page DTO (e.g. from a
-   * company-page view), pass it here so the "Posting as" selector renders the
-   * page name instantly without waiting for /api/company-pages/mine to resolve.
-   */
-  defaultCompanyPage?: CompanyPageDto | null
-}>()
+import { useCompanyModeStore } from '@/stores/companyMode'
 
 const emit = defineEmits<{ created: [post: PostDto] }>()
 
 const auth = useAuthStore()
 const feed = useFeedStore()
+const companyMode = useCompanyModeStore()
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -41,17 +26,7 @@ const mediaPreviewUrls = ref<string[]>([])
 const submitting = ref(false)
 const error = ref<string | null>(null)
 
-// "Posting as" — company pages where user is admin
-const myAdminPages = ref<CompanyPageDto[]>(props.defaultCompanyPage ? [props.defaultCompanyPage] : [])
-const postingAsPageId = ref<string | null>(
-  props.defaultCompanyPageId ?? props.defaultCompanyPage?.id ?? null
-)
-
 // ── URL preview state ────────────────────────────────────────────────────────
-// The composer scans the text for a URL whenever the content changes; when a
-// URL is detected it requests an OG preview from /api/meta-preview and shows
-// a card below the textarea. The user can dismiss the card to suppress the
-// preview for this post.
 const linkPreview = ref<PostLinkPreview | null>(null)
 const linkPreviewUrl = ref<string | null>(null)
 const linkPreviewLoading = ref(false)
@@ -63,7 +38,6 @@ const URL_REGEX = /https?:\/\/[^\s<>"']+/i
 function extractFirstUrl(text: string): string | null {
   const match = text.match(URL_REGEX)
   if (!match) return null
-  // Strip trailing punctuation that's almost never part of the URL
   return match[0].replace(/[.,;:!?)\]]+$/, '')
 }
 
@@ -80,7 +54,6 @@ async function refreshLinkPreview() {
   linkPreviewLoading.value = true
   try {
     const og = await postService.fetchMetaPreview(url)
-    // Only commit if the URL hasn't changed in the meantime
     if (linkPreviewUrl.value !== url) return
     linkPreview.value = {
       url: og.url,
@@ -90,7 +63,6 @@ async function refreshLinkPreview() {
       siteName: og.siteName,
     }
   } catch {
-    // Network/parse failure — leave preview null but remember we tried.
     if (linkPreviewUrl.value === url) linkPreview.value = null
   } finally {
     if (linkPreviewUrl.value === url) linkPreviewLoading.value = false
@@ -107,35 +79,6 @@ function dismissLinkPreview() {
 watch(content, () => {
   if (linkPreviewDebounce) clearTimeout(linkPreviewDebounce)
   linkPreviewDebounce = setTimeout(refreshLinkPreview, 400)
-})
-
-onMounted(async () => {
-  try {
-    const fetched = await companyPageService.getMyAdminPages()
-    // Merge fetched pages with any seeded default, deduping by id.
-    const seen = new Set<string>()
-    const merged: CompanyPageDto[] = []
-    for (const pg of [...myAdminPages.value, ...fetched]) {
-      if (seen.has(pg.id)) continue
-      seen.add(pg.id)
-      merged.push(pg)
-    }
-    myAdminPages.value = merged
-  } catch { /* non-critical */ }
-})
-
-// If the parent changes the default (e.g. navigating between company pages
-// without unmounting), keep the selector in sync.
-watch(() => props.defaultCompanyPageId, (next) => {
-  postingAsPageId.value = next ?? props.defaultCompanyPage?.id ?? null
-})
-watch(() => props.defaultCompanyPage, (next) => {
-  if (next && !myAdminPages.value.some(p => p.id === next.id)) {
-    myAdminPages.value = [next, ...myAdminPages.value]
-  }
-  if (next && props.defaultCompanyPageId == null) {
-    postingAsPageId.value = next.id
-  }
 })
 
 // Predefined backgrounds for TextOnBackground
@@ -172,6 +115,14 @@ const tobStyle = computed(() => {
   return { background: bg }
 })
 
+/** The identity shown in the author row. */
+const authorName = computed(() =>
+  companyMode.isActive
+    ? companyMode.activeCompany!.name
+    : (auth.user?.displayName ?? '?')
+)
+const authorInitial = computed(() => authorName.value.charAt(0).toUpperCase())
+
 // ── Watchers ──────────────────────────────────────────────────────────────────
 
 watch(postType, () => {
@@ -201,7 +152,6 @@ function reset() {
   mediaPreviewUrls.value = []
   error.value = null
   submitting.value = false
-  postingAsPageId.value = props.defaultCompanyPageId ?? props.defaultCompanyPage?.id ?? null
   linkPreview.value = null
   linkPreviewUrl.value = null
   linkPreviewLoading.value = false
@@ -216,7 +166,7 @@ function handleFileInput(event: Event) {
     mediaFiles.value.push(file)
     mediaPreviewUrls.value.push(URL.createObjectURL(file))
   }
-  input.value = '' // reset so same file can be re-added if removed
+  input.value = ''
 }
 
 function removeMedia(index: number) {
@@ -236,7 +186,8 @@ async function submit() {
       privacy: privacy.value,
       background: postType.value === 'TextOnBackground' ? background.value : undefined,
       mediaFiles: mediaFiles.value.length > 0 ? mediaFiles.value : undefined,
-      companyPageId: postingAsPageId.value ?? undefined,
+      // Post as the active company when in company mode, otherwise as personal user.
+      companyPageId: companyMode.activeCompany?.id ?? undefined,
       linkPreview: linkPreview.value ?? undefined,
     })
     emit('created', post)
@@ -267,12 +218,14 @@ defineExpose({ open, close })
     @click="open"
   >
     <div
-      class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-sm shrink-0"
+      class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0"
+      :class="companyMode.isActive ? 'bg-indigo-600' : 'bg-blue-500'"
     >
-      {{ auth.user?.displayName?.charAt(0)?.toUpperCase() ?? '?' }}
+      {{ authorInitial }}
     </div>
     <div data-testid="post-composer-trigger" class="flex-1 bg-slate-700 rounded-full px-4 py-2 text-slate-500 text-sm select-none">
-      What's on your mind?
+      <span v-if="companyMode.isActive">Post as {{ companyMode.activeCompany?.name }}…</span>
+      <span v-else>What's on your mind?</span>
     </div>
   </div>
 
@@ -308,25 +261,14 @@ defineExpose({ open, close })
 
             <!-- Author row -->
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-sm shrink-0">
-                {{ auth.user?.displayName?.charAt(0)?.toUpperCase() ?? '?' }}
+              <div
+                class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0"
+                :class="companyMode.isActive ? 'bg-indigo-600' : 'bg-blue-500'"
+              >
+                {{ authorInitial }}
               </div>
               <div>
-                <!-- "Posting as" selector -->
-                <div v-if="myAdminPages.length > 0" class="mb-0.5">
-                  <select
-                    v-model="postingAsPageId"
-                    class="text-xs bg-indigo-900/50 border border-indigo-700 rounded-md px-2 py-0.5 text-indigo-300 focus:ring-2 focus:ring-indigo-400 cursor-pointer font-medium"
-                  >
-                    <option :value="null">👤 {{ auth.user?.displayName }}</option>
-                    <option
-                      v-for="pg in myAdminPages"
-                      :key="pg.id"
-                      :value="pg.id"
-                    >🏢 {{ pg.name }}</option>
-                  </select>
-                </div>
-                <p v-else class="font-semibold text-slate-100 text-sm">{{ auth.user?.displayName }}</p>
+                <p class="font-semibold text-slate-100 text-sm">{{ authorName }}</p>
                 <!-- Privacy selector -->
                 <select
                   v-model="privacy"

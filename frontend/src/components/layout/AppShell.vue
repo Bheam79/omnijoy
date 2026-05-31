@@ -5,10 +5,12 @@ import TopNav from './TopNav.vue'
 import Sidebar from './Sidebar.vue'
 import MessengerPopup from '@/components/chat/MessengerPopup.vue'
 import { useLiveStore } from '@/stores/live'
+import { useCompanyModeStore } from '@/stores/companyMode'
 
 const sidebarOpen = ref(false)
 const route = useRoute()
 const liveStore = useLiveStore()
+const companyMode = useCompanyModeStore()
 
 /** Wide-content routes manage their own max-width; standard routes use the default wrapper. */
 const isWideContent = computed(() => !!route.meta.wideContent)
@@ -40,8 +42,12 @@ onMounted(() => {
 
     <!-- Main content
          pt-16    → clears the fixed 64px top nav
+         pt-24    → pt-16 + 32px company mode banner when active
          lg:pl-64 → clears the 256px sidebar on large screens -->
-    <main class="pt-16 lg:pl-64 min-h-screen">
+    <main
+      class="lg:pl-64 min-h-screen transition-[padding-top] duration-200"
+      :class="companyMode.isActive ? 'pt-24' : 'pt-16'"
+    >
       <!-- Standard layout: centered, max-w-3xl with padding -->
       <div v-if="!isWideContent" class="max-w-3xl mx-auto px-4 py-6">
         <slot />

@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import type { EventDto } from '@/services/eventService'
 import { useEventsStore } from '@/stores/events'
-import { companyPageService, type CompanyPageDto } from '@/services/companyPageService'
+import { useCompanyModeStore } from '@/stores/companyMode'
 
 const emit = defineEmits<{
   close: []
@@ -10,19 +10,7 @@ const emit = defineEmits<{
 }>()
 
 const eventsStore = useEventsStore()
-
-// ── Company pages (admin) ─────────────────────────────────────────────────────
-
-const myCompanyPages  = ref<CompanyPageDto[]>([])
-const companyPageId   = ref<string | null>(null)
-
-onMounted(async () => {
-  try {
-    myCompanyPages.value = await companyPageService.getMyAdminPages()
-  } catch {
-    // Non-fatal — user just won't see the company selector
-  }
-})
+const companyMode = useCompanyModeStore()
 
 // ── Form state ────────────────────────────────────────────────────────────────
 
@@ -40,7 +28,6 @@ const formError  = ref<string | null>(null)
 
 const minDate = computed(() => {
   const now = new Date()
-  // Format as datetime-local value (YYYY-MM-DDTHH:MM)
   return now.toISOString().slice(0, 16)
 })
 
@@ -82,7 +69,8 @@ async function handleSubmit() {
       endAt:         endAt.value ? new Date(endAt.value).toISOString() : undefined,
       location:      location.value.trim() || undefined,
       privacy:       privacy.value,
-      companyPageId: companyPageId.value ?? undefined,
+      // Organizer is determined by company mode — no dropdown needed.
+      companyPageId: companyMode.activeCompany?.id ?? undefined,
       coverImage:    coverFile.value ?? undefined,
     })
     emit('created', ev)
@@ -107,7 +95,12 @@ async function handleSubmit() {
       <div class="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700">
-          <h2 class="text-lg font-bold text-slate-100">Create Event</h2>
+          <div>
+            <h2 class="text-lg font-bold text-slate-100">Create Event</h2>
+            <p v-if="companyMode.isActive" class="text-xs text-indigo-400 mt-0.5">
+              Organizer: {{ companyMode.activeCompany?.name }}
+            </p>
+          </div>
           <button
             class="text-slate-500 hover:text-slate-400 p-1 rounded-full hover:bg-slate-700 transition"
             aria-label="Close"
@@ -225,24 +218,6 @@ async function handleSubmit() {
               <option value="FriendsOfFriends">👥 Friends of friends</option>
               <option value="Friends">👥 Friends only</option>
               <option value="OnlyMe">🔒 Only me</option>
-            </select>
-          </div>
-
-          <!-- Organize on behalf of a company page -->
-          <div v-if="myCompanyPages.length > 0">
-            <label class="block text-sm font-medium text-slate-300 mb-1">Organizer</label>
-            <select
-              v-model="companyPageId"
-              class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-slate-800"
-            >
-              <option :value="null">Myself (personal event)</option>
-              <option
-                v-for="page in myCompanyPages"
-                :key="page.id"
-                :value="page.id"
-              >
-                {{ page.name }}
-              </option>
             </select>
           </div>
 
