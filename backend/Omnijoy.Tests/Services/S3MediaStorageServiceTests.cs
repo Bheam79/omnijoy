@@ -112,6 +112,103 @@ public class S3MediaStorageServiceTests
            .WithMessage("*SecretKey*");
     }
 
+    // ── Constructor — empty / whitespace string fail-fast (OMNIJOY-138) ──────
+    //
+    // The env-var configuration provider returns the empty string when a
+    // referenced variable is set to "" or, with docker compose, when bare
+    // ${VAR} substitution finds the variable unset. A `?? throw` does NOT
+    // catch this — the SDK silently builds a client with empty credentials,
+    // sends anonymous requests, and MinIO replies AccessDenied. These tests
+    // pin that the constructor refuses empty / whitespace values too.
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    public void Constructor_EmptyServiceUrl_ThrowsInvalidOperation(string blank)
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Storage:S3:ServiceUrl"] = blank,
+                ["Storage:S3:BucketName"] = "bucket",
+                ["Storage:S3:AccessKey"]  = "key",
+                ["Storage:S3:SecretKey"]  = "secret",
+            })
+            .Build();
+
+        var act = () => new S3MediaStorageService(config, NullLogger<S3MediaStorageService>.Instance);
+
+        act.Should().Throw<InvalidOperationException>()
+           .WithMessage("*ServiceUrl*non-empty*");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    public void Constructor_EmptyBucketName_ThrowsInvalidOperation(string blank)
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Storage:S3:ServiceUrl"] = "https://s3.example.com",
+                ["Storage:S3:BucketName"] = blank,
+                ["Storage:S3:AccessKey"]  = "key",
+                ["Storage:S3:SecretKey"]  = "secret",
+            })
+            .Build();
+
+        var act = () => new S3MediaStorageService(config, NullLogger<S3MediaStorageService>.Instance);
+
+        act.Should().Throw<InvalidOperationException>()
+           .WithMessage("*BucketName*non-empty*");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    public void Constructor_EmptyAccessKey_ThrowsInvalidOperation(string blank)
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Storage:S3:ServiceUrl"] = "https://s3.example.com",
+                ["Storage:S3:BucketName"] = "bucket",
+                ["Storage:S3:AccessKey"]  = blank,
+                ["Storage:S3:SecretKey"]  = "secret",
+            })
+            .Build();
+
+        var act = () => new S3MediaStorageService(config, NullLogger<S3MediaStorageService>.Instance);
+
+        act.Should().Throw<InvalidOperationException>()
+           .WithMessage("*AccessKey*non-empty*");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    public void Constructor_EmptySecretKey_ThrowsInvalidOperation(string blank)
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Storage:S3:ServiceUrl"] = "https://s3.example.com",
+                ["Storage:S3:BucketName"] = "bucket",
+                ["Storage:S3:AccessKey"]  = "key",
+                ["Storage:S3:SecretKey"]  = blank,
+            })
+            .Build();
+
+        var act = () => new S3MediaStorageService(config, NullLogger<S3MediaStorageService>.Instance);
+
+        act.Should().Throw<InvalidOperationException>()
+           .WithMessage("*SecretKey*non-empty*");
+    }
+
     [Fact]
     public void Constructor_AllConfigPresent_UsesPublicBaseUrl()
     {
@@ -676,6 +773,32 @@ public class S3MediaStorageServiceTests
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task Probe_StartingLine_LoggedAtWarningSoVisibleAtProdDefaults()
+    {
+        // OMNIJOY-138 acceptance criterion: the "S3 storage probe starting"
+        // line carries the AccessKeyPrefix. Prod's default log level is
+        // Warning (see appsettings.Production.json), so the line must be
+        // emitted at Warning, not Information — otherwise the empty-key
+        // signal would be filtered out before reaching operators.
+        var s3Mock = BuildRoundTripMock();
+        var loggerMock = new Mock<ILogger<S3MediaStorageService>>();
+        var sut = CreateSut(s3Mock.Object, loggerMock.Object);
+
+        await sut.ProbeBucketAsync();
+
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) =>
+                    state.ToString()!.Contains("S3 storage probe starting") &&
+                    state.ToString()!.Contains("AccessKeyPrefix")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact]

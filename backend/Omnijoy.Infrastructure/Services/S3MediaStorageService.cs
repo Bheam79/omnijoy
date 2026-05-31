@@ -35,14 +35,20 @@ public class S3MediaStorageService : IMediaStorageService
     public S3MediaStorageService(IConfiguration config, ILogger<S3MediaStorageService> logger)
     {
         _logger = logger;
-        _serviceUrl = config["Storage:S3:ServiceUrl"]
-            ?? throw new InvalidOperationException("Storage:S3:ServiceUrl is not configured.");
-        _bucketName = config["Storage:S3:BucketName"]
-            ?? throw new InvalidOperationException("Storage:S3:BucketName is not configured.");
-        _accessKey = config["Storage:S3:AccessKey"]
-            ?? throw new InvalidOperationException("Storage:S3:AccessKey is not configured.");
-        var secretKey = config["Storage:S3:SecretKey"]
-            ?? throw new InvalidOperationException("Storage:S3:SecretKey is not configured.");
+
+        // Fail-fast on empty *or* whitespace credentials, not just null. The
+        // env-var config provider returns the empty string when a referenced
+        // variable is set to "" (or, with docker compose, when the bare
+        // ${VAR} substitution finds the variable unset). A `?? throw` would
+        // not trip on "", and the SDK would happily build a client with empty
+        // credentials that sends anonymous requests — MinIO then replies
+        // AccessDenied and the failure surfaces as an opaque 502 to clients.
+        // See OMNIJOY-137 / OMNIJOY-138 for the production incident this
+        // guards against.
+        _serviceUrl = RequireNonEmpty(config, "Storage:S3:ServiceUrl");
+        _bucketName = RequireNonEmpty(config, "Storage:S3:BucketName");
+        _accessKey  = RequireNonEmpty(config, "Storage:S3:AccessKey");
+        var secretKey = RequireNonEmpty(config, "Storage:S3:SecretKey");
 
         _publicBaseUrl = config["Storage:S3:PublicBaseUrl"]
             ?? $"{_serviceUrl.TrimEnd('/')}/{_bucketName}";
@@ -63,6 +69,26 @@ public class S3MediaStorageService : IMediaStorageService
         };
 
         _s3 = new AmazonS3Client(_accessKey, secretKey, s3Config);
+    }
+
+    /// <summary>
+    /// Reads a required configuration value and throws
+    /// <see cref="InvalidOperationException"/> with a clear "must be a
+    /// non-empty string" message if the value is null, empty, or whitespace.
+    /// Used for credentials and connection settings where a silently-empty
+    /// value would otherwise produce an opaque AccessDenied at first use.
+    /// </summary>
+    private static string RequireNonEmpty(IConfiguration config, string key)
+    {
+        var value = config[key];
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new InvalidOperationException(
+                $"{key} must be a non-empty string (got: " +
+                $"{(value is null ? "null" : "empty/whitespace")}). " +
+                "Check the corresponding environment variable in docker/.env.");
+        }
+        return value;
     }
 
     /// <summary>
@@ -193,7 +219,13 @@ public class S3MediaStorageService : IMediaStorageService
     ///     stage.</returns>
     public async Task<bool> ProbeBucketAsync(CancellationToken ct = default)
     {
-        _logger.LogInformation(
+        // Logged at Warning (not Information) so the access-key-prefix summary
+        // shows up at prod-default log level (`Logging:LogLevel:Default=Warning`
+        // in appsettings.Production.json). When the probe later fails, an
+        // operator scanning the logs sees the configured AccessKeyPrefix
+        // *before* the cascading step failures — an empty key prefix
+        // ("(none)") is the unambiguous "you didn't pass credentials" signal.
+        _logger.LogWarning(
             "S3 storage probe starting. Endpoint={Endpoint} Bucket={Bucket} AccessKeyPrefix={AccessKeyPrefix}",
             _serviceUrl,
             _bucketName,

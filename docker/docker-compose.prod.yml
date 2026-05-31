@@ -22,10 +22,15 @@ services:
     container_name: 07ad0b82_omnijoy_mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      # ${VAR:?msg} aborts `docker compose up` with the given message when the
+      # variable is unset OR empty. Without this, compose silently substitutes
+      # the empty string, MariaDB initialises with no password, and the
+      # backend never connects (or — worse — the DB ends up world-writable).
+      # See OMNIJOY-138.
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set in docker/.env}
       MYSQL_DATABASE:      ${MYSQL_DATABASE:-omnijoy}
       MYSQL_USER:          ${MYSQL_USER:-omnijoy}
-      MYSQL_PASSWORD:      ${MYSQL_PASSWORD}
+      MYSQL_PASSWORD:      ${MYSQL_PASSWORD:?MYSQL_PASSWORD must be set in docker/.env}
     volumes:
       - mysql_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro,z
@@ -56,11 +61,11 @@ services:
         Server=07ad0b82_omnijoy_mysql;Port=3306;
         Database=${MYSQL_DATABASE:-omnijoy};
         User=${MYSQL_USER:-omnijoy};
-        Password=${MYSQL_PASSWORD};
+        Password=${MYSQL_PASSWORD:?MYSQL_PASSWORD must be set in docker/.env};
         AllowPublicKeyRetrieval=true;
 
       # JWT secret — MUST be set (min 32 chars)
-      Jwt__Key: ${JWT_SECRET_KEY}
+      Jwt__Key: ${JWT_SECRET_KEY:?JWT_SECRET_KEY must be set in docker/.env (min 32 chars)}
 
       # CORS — set to your public domain in .env, e.g. https://omnijoy.example.com
       Cors__AllowedOrigins__0: ${CORS_ORIGINS:-}
@@ -78,8 +83,12 @@ services:
       Storage__Type:               s3
       Storage__S3__ServiceUrl:     http://minio:9000
       Storage__S3__BucketName:     ${MINIO_BUCKET:-omnijoy}
-      Storage__S3__AccessKey:      ${MINIO_ROOT_USER}
-      Storage__S3__SecretKey:      ${MINIO_ROOT_PASSWORD}
+      # Fail-fast (${VAR:?msg}) — without this, a missing/empty MINIO_ROOT_USER
+      # would silently substitute an empty string, the backend would build the
+      # S3 client with empty credentials and send anonymous requests, and MinIO
+      # would reply AccessDenied on every PutObject. See OMNIJOY-138.
+      Storage__S3__AccessKey:      ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set in docker/.env}
+      Storage__S3__SecretKey:      ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set in docker/.env}
       # Object URLs returned to clients are relative — served by nginx at /media/.
       Storage__S3__PublicBaseUrl:  /media
 
@@ -178,8 +187,8 @@ services:
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER:     ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_ROOT_USER:     ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set in docker/.env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set in docker/.env}
     volumes:
       - minio_data:/data
     networks:
@@ -205,8 +214,8 @@ services:
     networks:
       - omnijoy_net
     environment:
-      MINIO_ROOT_USER:     ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_ROOT_USER:     ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set in docker/.env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set in docker/.env}
       MINIO_BUCKET:        ${MINIO_BUCKET:-omnijoy}
     # mc rejects hostnames with underscores, so we use the compose service
     # name "minio" (a clean DNS alias on the omnijoy_net network) instead
