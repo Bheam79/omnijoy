@@ -64,7 +64,7 @@ endif
         migrate clean status logs \
         prod-up prod-start prod-stop prod-down prod-restart \
         prod-build prod-migrate prod-logs prod-status prod-shell \
-        prod-nginx-reload prod-install prod-uninstall _check-env
+        prod-nginx-reload prod-rotate-minio prod-install prod-uninstall _check-env
 
 # ── Default target ────────────────────────────────────────────────────────────
 help:
@@ -115,6 +115,7 @@ help:
 	@echo "    make prod-status     Show production container status"
 	@echo "    make prod-shell      Open a shell inside the backend container"
 	@echo "    make prod-nginx-reload  Reload nginx after editing nginx.prod.conf"
+	@echo "    make prod-rotate-minio  Force-recreate MinIO + minio-init after .env credential change"
 	@echo "    make prod-install    Install systemd user service (auto-start on boot)"
 	@echo "    make prod-uninstall  Remove systemd user service"
 	@echo ""
@@ -444,6 +445,26 @@ prod-nginx-reload:
 	$(DOCKER) exec $(PREFIX)_nginx nginx -t
 	$(DOCKER) exec $(PREFIX)_nginx nginx -s reload
 	@echo ">> nginx reloaded."
+
+# Force-recreate MinIO + the one-shot minio-init container so that a changed
+# MINIO_ROOT_USER / MINIO_ROOT_PASSWORD in docker/.env is picked up.
+#
+# 'make prod-up' does NOT recreate data services (mysql / minio / redis /
+# mediamtx) to protect persistent state.  This means that after a credential
+# rotation the backend gets the new values but MinIO still runs with the old
+# ones, causing every PutObject to fail with an opaque AccessDenied error.
+#
+# Workflow:
+#   1. Edit docker/.env (change MINIO_ROOT_USER / MINIO_ROOT_PASSWORD).
+#   2. make prod-rotate-minio   ← restarts MinIO with new creds + re-runs init.
+#   3. make prod-up             ← restarts backend so it uses the new creds.
+prod-rotate-minio: _check-env
+	@echo ">> Force-recreating MinIO with credentials from $(PROD_ENV)..."
+	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) \
+	  up -d --no-deps --force-recreate minio minio-init
+	@echo ""
+	@echo "  MinIO restarted.  Now run 'make prod-up' to recreate the backend"
+	@echo "  with the new credentials."
 
 # Install a systemd user service so the stack starts automatically on boot/login.
 # After running this, also run:  loginctl enable-linger $$USER

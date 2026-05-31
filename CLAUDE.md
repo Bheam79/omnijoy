@@ -178,6 +178,27 @@ make prod-up DOCKER=podman
 
 DB is **not published to the host** in production — only nginx publishes `PUBLIC_PORT`.
 
+### Rotating MinIO credentials
+
+`make prod-up` does **NOT** recreate `07ad0b82_omnijoy_minio`. If you change
+`MINIO_ROOT_USER` or `MINIO_ROOT_PASSWORD` in `docker/.env`, the running MinIO
+container keeps the old values and the backend will fail PutObject with opaque
+`AccessDenied` errors (indistinguishable from a real permission bug). To rotate:
+
+```bash
+make prod-rotate-minio   # force-recreates minio + minio-init from .env
+make prod-up             # recreates the backend with the new credentials
+```
+
+`make prod-rotate-minio` is equivalent to:
+```bash
+docker compose -f docker/docker-compose.prod.yml --env-file docker/.env \
+  up -d --no-deps --force-recreate minio minio-init
+```
+
+If you see `AccessDenied` in `make prod-logs SVC=backend` after a `.env` change, this
+is the first thing to check — run `make prod-rotate-minio && make prod-up`.
+
 ---
 
 ## Backend structure
