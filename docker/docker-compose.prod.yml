@@ -96,7 +96,7 @@ services:
       Email__FromName:       ${SMTP_FROM_NAME:-Omnijoy}
 
       # Redis (SignalR backplane + distributed cache)
-      Redis__ConnectionString: 07ad0b82_omnijoy_redis:6379
+      Redis__ConnectionString: ${REDIS_CONNECTION:-07ad0b82_omnijoy_redis:6379}
 
       # Live streaming
       Live__RtmpHost:    07ad0b82_omnijoy_mediamtx
