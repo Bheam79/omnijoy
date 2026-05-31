@@ -99,8 +99,14 @@ services:
       OAuth__Facebook__AppSecret:  ${OAUTH_FACEBOOK_APP_SECRET:-}
 
       # Email / SMTP
+      # SmtpUser / SmtpPassword may be empty — EmailService treats an empty
+      # SmtpUser as "no authentication" and submits anonymously (works for
+      # internal relays). Set both in docker/.env for any hosted SMTP
+      # provider (SendGrid, SES, Postmark, Gmail SMTP, …).
       Email__SmtpHost:       ${SMTP_HOST:-localhost}
       Email__SmtpPort:       ${SMTP_PORT:-587}
+      Email__SmtpUser:       ${SMTP_USER:-}
+      Email__SmtpPassword:   ${SMTP_PASSWORD:-}
       Email__FromAddress:    ${SMTP_FROM_ADDRESS:-noreply@omnijoy.local}
       Email__FromName:       ${SMTP_FROM_NAME:-Omnijoy}
 

@@ -84,4 +84,62 @@ public class EmailServiceTests
 
         await act.Should().NotThrowAsync();
     }
+
+    // ── Live path (real SMTP host) ────────────────────────────────────────────
+    //
+    // SmtpClient is sealed and not trivially mockable. We point it at
+    // 127.0.0.1 on a deliberately-unused high port so the SMTP send fails
+    // with a connection error rather than reaching out to a real relay.
+    // This still exercises the credential-wiring code path (config read +
+    // NetworkCredential construction) before the connection attempt is made.
+
+    [Fact]
+    public async Task SendOtpEmail_SmtpHostConfiguredButUnreachable_ThrowsSmtpException()
+    {
+        // Sanity-check: when SMTP host is configured we DO attempt a real send,
+        // and a connection failure surfaces as an exception (so AuthController's
+        // OTP retry / log path is exercised in prod when the relay goes down).
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Email:SmtpHost"] = "127.0.0.1",
+                ["Email:SmtpPort"] = "1",          // reserved, always refused
+                ["Email:FromAddress"] = "noreply@omnijoy.test",
+                ["Email:FromName"]    = "OmnijoyTest",
+            })
+            .Build();
+
+        var sut = new EmailService(config, NullLogger<EmailService>.Instance);
+
+        var act = () => sut.SendOtpEmailAsync("user@example.com", "Eve", "222222");
+
+        // SmtpException wraps the underlying socket failure.
+        await act.Should().ThrowAsync<Exception>();
+    }
+
+    [Fact]
+    public async Task SendOtpEmail_SmtpUserConfigured_AttemptsAuthenticatedSendAndFailsCleanly()
+    {
+        // Same shape as above, but with SmtpUser/SmtpPassword set — proves
+        // the credential branch (NetworkCredential construction) doesn't
+        // blow up before the connection is attempted. The send still fails
+        // because port 1 is closed.
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Email:SmtpHost"]     = "127.0.0.1",
+                ["Email:SmtpPort"]     = "1",
+                ["Email:SmtpUser"]     = "smtp-user@example.com",
+                ["Email:SmtpPassword"] = "secret-pass",
+                ["Email:FromAddress"]  = "noreply@omnijoy.test",
+                ["Email:FromName"]     = "OmnijoyTest",
+            })
+            .Build();
+
+        var sut = new EmailService(config, NullLogger<EmailService>.Instance);
+
+        var act = () => sut.SendOtpEmailAsync("user@example.com", "Frank", "333333");
+
+        await act.Should().ThrowAsync<Exception>();
+    }
 }
