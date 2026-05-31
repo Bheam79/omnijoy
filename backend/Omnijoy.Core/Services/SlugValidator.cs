@@ -62,7 +62,7 @@ public static class SlugValidator
             // Site meta
             "about", "terms", "privacy", "help", "support",
             // Misc reserved
-            "home", "index", "404", "error",
+            "home", "index", "404", "error", "invite", "invites",
             // Build/static
             "assets", "static", "public", "wwwroot", "swagger",
         }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);

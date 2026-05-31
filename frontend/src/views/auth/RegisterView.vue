@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const route = useRoute()
 const auth = useAuthStore()
+
+// Invite token forwarded from /invite/:token → /register?invite=TOKEN
+const inviteToken = route.query.invite as string | undefined
 
 type AuthMethod = 'password' | 'otp'
 
@@ -44,8 +48,12 @@ async function submit() {
       birthDate: birthDate.value || undefined,
       showBirthDate: showBirthDate.value,
     })
-    // Redirect to wall — for OTP users they are logged in directly after register
-    router.push('/wall')
+    // If the user came from an invite link, redirect back to accept it.
+    if (inviteToken) {
+      router.push(`/invite/${inviteToken}`)
+    } else {
+      router.push('/wall')
+    }
   } catch {
     localError.value = auth.error ?? 'Registration failed.'
   }

@@ -1,5 +1,25 @@
 import api from './api'
 
+// ── Invite DTOs ───────────────────────────────────────────────────────────────
+
+export interface FriendInviteLinkDto {
+  token: string
+  inviteUrl: string
+  expiresAt: string
+}
+
+export interface FriendInviteEmailResultDto {
+  /** "invited" | "accepted" */
+  outcome: string
+  displayName?: string
+}
+
+export interface FriendInviteAcceptDto {
+  inviterDisplayName: string
+  inviterAvatarUrl?: string
+  inviterId: string
+}
+
 // ── DTOs (mirrors backend) ────────────────────────────────────────────────────
 
 export interface FriendUserDto {
@@ -128,5 +148,36 @@ export const friendService = {
   async setFamilyRelation(userId: string, payload: SetFamilyRelationPayload): Promise<FamilyRelationDto | null> {
     const { data } = await api.put<{ relation: FamilyRelationDto | null }>(`/api/friends/${userId}/relation`, payload)
     return data.relation
+  },
+
+  // ── Invites ───────────────────────────────────────────────────────────────
+
+  /** Creates (or reuses) a shareable invite link for the current user. */
+  async createInviteLink(): Promise<FriendInviteLinkDto> {
+    const { data } = await api.post<FriendInviteLinkDto>('/api/friends/invite/link')
+    return data
+  },
+
+  /** Sends a friend invite to an email address. */
+  async inviteByEmail(email: string): Promise<FriendInviteEmailResultDto> {
+    const { data } = await api.post<FriendInviteEmailResultDto>('/api/friends/invite/email', { email })
+    return data
+  },
+
+  /** Returns invite metadata (inviter name/avatar) without auth. */
+  async getInviteInfo(token: string): Promise<FriendInviteAcceptDto> {
+    const { data } = await api.get<FriendInviteAcceptDto>(`/api/friends/invite/${token}`)
+    return data
+  },
+
+  /** Redeems the invite and auto-accepts the friendship. */
+  async acceptInvite(token: string): Promise<FriendInviteAcceptDto> {
+    const { data } = await api.post<FriendInviteAcceptDto>(`/api/friends/invite/${token}/accept`)
+    return data
+  },
+
+  /** Revokes all active shareable link invites (does not affect email invites). */
+  async revokeLinkInvites(): Promise<void> {
+    await api.delete('/api/friends/invite/link')
   },
 }

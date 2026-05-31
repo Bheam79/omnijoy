@@ -64,4 +64,57 @@ This code expires in 10 minutes. Do not share it with anyone.
 
         await client.SendMailAsync(message);
     }
+
+    public async Task SendFriendInviteEmailAsync(
+        string toEmail,
+        string inviterDisplayName,
+        string inviteUrl)
+    {
+        var smtpHost = _configuration["Email:SmtpHost"];
+        var smtpPortStr = _configuration["Email:SmtpPort"];
+        var fromAddress = _configuration["Email:FromAddress"] ?? "noreply@omnijoy.local";
+        var fromName = _configuration["Email:FromName"] ?? "Omnijoy";
+
+        var body = $@"Hi there,
+
+{inviterDisplayName} has invited you to join Omnijoy!
+
+Click the link below to create your account and connect with {inviterDisplayName} automatically:
+
+    {inviteUrl}
+
+This invite link expires in 30 days.
+
+— The Omnijoy Team";
+
+        if (string.IsNullOrWhiteSpace(smtpHost))
+        {
+            _logger.LogInformation(
+                "📧 [DEV EMAIL] Friend invite | To: {Email} | InviteUrl: {Url}",
+                toEmail, inviteUrl);
+            return;
+        }
+
+        var port = int.TryParse(smtpPortStr, out var p) ? p : 25;
+
+        using var client = new SmtpClient(smtpHost, port);
+        client.EnableSsl = port == 587 || port == 465;
+        client.DeliveryMethod = SmtpDeliveryMethod.Network;
+
+        var smtpUser = _configuration["Email:SmtpUser"];
+        var smtpPass = _configuration["Email:SmtpPassword"];
+        if (!string.IsNullOrWhiteSpace(smtpUser))
+            client.Credentials = new NetworkCredential(smtpUser, smtpPass);
+
+        using var message = new MailMessage
+        {
+            From = new MailAddress(fromAddress, fromName),
+            Subject = $"{inviterDisplayName} invited you to Omnijoy",
+            Body = body,
+            IsBodyHtml = false
+        };
+        message.To.Add(toEmail);
+
+        await client.SendMailAsync(message);
+    }
 }

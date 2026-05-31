@@ -210,6 +210,7 @@ builder.Services.AddHostedService<TrendingFeedRefreshService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IReactionService, ReactionService>();
 builder.Services.AddScoped<IFriendService, FriendService>();
+builder.Services.AddScoped<IFriendInviteService, FriendInviteService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<ICompanyPageService, CompanyPageService>();

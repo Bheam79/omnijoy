@@ -35,6 +35,7 @@ public class OmnijoyDbContext : DbContext
     public DbSet<OtpCode> OtpCodes => Set<OtpCode>();
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<ModerationLog> ModerationLogs => Set<ModerationLog>();
+    public DbSet<FriendInvite> FriendInvites => Set<FriendInvite>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

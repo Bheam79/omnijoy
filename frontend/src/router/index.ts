@@ -176,6 +176,17 @@ const router = createRouter({
       component: () => import('@/views/share/ShareEventView.vue'),
     },
 
+    // ── Friend invite redemption ──────────────────────────────────────────────
+    // Public route — no auth required for the info page.
+    // The view handles auth gating itself: unauthenticated users are prompted
+    // to register/login and then auto-redirected back to accept.
+    // "invite" is in ReservedSlugs so no vanity slug can shadow this path.
+    {
+      path: '/invite/:token',
+      name: 'invite-accept',
+      component: () => import('@/views/friends/InviteAcceptView.vue'),
+    },
+
     // ── Vanity URL catch-all (:slug) ──────────────────────────────────────────
     //
     // IMPORTANT: Every top-level path segment added above this line MUST also

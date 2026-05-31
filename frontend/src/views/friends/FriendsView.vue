@@ -4,12 +4,14 @@ import * as signalR from '@microsoft/signalr'
 import { useFriendsStore } from '@/stores/friends'
 import { useAuthStore } from '@/stores/auth'
 import FriendButton from '@/components/friends/FriendButton.vue'
+import InviteFriendsModal from '@/components/friends/InviteFriendsModal.vue'
 
 const store = useFriendsStore()
 const auth = useAuthStore()
 
 type Tab = 'friends' | 'requests' | 'sent' | 'suggestions'
 const activeTab = ref<Tab>('friends')
+const showInviteModal = ref(false)
 
 let hubConnection: signalR.HubConnection | null = null
 
@@ -51,7 +53,18 @@ function formatDate(iso: string) {
 
 <template>
   <div class="space-y-4">
-    <h1 class="text-2xl font-bold text-slate-100">Friends</h1>
+    <div class="flex items-center justify-between">
+      <h1 class="text-2xl font-bold text-slate-100">Friends</h1>
+      <button
+        class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition flex items-center gap-1.5"
+        @click="showInviteModal = true"
+      >
+        <span>＋</span> Invite friends
+      </button>
+    </div>
+
+    <!-- Invite modal -->
+    <InviteFriendsModal v-if="showInviteModal" @close="showInviteModal = false" />
 
     <!-- Tabs -->
     <div class="flex gap-1 bg-slate-900 p-1 rounded-xl text-sm">
