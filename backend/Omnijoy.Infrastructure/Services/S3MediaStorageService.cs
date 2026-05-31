@@ -162,21 +162,35 @@ public class S3MediaStorageService : IMediaStorageService
     }
 
     /// <summary>
-    /// Verifies that the configured bucket exists and the credentials are
-    /// accepted by the endpoint. Called once at startup by
-    /// <see cref="S3StorageStartupProbe"/>.
+    /// Performs an end-to-end storage probe at startup: HeadBucket → PutObject
+    /// → GetObject (verify round-trip body) → DeleteObject. Called once at
+    /// boot by <see cref="S3StorageStartupProbe"/>.
+    ///
+    /// <para>
+    /// This is the "tell me my MinIO config is broken in 10 seconds" check —
+    /// instead of waiting for the first real user upload to fail with an
+    /// opaque 502, we exercise every code path (auth, bucket existence,
+    /// upload, download, delete) against a 32-byte diagnostic object stored
+    /// at <c>_diagnostics/startup-probe.txt</c>. Each step logs a stage tag
+    /// (<c>step 1/4 OK</c> / <c>step 2/4 FAILED</c>) so a single grep of
+    /// <c>make prod-logs</c> tells operators exactly which permission /
+    /// configuration knob is wrong.
+    /// </para>
     ///
     /// <para>
     /// Failures are logged with the full MinIO / S3 error response body
     /// (via <see cref="S3DiagnosticsLogging.BuildErrorContext"/>) but never
     /// rethrown — a credential or DNS bug at boot time should surface as a
     /// loud log line, not crash the API and take the rest of the platform
-    /// down with it. The first user upload will produce the same enriched
-    /// log line if the underlying problem hasn't been fixed.
+    /// down with it. The probe always tries to delete its diagnostic object,
+    /// even when an earlier step failed, so a flaky boot doesn't leave
+    /// junk behind in the bucket.
     /// </para>
     /// </summary>
-    /// <returns><c>true</c> if the bucket was reachable; <c>false</c> if any
-    ///     exception (S3 or otherwise) was caught and logged.</returns>
+    /// <returns><c>true</c> if every step (HeadBucket, PutObject, GetObject
+    ///     body match, DeleteObject) succeeded; <c>false</c> if any step
+    ///     failed — in which case the structured log line names the failing
+    ///     stage.</returns>
     public async Task<bool> ProbeBucketAsync(CancellationToken ct = default)
     {
         _logger.LogInformation(
@@ -185,43 +199,177 @@ public class S3MediaStorageService : IMediaStorageService
             _bucketName,
             S3DiagnosticsLogging.FormatAccessKeyPrefix(_accessKey));
 
+        const string probeKey = "_diagnostics/startup-probe.txt";
+        // Random body lets us detect the worst-case "probe object existed
+        // before, GetObject returned a stale value" scenario — the only way
+        // GetObject can return the *expected* body is if our PutObject
+        // actually landed in this run.
+        var probeBody = Guid.NewGuid().ToString("N");
+
+        // ── Step 1/4: HeadBucket equivalent ────────────────────────────────
+        // IAmazonS3 doesn't expose HeadBucketAsync directly (only on the
+        // concrete client), so we use GetBucketLocationAsync — same shape
+        // (bucket-level read), same failure modes for bad creds / missing
+        // bucket, and works under Moq for tests.
+        if (!await ProbeStepAsync("step 1/4", "HeadBucket",
+                ct => _s3.GetBucketLocationAsync(
+                    new GetBucketLocationRequest { BucketName = _bucketName }, ct),
+                objectKey: null,
+                ct))
+        {
+            _logger.LogError(
+                "S3 storage probe FAILED at step 1/4 (HeadBucket). Endpoint={Endpoint} Bucket={Bucket}",
+                _serviceUrl, _bucketName);
+            return false;
+        }
+
+        // ── Step 2/4: PutObject ────────────────────────────────────────────
+        var bodyBytes = System.Text.Encoding.UTF8.GetBytes(probeBody);
+        var putOk = await ProbeStepAsync("step 2/4", "PutObject",
+            async ct =>
+            {
+                using var ms = new MemoryStream(bodyBytes);
+                await _s3.PutObjectAsync(new PutObjectRequest
+                {
+                    BucketName  = _bucketName,
+                    Key         = probeKey,
+                    InputStream = ms,
+                    ContentType = "text/plain",
+                    // Same checksum opt-out we use in StoreAsync — MinIO
+                    // rejects the SDK's default x-amz-checksum-* header.
+                    DisableDefaultChecksumValidation = true,
+                }, ct);
+            },
+            objectKey: probeKey,
+            ct);
+
+        if (!putOk)
+        {
+            _logger.LogError(
+                "S3 storage probe FAILED at step 2/4 (PutObject). Endpoint={Endpoint} Bucket={Bucket} Key={Key}",
+                _serviceUrl, _bucketName, probeKey);
+            // No cleanup needed — nothing was uploaded.
+            return false;
+        }
+
+        // From here on the probe object exists. Track failures but always
+        // run step 4 (delete) in a finally so we don't leak a diagnostic
+        // object every time the boot probe partially fails.
+        var allSucceeded = true;
+
+        // ── Step 3/4: GetObject + body verify ──────────────────────────────
         try
         {
-            await _s3.GetObjectMetadataAsync(new GetObjectMetadataRequest
-            {
-                BucketName = _bucketName,
-                // Use a key that doesn't need to exist — a 404 means "creds work, bucket exists".
-                Key = "__omnijoy_probe__",
-            }, ct);
+            using var resp = await _s3.GetObjectAsync(_bucketName, probeKey, ct);
+            using var reader = new StreamReader(resp.ResponseStream);
+            var got = await reader.ReadToEndAsync(ct);
 
-            _logger.LogInformation(
-                "S3 storage probe succeeded. Endpoint={Endpoint} Bucket={Bucket}",
-                _serviceUrl, _bucketName);
-            return true;
+            if (!string.Equals(got, probeBody, StringComparison.Ordinal))
+            {
+                _logger.LogError(
+                    "S3 storage probe step 3/4 FAILED (GetObject body mismatch). Endpoint={Endpoint} Bucket={Bucket} Key={Key} ExpectedLength={ExpectedLength} ActualLength={ActualLength}",
+                    _serviceUrl, _bucketName, probeKey, probeBody.Length, got.Length);
+                allSucceeded = false;
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "S3 storage probe step 3/4 OK (GetObject, body match). Endpoint={Endpoint} Bucket={Bucket} Key={Key}",
+                    _serviceUrl, _bucketName, probeKey);
+            }
         }
-        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound
-                                           && string.Equals(ex.ErrorCode, "NoSuchKey", StringComparison.OrdinalIgnoreCase))
+        catch (AmazonS3Exception ex)
         {
-            // 404 NoSuchKey is the *success* case for our probe — credentials
-            // were accepted and the bucket exists; we just asked for a key
-            // that doesn't exist. NoSuchBucket falls through to the catch below.
+            LogS3Failure("S3 storage probe step 3/4 FAILED (GetObject)", ex, probeKey);
+            allSucceeded = false;
+        }
+        catch (Exception ex)
+        {
+            LogNonS3ProbeFailure(ex, "step 3/4 GetObject", probeKey);
+            allSucceeded = false;
+        }
+
+        // ── Step 4/4: DeleteObject (always attempt cleanup) ────────────────
+        var deleteOk = await ProbeStepAsync("step 4/4", "DeleteObject",
+            ct => _s3.DeleteObjectAsync(_bucketName, probeKey, ct),
+            objectKey: probeKey,
+            ct);
+        if (!deleteOk)
+            allSucceeded = false;
+
+        if (allSucceeded)
+        {
             _logger.LogInformation(
-                "S3 storage probe succeeded (404 for probe key). Endpoint={Endpoint} Bucket={Bucket}",
+                "S3 storage probe OK. Endpoint={Endpoint} Bucket={Bucket}",
                 _serviceUrl, _bucketName);
+        }
+        else
+        {
+            _logger.LogError(
+                "S3 storage probe FAILED. Endpoint={Endpoint} Bucket={Bucket}",
+                _serviceUrl, _bucketName);
+        }
+
+        return allSucceeded;
+    }
+
+    /// <summary>
+    /// Runs a single probe step inside a uniform try / log / return-bool
+    /// wrapper so the four-step orchestration above stays readable. Logs
+    /// success at Information and any failure (S3 or otherwise) at Error
+    /// with the enriched diagnostic payload.
+    /// </summary>
+    private async Task<bool> ProbeStepAsync(
+        string stepLabel,
+        string operation,
+        Func<CancellationToken, Task> action,
+        string? objectKey,
+        CancellationToken ct)
+    {
+        try
+        {
+            await action(ct);
+            if (objectKey is null)
+            {
+                _logger.LogInformation(
+                    "S3 storage probe {Step} OK ({Operation}). Endpoint={Endpoint} Bucket={Bucket}",
+                    stepLabel, operation, _serviceUrl, _bucketName);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "S3 storage probe {Step} OK ({Operation}). Endpoint={Endpoint} Bucket={Bucket} Key={Key}",
+                    stepLabel, operation, _serviceUrl, _bucketName, objectKey);
+            }
             return true;
         }
         catch (AmazonS3Exception ex)
         {
-            LogS3Failure("S3 storage probe failed", ex, objectKey: null, logLevel: LogLevel.Error);
+            LogS3Failure($"S3 storage probe {stepLabel} FAILED ({operation})", ex, objectKey);
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,
-                "S3 storage probe failed with non-S3 exception. Endpoint={Endpoint} Bucket={Bucket} AccessKeyPrefix={AccessKeyPrefix}",
-                _serviceUrl, _bucketName, S3DiagnosticsLogging.FormatAccessKeyPrefix(_accessKey));
+            LogNonS3ProbeFailure(ex, $"{stepLabel} {operation}", objectKey);
             return false;
         }
+    }
+
+    /// <summary>
+    /// Logs a probe-stage failure caused by a non-S3 exception (DNS, socket,
+    /// TLS handshake, etc.). These can't carry an S3 error code but still
+    /// need the same endpoint/bucket/key-prefix context so operators can
+    /// distinguish "MinIO replied with an error" from "MinIO was unreachable".
+    /// </summary>
+    private void LogNonS3ProbeFailure(Exception ex, string stage, string? objectKey)
+    {
+        _logger.LogError(ex,
+            "S3 storage probe failed with non-S3 exception at {Stage}. Endpoint={Endpoint} Bucket={Bucket} AccessKeyPrefix={AccessKeyPrefix} ObjectKey={ObjectKey}",
+            stage,
+            _serviceUrl,
+            _bucketName,
+            S3DiagnosticsLogging.FormatAccessKeyPrefix(_accessKey),
+            objectKey);
     }
 
     /// <summary>

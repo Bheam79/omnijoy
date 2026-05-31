@@ -358,59 +358,277 @@ public class S3MediaStorageServiceTests
             "full access key must never appear in any log message");
     }
 
-    // ── ProbeBucketAsync ──────────────────────────────────────────────────────
+    // ── ProbeBucketAsync — round-trip probe (OMNIJOY-130) ─────────────────────
 
-    [Fact]
-    public async Task Probe_HeadObjectSucceeds_ReturnsTrue()
+    /// <summary>
+    /// Wires up an IAmazonS3 mock for a fully-successful 4-step probe path.
+    /// Pulls the PutObject body bytes out of the latest captured request so
+    /// a GetObject stub can echo the exact body back — modelling the
+    /// real-storage round-trip behavior.
+    /// </summary>
+    private static Mock<IAmazonS3> BuildRoundTripMock()
     {
         var s3Mock = new Mock<IAmazonS3>();
+        byte[]? lastPut = null;
+
         s3Mock
-            .Setup(s => s.GetObjectMetadataAsync(
-                It.IsAny<GetObjectMetadataRequest>(),
+            .Setup(s => s.GetBucketLocationAsync(
+                It.IsAny<GetBucketLocationRequest>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new GetObjectMetadataResponse { HttpStatusCode = HttpStatusCode.OK });
+            .ReturnsAsync(new GetBucketLocationResponse { HttpStatusCode = HttpStatusCode.OK });
 
-        var sut = CreateSut(s3Mock.Object);
+        s3Mock
+            .Setup(s => s.PutObjectAsync(
+                It.IsAny<PutObjectRequest>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<PutObjectRequest, CancellationToken>((req, _) =>
+            {
+                using var ms = new MemoryStream();
+                req.InputStream.Position = 0;
+                req.InputStream.CopyTo(ms);
+                lastPut = ms.ToArray();
+            })
+            .ReturnsAsync(new PutObjectResponse { HttpStatusCode = HttpStatusCode.OK });
 
-        var ok = await sut.ProbeBucketAsync();
+        s3Mock
+            .Setup(s => s.GetObjectAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => new GetObjectResponse
+            {
+                ResponseStream = new MemoryStream(lastPut ?? Array.Empty<byte>()),
+                HttpStatusCode = HttpStatusCode.OK,
+            });
 
-        ok.Should().BeTrue();
+        s3Mock
+            .Setup(s => s.DeleteObjectAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DeleteObjectResponse { HttpStatusCode = HttpStatusCode.NoContent });
+
+        return s3Mock;
     }
 
     [Fact]
-    public async Task Probe_NoSuchKey404_ReturnsTrue()
+    public async Task Probe_AllStepsSucceed_ReturnsTrueAndLogsProbeOK()
     {
-        // A 404 for the probe key means the bucket exists and the credentials
-        // were accepted — the probe key just doesn't happen to exist (and
-        // doesn't need to). Treat this as success.
-        var s3Mock = new Mock<IAmazonS3>();
-        s3Mock
-            .Setup(s => s.GetObjectMetadataAsync(
-                It.IsAny<GetObjectMetadataRequest>(),
-                It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new AmazonS3Exception(
-                "The specified key does not exist.",
-                Amazon.Runtime.ErrorType.Sender,
-                "NoSuchKey", "REQ-1", HttpStatusCode.NotFound));
+        // Round-trip mock: GetObject echoes back the same body that
+        // PutObject was given, so the body-match step in step 3 passes.
+        var s3Mock = BuildRoundTripMock();
+        var loggerMock = new Mock<ILogger<S3MediaStorageService>>();
 
-        var sut = CreateSut(s3Mock.Object);
-
+        var sut = CreateSut(s3Mock.Object, loggerMock.Object);
         var ok = await sut.ProbeBucketAsync();
 
         ok.Should().BeTrue();
+
+        // Verify every step ran:
+        s3Mock.Verify(s => s.GetBucketLocationAsync(
+            It.IsAny<GetBucketLocationRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once, "step 1/4 HeadBucket must run");
+        s3Mock.Verify(s => s.PutObjectAsync(
+            It.IsAny<PutObjectRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once, "step 2/4 PutObject must run");
+        s3Mock.Verify(s => s.GetObjectAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Once, "step 3/4 GetObject must run");
+        s3Mock.Verify(s => s.DeleteObjectAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Once, "step 4/4 DeleteObject must run for cleanup");
+
+        // Acceptance criterion: a clear "OK" log line lands within seconds of start.
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains("S3 storage probe OK")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
     }
 
     [Fact]
-    public async Task Probe_AccessDenied_ReturnsFalseAndLogsEnriched()
+    public async Task Probe_PutObjectUploadsExpectedDiagnosticKey()
     {
-        var s3Mock = new Mock<IAmazonS3>();
+        // The diagnostic object MUST land at _diagnostics/startup-probe.txt
+        // (per OMNIJOY-130 spec) so operators know exactly which key is the
+        // probe artefact when they're poking around in MinIO.
+        var s3Mock = BuildRoundTripMock();
+        PutObjectRequest? captured = null;
+
         s3Mock
-            .Setup(s => s.GetObjectMetadataAsync(
-                It.IsAny<GetObjectMetadataRequest>(),
+            .Setup(s => s.PutObjectAsync(
+                It.IsAny<PutObjectRequest>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<PutObjectRequest, CancellationToken>((req, _) => captured = req)
+            .ReturnsAsync(new PutObjectResponse { HttpStatusCode = HttpStatusCode.OK });
+
+        var sut = CreateSut(s3Mock.Object);
+        await sut.ProbeBucketAsync();
+
+        captured.Should().NotBeNull();
+        captured!.BucketName.Should().Be(BucketName);
+        captured.Key.Should().Be("_diagnostics/startup-probe.txt");
+    }
+
+    [Fact]
+    public async Task Probe_HeadBucketFails_ReturnsFalseAndSkipsRemainingSteps()
+    {
+        // If HeadBucket fails, the probe must not attempt PutObject — that
+        // would leak a diagnostic object into a possibly-misconfigured bucket
+        // *and* mask the real failure (bad creds) behind a noisier symptom.
+        var s3Mock = BuildRoundTripMock();
+        s3Mock
+            .Setup(s => s.GetBucketLocationAsync(
+                It.IsAny<GetBucketLocationRequest>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new AmazonS3Exception(
                 "Access Denied", Amazon.Runtime.ErrorType.Sender,
-                "InvalidAccessKeyId", "REQ-2", HttpStatusCode.Forbidden));
+                "InvalidAccessKeyId", "REQ-1", HttpStatusCode.Forbidden));
+
+        var loggerMock = new Mock<ILogger<S3MediaStorageService>>();
+        var sut = CreateSut(s3Mock.Object, loggerMock.Object);
+
+        var ok = await sut.ProbeBucketAsync();
+
+        ok.Should().BeFalse();
+        s3Mock.Verify(s => s.PutObjectAsync(
+            It.IsAny<PutObjectRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never, "PutObject must not be attempted after a HeadBucket failure");
+
+        // Acceptance criterion: failure log includes the enriched error code.
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) =>
+                    state.ToString()!.Contains("step 1/4") &&
+                    state.ToString()!.Contains("InvalidAccessKeyId")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task Probe_PutObjectFails_ReturnsFalseAndDoesNotAttemptDelete()
+    {
+        // If PutObject fails the object never exists, so there's nothing to
+        // delete — running step 4 would just add a misleading "DeleteObject
+        // FAILED (NoSuchKey)" line to the log. Skip cleanup in this case.
+        var s3Mock = BuildRoundTripMock();
+        s3Mock
+            .Setup(s => s.PutObjectAsync(
+                It.IsAny<PutObjectRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new AmazonS3Exception(
+                "Access Denied", Amazon.Runtime.ErrorType.Sender,
+                "SignatureDoesNotMatch", "REQ-2", HttpStatusCode.Forbidden));
+
+        var loggerMock = new Mock<ILogger<S3MediaStorageService>>();
+        var sut = CreateSut(s3Mock.Object, loggerMock.Object);
+
+        var ok = await sut.ProbeBucketAsync();
+
+        ok.Should().BeFalse();
+        s3Mock.Verify(s => s.GetObjectAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        s3Mock.Verify(s => s.DeleteObjectAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never, "no cleanup needed when PutObject failed");
+
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) =>
+                    state.ToString()!.Contains("step 2/4") &&
+                    state.ToString()!.Contains("SignatureDoesNotMatch")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task Probe_GetObjectBodyMismatch_ReturnsFalseButStillDeletes()
+    {
+        // GetObject succeeds at the protocol level but returns a different
+        // body than we PUT — e.g. a stale value from a previous probe run,
+        // or a buggy proxy. Probe must report failure but still clean up.
+        var s3Mock = BuildRoundTripMock();
+        s3Mock
+            .Setup(s => s.GetObjectAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => new GetObjectResponse
+            {
+                ResponseStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("wrong-body")),
+                HttpStatusCode = HttpStatusCode.OK,
+            });
+
+        var loggerMock = new Mock<ILogger<S3MediaStorageService>>();
+        var sut = CreateSut(s3Mock.Object, loggerMock.Object);
+
+        var ok = await sut.ProbeBucketAsync();
+
+        ok.Should().BeFalse();
+        s3Mock.Verify(s => s.DeleteObjectAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Once, "step 4 must still run to clean up the probe object");
+
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) =>
+                    state.ToString()!.Contains("step 3/4") &&
+                    state.ToString()!.Contains("body mismatch")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task Probe_GetObjectThrows_ReturnsFalseButStillDeletes()
+    {
+        var s3Mock = BuildRoundTripMock();
+        s3Mock
+            .Setup(s => s.GetObjectAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new AmazonS3Exception(
+                "Access Denied", Amazon.Runtime.ErrorType.Sender,
+                "AccessDenied", "REQ-3", HttpStatusCode.Forbidden));
+
+        var sut = CreateSut(s3Mock.Object);
+
+        var ok = await sut.ProbeBucketAsync();
+
+        ok.Should().BeFalse();
+        s3Mock.Verify(s => s.DeleteObjectAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Once, "cleanup runs even when GetObject throws");
+    }
+
+    [Fact]
+    public async Task Probe_DeleteObjectFails_ReturnsFalseAndLogsEnriched()
+    {
+        // Put + Get worked but Delete didn't — e.g. read-only credentials.
+        // The probe still reports failure (the object is now leaked) and the
+        // log line carries the underlying error code.
+        var s3Mock = BuildRoundTripMock();
+        s3Mock
+            .Setup(s => s.DeleteObjectAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new AmazonS3Exception(
+                "Access Denied", Amazon.Runtime.ErrorType.Sender,
+                "AccessDenied", "REQ-4", HttpStatusCode.Forbidden));
 
         var loggerMock = new Mock<ILogger<S3MediaStorageService>>();
         var sut = CreateSut(s3Mock.Object, loggerMock.Object);
@@ -423,26 +641,24 @@ public class S3MediaStorageServiceTests
                 LogLevel.Error,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((state, _) =>
-                    state.ToString()!.Contains("InvalidAccessKeyId") &&
-                    state.ToString()!.Contains(ServiceUrl) &&
-                    state.ToString()!.Contains(BucketName)),
+                    state.ToString()!.Contains("step 4/4") &&
+                    state.ToString()!.Contains("AccessDenied")),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.AtLeastOnce);
     }
 
     [Fact]
-    public async Task Probe_NonS3Exception_ReturnsFalseAndLogs()
+    public async Task Probe_NonS3ExceptionDuringHeadBucket_ReturnsFalseAndLogs()
     {
-        // DNS failures, socket errors etc. show up as something other than
-        // AmazonS3Exception; we still want to log and return false rather
-        // than crashing the host.
-        var s3Mock = new Mock<IAmazonS3>();
+        // DNS / socket / TLS errors don't map to AmazonS3Exception. The probe
+        // must still log and return false rather than crashing the host.
+        var s3Mock = BuildRoundTripMock();
         s3Mock
-            .Setup(s => s.GetObjectMetadataAsync(
-                It.IsAny<GetObjectMetadataRequest>(),
+            .Setup(s => s.GetBucketLocationAsync(
+                It.IsAny<GetBucketLocationRequest>(),
                 It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new HttpRequestException("connection refused"));
+            .ThrowsAsync(new HttpRequestException("Name or service not known"));
 
         var loggerMock = new Mock<ILogger<S3MediaStorageService>>();
         var sut = CreateSut(s3Mock.Object, loggerMock.Object);
@@ -454,7 +670,39 @@ public class S3MediaStorageServiceTests
             x => x.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((state, _) =>
+                    state.ToString()!.Contains("non-S3 exception") &&
+                    state.ToString()!.Contains("step 1/4")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task Probe_AnyStepFailure_ProbeFailedLineAlwaysIncludesEndpointAndBucket()
+    {
+        // Smoke test of the acceptance log shape: "S3 storage probe FAILED.
+        // Endpoint=... Bucket=..." — operators grep for this line first.
+        var s3Mock = BuildRoundTripMock();
+        s3Mock
+            .Setup(s => s.PutObjectAsync(
+                It.IsAny<PutObjectRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new AmazonS3Exception("Access Denied"));
+
+        var loggerMock = new Mock<ILogger<S3MediaStorageService>>();
+        var sut = CreateSut(s3Mock.Object, loggerMock.Object);
+
+        await sut.ProbeBucketAsync();
+
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) =>
+                    state.ToString()!.Contains("S3 storage probe FAILED") &&
+                    state.ToString()!.Contains(ServiceUrl) &&
+                    state.ToString()!.Contains(BucketName)),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.AtLeastOnce);

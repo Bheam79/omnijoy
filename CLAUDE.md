@@ -318,10 +318,16 @@ dotnet ef database update \
   `ResponseBody=` when a 502 is reported. The full access key never
   appears (only `XXXX (len)` prefix); the secret never reaches the helper.
 - **Startup probe.** When `Storage:Type == "s3"`, `S3StorageStartupProbe`
-  (`BackgroundService`) calls `ProbeBucketAsync` once at boot. Logs at
-  `Information` on success and `Error` (with the enriched context above)
-  on failure. Never throws — a misconfigured access key should be loud in
-  the logs without taking the API down.
+  (`BackgroundService`) calls `ProbeBucketAsync` once at boot, which runs
+  an end-to-end round-trip: HeadBucket (via `GetBucketLocationAsync` —
+  `HeadBucketAsync` isn't on the `IAmazonS3` interface) → PutObject
+  (`_diagnostics/startup-probe.txt`, random UUID body) → GetObject (body
+  match required) → DeleteObject (cleanup). Each step logs
+  `step N/4 OK (Op)` at Information or `step N/4 FAILED (Op)` at Error
+  with the enriched diagnostic payload. Final outcome lands as
+  `S3 storage probe OK` / `S3 storage probe FAILED`. Never throws — a
+  misconfigured access key should be loud in the logs (within 10s of
+  backend start) without taking the API down.
 
 ### Vanity URL slugs
 
