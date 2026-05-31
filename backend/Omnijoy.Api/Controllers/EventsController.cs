@@ -119,17 +119,19 @@ public class EventsController : ControllerBase
     /// <summary>
     /// Lists upcoming events visible to the current user.
     /// filter: "mine" | "friends" | "company" | (empty = all visible)
+    /// companyPageId: when provided, restricts results to events for that specific company page.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetEvents(
-        [FromQuery] string? filter   = null,
-        [FromQuery] int     page     = 1,
-        [FromQuery] int     pageSize = 20)
+        [FromQuery] string? filter        = null,
+        [FromQuery] int     page          = 1,
+        [FromQuery] int     pageSize      = 20,
+        [FromQuery] Guid?   companyPageId = null)
     {
         if (CurrentUserId is not { } userId)
             return Unauthorized(new { error = "Not authenticated." });
 
-        var result = await _events.GetEventsAsync(userId, filter, page, pageSize);
+        var result = await _events.GetEventsAsync(userId, filter, page, pageSize, companyPageId);
         return Ok(result);
     }
 

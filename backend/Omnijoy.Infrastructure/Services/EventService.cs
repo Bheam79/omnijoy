@@ -87,7 +87,8 @@ public class EventService : IEventService
         Guid userId,
         string? filter,
         int page,
-        int pageSize)
+        int pageSize,
+        Guid? companyPageId = null)
     {
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 50) pageSize = 20;
@@ -100,6 +101,32 @@ public class EventService : IEventService
             .Include(e => e.CreatorUser)
             .Include(e => e.Attendees)
             .Where(e => e.StartAt >= cutoff);
+
+        // When scoped to a specific company page, show all its events regardless of other filters
+        if (companyPageId.HasValue)
+        {
+            query = query.Where(e => e.CompanyPageId == companyPageId.Value);
+            var total2 = await query.CountAsync();
+            var items2 = await query
+                .OrderBy(e => e.StartAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var eventIds2 = items2.Select(e => e.Id).ToList();
+            var myRsvps2 = await _db.EventAttendees
+                .AsNoTracking()
+                .Where(a => a.UserId == userId && eventIds2.Contains(a.EventId))
+                .ToDictionaryAsync(a => a.EventId, a => a.RSVP.ToString());
+
+            var dtos2 = items2.Select(e => MapToDto(e, myRsvps2.GetValueOrDefault(e.Id))).ToArray();
+            return new EventsPageResult(
+                Items:    dtos2,
+                Page:     page,
+                PageSize: pageSize,
+                HasMore:  (page * pageSize) < total2
+            );
+        }
 
         query = (filter?.ToLowerInvariant()) switch
         {

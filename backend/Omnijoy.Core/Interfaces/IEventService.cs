@@ -16,12 +16,14 @@ public interface IEventService
     /// <summary>
     /// Returns upcoming events visible to <paramref name="userId"/>.
     /// <paramref name="filter"/>: "mine" | "friends" | "company" | null (default: all visible).
+    /// <paramref name="companyPageId"/>: when provided, restricts results to events for that company page.
     /// </summary>
     Task<EventsPageResult> GetEventsAsync(
         Guid userId,
         string? filter,
         int page,
-        int pageSize);
+        int pageSize,
+        Guid? companyPageId = null);
 
     /// <summary>
     /// Returns upcoming public events (Privacy = Everyone) ordered by start date.

@@ -3,10 +3,13 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { companyPageService, type CompanyPageDto, type AdminsResult } from '@/services/companyPageService'
 import { postService, type PostDto } from '@/services/postService'
+import { eventService, type EventDto } from '@/services/eventService'
 import { useAuthStore } from '@/stores/auth'
 import { useCompanyModeStore } from '@/stores/companyMode'
 import PostCard from '@/components/post/PostCard.vue'
 import PostComposer from '@/components/post/PostComposer.vue'
+import EventCard from '@/components/events/EventCard.vue'
+import EventCreateModal from '@/components/events/EventCreateModal.vue'
 import SlugPicker from '@/components/shared/SlugPicker.vue'
 
 const route = useRoute()
@@ -15,10 +18,18 @@ const companyMode = useCompanyModeStore()
 
 const page     = ref<CompanyPageDto | null>(null)
 const posts    = ref<PostDto[]>([])
+const events   = ref<EventDto[]>([])
 const admins   = ref<AdminsResult | null>(null)
 const loading  = ref(true)
 const error    = ref<string | null>(null)
-const activeTab = ref<'posts' | 'about' | 'admins'>('posts')
+const activeTab = ref<'posts' | 'events' | 'about' | 'admins'>('posts')
+
+// ── Events tab state ──────────────────────────────────────────────────────────
+const eventsLoading    = ref(false)
+const eventsError      = ref<string | null>(null)
+const eventsHasMore    = ref(false)
+const eventsPage       = ref(1)
+const showCreateEvent  = ref(false)
 
 // ── Admin panel state ─────────────────────────────────────────────────────────
 const showAddAdmin  = ref(false)
@@ -69,6 +80,50 @@ onUnmounted(() => {
 
 function onPostCreated(post: PostDto) {
   posts.value.unshift(post)
+}
+
+function onEventCreated(ev: EventDto) {
+  events.value.unshift(ev)
+  showCreateEvent.value = false
+}
+
+async function loadEvents(reset = true) {
+  if (!page.value) return
+  if (reset) {
+    eventsPage.value = 1
+    events.value = []
+  }
+  eventsLoading.value = true
+  eventsError.value = null
+  try {
+    const result = await eventService.getEvents({
+      companyPageId: page.value.id,
+      page: eventsPage.value,
+      pageSize: 20,
+    })
+    if (reset) {
+      events.value = result.items
+    } else {
+      events.value.push(...result.items)
+    }
+    eventsHasMore.value = result.hasMore
+  } catch (e: unknown) {
+    eventsError.value = extractError(e)
+  } finally {
+    eventsLoading.value = false
+  }
+}
+
+async function loadMoreEvents() {
+  eventsPage.value++
+  await loadEvents(false)
+}
+
+function onTabChange(tab: 'posts' | 'events' | 'about' | 'admins') {
+  activeTab.value = tab
+  if (tab === 'events' && events.value.length === 0) {
+    loadEvents()
+  }
 }
 
 async function fetchData() {
@@ -282,13 +337,13 @@ onMounted(fetchData)
         <!-- Tabs -->
         <div class="flex gap-1 border-b border-slate-700 mb-6">
           <button
-            v-for="tab in ['posts', 'about', ...(isAdmin ? ['admins'] : [])]"
+            v-for="tab in ['posts', 'events', 'about', ...(isAdmin ? ['admins'] : [])]"
             :key="tab"
             class="px-4 py-2 text-sm font-medium capitalize border-b-2 transition-colors"
             :class="activeTab === tab
               ? 'border-indigo-600 text-indigo-300'
               : 'border-transparent text-gray-500 hover:text-slate-300'"
-            @click="activeTab = tab as 'posts' | 'about' | 'admins'"
+            @click="onTabChange(tab as 'posts' | 'events' | 'about' | 'admins')"
           >{{ tab }}</button>
         </div>
 
@@ -304,6 +359,64 @@ onMounted(fetchData)
             No posts yet.
           </div>
           <PostCard v-for="post in posts" :key="post.id" :post="post"/>
+        </div>
+
+        <!-- Events tab -->
+        <div v-else-if="activeTab === 'events'" class="space-y-4 pb-8">
+          <!-- Create event button (only for page members in company mode) -->
+          <div v-if="canPostAsPage && isCompanyModeActive" class="flex justify-end">
+            <button
+              class="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition shadow-sm"
+              @click="showCreateEvent = true"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              Create Event
+            </button>
+          </div>
+
+          <!-- Loading -->
+          <div v-if="eventsLoading && events.length === 0" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div v-for="i in 4" :key="i" class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden animate-pulse">
+              <div class="h-32 bg-slate-700"/>
+              <div class="p-3 space-y-2">
+                <div class="h-3 bg-slate-700 rounded w-3/4"/>
+                <div class="h-2 bg-slate-700 rounded w-1/2"/>
+              </div>
+            </div>
+          </div>
+
+          <!-- Error -->
+          <div v-else-if="eventsError" class="bg-red-950 border border-red-800 rounded-xl p-4 text-red-400 text-sm">
+            {{ eventsError }}
+          </div>
+
+          <!-- Empty state -->
+          <div v-else-if="events.length === 0 && !eventsLoading" class="text-center py-10 text-gray-500 text-sm">
+            No upcoming events.
+          </div>
+
+          <!-- Events grid -->
+          <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <EventCard
+              v-for="ev in events"
+              :key="ev.id"
+              :event="ev"
+              @deleted="events = events.filter(e => e.id !== $event)"
+            />
+          </div>
+
+          <!-- Load more -->
+          <div v-if="eventsHasMore && !eventsLoading" class="text-center">
+            <button
+              class="px-6 py-2 text-sm font-medium text-indigo-400 border border-indigo-700 rounded-xl hover:bg-indigo-900/50 transition"
+              :disabled="eventsLoading"
+              @click="loadMoreEvents"
+            >
+              Load more
+            </button>
+          </div>
         </div>
 
         <!-- About tab -->
@@ -405,6 +518,13 @@ onMounted(fetchData)
       </div>
     </template>
   </div>
+
+  <!-- Create event modal -->
+  <EventCreateModal
+    v-if="showCreateEvent"
+    @close="showCreateEvent = false"
+    @created="onEventCreated"
+  />
 
   <!-- Edit modal -->
   <Teleport to="body">

@@ -78,8 +78,9 @@ async function logout() {
   </Transition>
 
   <header class="fixed top-0 inset-x-0 z-50 h-16 bg-slate-900 border-b border-slate-700 flex items-center px-3 gap-2 lg:gap-4">
-    <!-- Hamburger (mobile only) -->
+    <!-- Hamburger (mobile only; hidden in company mode since sidebar is removed) -->
     <button
+      v-if="!companyMode.isActive"
       class="lg:hidden p-2 rounded-lg text-slate-400 hover:bg-slate-700 transition-colors"
       :aria-label="sidebarOpen ? 'Close menu' : 'Open menu'"
       @click="emit('toggle-sidebar')"

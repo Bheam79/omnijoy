@@ -93,12 +93,14 @@ export const eventService = {
     filter?: 'mine' | 'friends' | 'company' | null
     page?: number
     pageSize?: number
+    companyPageId?: string
   } = {}): Promise<EventsPageResult> {
     const { data } = await api.get<EventsPageResult>('/api/events', {
       params: {
-        filter:   params.filter   ?? undefined,
-        page:     params.page     ?? 1,
-        pageSize: params.pageSize ?? 20,
+        filter:        params.filter        ?? undefined,
+        page:          params.page          ?? 1,
+        pageSize:      params.pageSize      ?? 20,
+        companyPageId: params.companyPageId ?? undefined,
       },
     })
     return data

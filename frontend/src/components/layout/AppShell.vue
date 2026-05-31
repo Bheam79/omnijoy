@@ -34,8 +34,9 @@ onMounted(() => {
       @toggle-sidebar="sidebarOpen = !sidebarOpen"
     />
 
-    <!-- Left sidebar (fixed; mobile: slide-in drawer) -->
+    <!-- Left sidebar (fixed; mobile: slide-in drawer) — hidden in company mode -->
     <Sidebar
+      v-if="!companyMode.isActive"
       :open="sidebarOpen"
       @close="sidebarOpen = false"
     />
@@ -43,10 +44,13 @@ onMounted(() => {
     <!-- Main content
          pt-16    → clears the fixed 64px top nav
          pt-24    → pt-16 + 32px company mode banner when active
-         lg:pl-64 → clears the 256px sidebar on large screens -->
+         lg:pl-64 → clears the 256px sidebar on large screens (only when sidebar is visible) -->
     <main
-      class="lg:pl-64 min-h-screen transition-[padding-top] duration-200"
-      :class="companyMode.isActive ? 'pt-24' : 'pt-16'"
+      class="min-h-screen transition-[padding-top,padding-left] duration-200"
+      :class="[
+        companyMode.isActive ? 'pt-24' : 'pt-16',
+        companyMode.isActive ? '' : 'lg:pl-64',
+      ]"
     >
       <!-- Standard layout: centered, max-w-3xl with padding -->
       <div v-if="!isWideContent" class="max-w-3xl mx-auto px-4 py-6">
