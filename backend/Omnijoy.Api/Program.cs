@@ -176,9 +176,19 @@ builder.Services.AddScoped<IAccountService, AccountService>();
 //          "s3" uses an S3-compatible bucket — configure Storage:S3:* keys.
 var storageType = builder.Configuration["Storage:Type"] ?? "local";
 if (storageType.Equals("s3", StringComparison.OrdinalIgnoreCase))
+{
     builder.Services.AddScoped<IMediaStorageService, S3MediaStorageService>();
+    // Verifies the bucket/credentials once at startup so a misconfiguration
+    // (wrong access key, wrong endpoint, missing bucket policy) shows up in
+    // `make prod-logs` immediately instead of on the next user upload — and
+    // when it does fail, the log line carries the real MinIO error code
+    // (e.g. SignatureDoesNotMatch) rather than the SDK's opaque "Access Denied".
+    builder.Services.AddHostedService<S3StorageStartupProbe>();
+}
 else
+{
     builder.Services.AddScoped<IMediaStorageService, LocalMediaStorageService>();
+}
 
 builder.Services.AddScoped<IPrivacyService, PrivacyService>();
 builder.Services.AddScoped<IImageProcessingService, ImageProcessingService>();

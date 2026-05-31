@@ -309,6 +309,19 @@ dotnet ef database update \
   double as the S3 access key/secret for the backend.
 - Dev compose publishes ports 9000 (API) and 9001 (web console) so a
   host-side backend can hit the store when `Storage__Type=s3` is set.
+- **Enriched failure logging.** `S3MediaStorageService` catches
+  `AmazonS3Exception` and logs the underlying MinIO error code, response
+  body, endpoint, bucket, and access-key prefix via `S3DiagnosticsLogging`.
+  The SDK-surfaced `Message` is just `"Access Denied"`; the real reason
+  (`SignatureDoesNotMatch`, `InvalidAccessKeyId`, bucket-policy deny) lives
+  in `ResponseBody`. Grep `make prod-logs` for `ErrorCode=` /
+  `ResponseBody=` when a 502 is reported. The full access key never
+  appears (only `XXXX (len)` prefix); the secret never reaches the helper.
+- **Startup probe.** When `Storage:Type == "s3"`, `S3StorageStartupProbe`
+  (`BackgroundService`) calls `ProbeBucketAsync` once at boot. Logs at
+  `Information` on success and `Error` (with the enriched context above)
+  on failure. Never throws — a misconfigured access key should be loud in
+  the logs without taking the API down.
 
 ### Vanity URL slugs
 

@@ -2,6 +2,7 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Omnijoy.Infrastructure.Services;
@@ -20,15 +21,21 @@ public class S3MediaStorageServiceTests
 {
     private const string BucketName    = "test-bucket";
     private const string PublicBaseUrl = "https://cdn.example.com";
+    private const string ServiceUrl    = "http://minio.test:9000";
+    private const string AccessKey     = "AKIATESTKEY000000001";
 
-    private static S3MediaStorageService CreateSut(IAmazonS3? s3 = null)
+    private static S3MediaStorageService CreateSut(
+        IAmazonS3? s3 = null,
+        ILogger<S3MediaStorageService>? logger = null)
     {
         var mockS3 = s3 ?? new Mock<IAmazonS3>().Object;
         return new S3MediaStorageService(
             mockS3,
             BucketName,
             PublicBaseUrl,
-            NullLogger<S3MediaStorageService>.Instance);
+            logger ?? NullLogger<S3MediaStorageService>.Instance,
+            ServiceUrl,
+            AccessKey);
     }
 
     // ── Constructor (config-based) validation ─────────────────────────────────
@@ -283,5 +290,173 @@ public class S3MediaStorageServiceTests
         var act = () => sut.DeleteAsync(url);
 
         await act.Should().NotThrowAsync();
+    }
+
+    // ── StoreAsync — enriched failure logging ─────────────────────────────────
+
+    [Fact]
+    public async Task Store_S3Failure_LogIncludesEnrichedContext()
+    {
+        // The whole point of OMNIJOY-129: when MinIO rejects an upload, the
+        // log line must include the endpoint, bucket, and access-key prefix
+        // so an operator can correlate it against the MinIO container without
+        // docker-exec'ing in.
+        var s3Mock = new Mock<IAmazonS3>();
+        s3Mock
+            .Setup(s => s.PutObjectAsync(It.IsAny<PutObjectRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new AmazonS3Exception(
+                "Access Denied", Amazon.Runtime.ErrorType.Sender,
+                "SignatureDoesNotMatch", "REQ-99", HttpStatusCode.Forbidden));
+
+        var loggerMock = new Mock<ILogger<S3MediaStorageService>>();
+        var sut = CreateSut(s3Mock.Object, loggerMock.Object);
+        using var stream = new MemoryStream(new byte[100]);
+
+        await sut.Invoking(s => s.StoreAsync(stream, "photo.jpg", "avatars"))
+            .Should().ThrowAsync<AmazonS3Exception>();
+
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) =>
+                    state.ToString()!.Contains("SignatureDoesNotMatch") &&
+                    state.ToString()!.Contains(ServiceUrl) &&
+                    state.ToString()!.Contains(BucketName) &&
+                    state.ToString()!.Contains("AKIA")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task Store_S3Failure_FullAccessKeyDoesNotAppearInLog()
+    {
+        // Cross-cutting guarantee — the secret-leak guard from
+        // S3DiagnosticsLoggingTests applies end-to-end too. If a future change
+        // to the log line passes the raw access key, this catches it.
+        var s3Mock = new Mock<IAmazonS3>();
+        s3Mock
+            .Setup(s => s.PutObjectAsync(It.IsAny<PutObjectRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new AmazonS3Exception("Access Denied"));
+
+        var loggerMock = new Mock<ILogger<S3MediaStorageService>>();
+        var sut = CreateSut(s3Mock.Object, loggerMock.Object);
+        using var stream = new MemoryStream(new byte[100]);
+
+        await sut.Invoking(s => s.StoreAsync(stream, "photo.jpg", "avatars"))
+            .Should().ThrowAsync<AmazonS3Exception>();
+
+        loggerMock.Verify(
+            x => x.Log(
+                It.IsAny<LogLevel>(),
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains(AccessKey)),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never,
+            "full access key must never appear in any log message");
+    }
+
+    // ── ProbeBucketAsync ──────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Probe_HeadObjectSucceeds_ReturnsTrue()
+    {
+        var s3Mock = new Mock<IAmazonS3>();
+        s3Mock
+            .Setup(s => s.GetObjectMetadataAsync(
+                It.IsAny<GetObjectMetadataRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetObjectMetadataResponse { HttpStatusCode = HttpStatusCode.OK });
+
+        var sut = CreateSut(s3Mock.Object);
+
+        var ok = await sut.ProbeBucketAsync();
+
+        ok.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Probe_NoSuchKey404_ReturnsTrue()
+    {
+        // A 404 for the probe key means the bucket exists and the credentials
+        // were accepted — the probe key just doesn't happen to exist (and
+        // doesn't need to). Treat this as success.
+        var s3Mock = new Mock<IAmazonS3>();
+        s3Mock
+            .Setup(s => s.GetObjectMetadataAsync(
+                It.IsAny<GetObjectMetadataRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new AmazonS3Exception(
+                "The specified key does not exist.",
+                Amazon.Runtime.ErrorType.Sender,
+                "NoSuchKey", "REQ-1", HttpStatusCode.NotFound));
+
+        var sut = CreateSut(s3Mock.Object);
+
+        var ok = await sut.ProbeBucketAsync();
+
+        ok.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Probe_AccessDenied_ReturnsFalseAndLogsEnriched()
+    {
+        var s3Mock = new Mock<IAmazonS3>();
+        s3Mock
+            .Setup(s => s.GetObjectMetadataAsync(
+                It.IsAny<GetObjectMetadataRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new AmazonS3Exception(
+                "Access Denied", Amazon.Runtime.ErrorType.Sender,
+                "InvalidAccessKeyId", "REQ-2", HttpStatusCode.Forbidden));
+
+        var loggerMock = new Mock<ILogger<S3MediaStorageService>>();
+        var sut = CreateSut(s3Mock.Object, loggerMock.Object);
+
+        var ok = await sut.ProbeBucketAsync();
+
+        ok.Should().BeFalse();
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) =>
+                    state.ToString()!.Contains("InvalidAccessKeyId") &&
+                    state.ToString()!.Contains(ServiceUrl) &&
+                    state.ToString()!.Contains(BucketName)),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task Probe_NonS3Exception_ReturnsFalseAndLogs()
+    {
+        // DNS failures, socket errors etc. show up as something other than
+        // AmazonS3Exception; we still want to log and return false rather
+        // than crashing the host.
+        var s3Mock = new Mock<IAmazonS3>();
+        s3Mock
+            .Setup(s => s.GetObjectMetadataAsync(
+                It.IsAny<GetObjectMetadataRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("connection refused"));
+
+        var loggerMock = new Mock<ILogger<S3MediaStorageService>>();
+        var sut = CreateSut(s3Mock.Object, loggerMock.Object);
+
+        var ok = await sut.ProbeBucketAsync();
+
+        ok.Should().BeFalse();
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
     }
 }
