@@ -151,7 +151,7 @@ make prod-logs               # Tail all logs  (SVC=backend for one service)
 make prod-logs SVC=backend
 make prod-shell              # Shell into running backend container
 make prod-restart            # Rebuild + restart backend only (fastest deploy)
-make prod-nginx-reload       # Reload nginx after editing nginx.prod.conf
+make prod-nginx-reload       # Reload nginx after editing nginx.prod.conf.template (recreate container first for template changes)
 make prod-down               # Tear down the stack (volumes preserved)
 
 # Persist across reboots via systemd --user:
@@ -319,12 +319,14 @@ dotnet ef database update \
   expected.
 - Backend reaches MinIO internally at `http://07ad0b82_omnijoy_minio:9000`.
   Public URLs are returned as **relative** paths under `/media/…` —
-  `nginx.prod.conf` has a `/media/` `location` that `proxy_pass`es to
-  the `omnijoy` bucket and stamps a 1-year immutable `Cache-Control`
+  `nginx.prod.conf.template` has a `/media/` `location` that `proxy_pass`es to
+  the `${MINIO_BUCKET}` bucket and stamps a 1-year immutable `Cache-Control`
   header on every response. Objects are content-addressed (UUID keys),
   so caching forever is safe.
-- The bucket name in `nginx.prod.conf` (`http://minio/omnijoy/`) must
-  match `MINIO_BUCKET` in `docker/.env`. Change them together.
+- `${MINIO_BUCKET}` in `nginx.prod.conf.template` is substituted by `envsubst`
+  at nginx container start — `MINIO_BUCKET` in `docker/.env` is the single
+  source of truth. No manual edits to the nginx template are needed when
+  changing the bucket name.
 - Required env vars: `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`,
   `MINIO_BUCKET` (see `docker/.env.example`). The root user/password
   double as the S3 access key/secret for the backend.

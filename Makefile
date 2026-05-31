@@ -114,7 +114,7 @@ help:
 	@echo "    make prod-logs       Tail logs (all services; pass SVC=backend to filter)"
 	@echo "    make prod-status     Show production container status"
 	@echo "    make prod-shell      Open a shell inside the backend container"
-	@echo "    make prod-nginx-reload  Reload nginx after editing nginx.prod.conf"
+	@echo "    make prod-nginx-reload  Reload nginx after editing nginx.prod.conf.template (recreate container first for template changes)"
 	@echo "    make prod-rotate-minio  Force-recreate MinIO + minio-init after .env credential change"
 	@echo "    make prod-install    Install systemd user service (auto-start on boot)"
 	@echo "    make prod-uninstall  Remove systemd user service"
@@ -436,10 +436,11 @@ prod-status:
 prod-shell:
 	$(DOCKER) exec -it 07ad0b82_omnijoy_backend /bin/bash
 
-# nginx.prod.conf is bind-mounted into the nginx container, so edits land
-# immediately on disk but the running nginx process keeps using the loaded
-# config. This target signals nginx to re-read the file without dropping
-# active connections (graceful reload).
+# nginx.prod.conf.template is processed by envsubst at container start and
+# written to /etc/nginx/nginx.conf inside the container. This target signals
+# nginx to re-read the generated /etc/nginx/nginx.conf without dropping
+# active connections (graceful reload). To pick up template changes, recreate
+# the container first: make prod-up  (which force-recreates nginx).
 prod-nginx-reload:
 	@echo ">> Reloading nginx config..."
 	$(DOCKER) exec $(PREFIX)_nginx nginx -t

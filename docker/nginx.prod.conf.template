@@ -53,11 +53,13 @@ http {
 
         # ── Media (MinIO object store) ───────────────────────────────────────
         # Objects are content-addressed (UUID-based keys) and never change once
-        # written, so we set a 1-year immutable Cache-Control header. The bucket
-        # name "omnijoy" must match MINIO_BUCKET in docker/.env — change both
-        # together if you customise it.
+        # written, so we set a 1-year immutable Cache-Control header.
+        # The bucket name below is the MINIO_BUCKET env var, substituted by
+        # envsubst when the nginx container starts (see the nginx service
+        # entrypoint in docker-compose.prod.yml). MINIO_BUCKET in docker/.env
+        # is the single source of truth — no manual edits needed here.
         location /media/ {
-            proxy_pass         http://minio/omnijoy/;
+            proxy_pass         http://minio/${MINIO_BUCKET}/;
             proxy_http_version 1.1;
             proxy_set_header   Host $host;
             proxy_set_header   X-Real-IP $remote_addr;
