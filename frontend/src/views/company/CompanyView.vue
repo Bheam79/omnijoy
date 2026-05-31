@@ -203,8 +203,8 @@ onMounted(fetchData)
         <!-- Logo + info header -->
         <div class="flex items-end justify-between -mt-12 mb-4">
           <div class="flex items-end gap-4">
-            <!-- Logo -->
-            <div class="w-24 h-24 rounded-2xl border-4 border-slate-700 bg-slate-800 shadow-lg overflow-hidden shrink-0">
+            <!-- Logo (relative+z-10 so it paints above the cover, which is also `relative`) -->
+            <div class="relative z-10 w-24 h-24 rounded-2xl border-4 border-slate-700 bg-slate-800 shadow-lg overflow-hidden shrink-0">
               <img v-if="page.logoUrl" :src="page.logoUrl" :alt="page.name" class="w-full h-full object-cover"/>
               <div v-else class="w-full h-full bg-indigo-600 flex items-center justify-center text-white font-bold text-3xl">
                 {{ page.name.charAt(0).toUpperCase() }}
