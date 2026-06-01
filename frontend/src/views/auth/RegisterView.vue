@@ -2,6 +2,8 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import PlacePicker from '@/components/shared/PlacePicker.vue'
+import type { PlaceSelection } from '@/types/places'
 
 const router = useRouter()
 const route = useRoute()
@@ -14,6 +16,7 @@ type AuthMethod = 'password' | 'otp'
 
 const email = ref('')
 const displayName = ref('')
+const location = ref<PlaceSelection | null>(null)
 const authMethod = ref<AuthMethod>('password')
 const password = ref('')
 const confirmPassword = ref('')
@@ -32,6 +35,7 @@ async function submit() {
 
   if (!email.value.trim()) { localError.value = 'Email is required.'; return }
   if (!displayName.value.trim()) { localError.value = 'Display name is required.'; return }
+  if (!location.value) { localError.value = 'Please select your location to continue.'; return }
   if (authMethod.value === 'password') {
     if (!password.value) { localError.value = 'Password is required.'; return }
     if (password.value.length < 8) { localError.value = 'Password must be at least 8 characters.'; return }
@@ -47,6 +51,13 @@ async function submit() {
       gender: gender.value,
       birthDate: birthDate.value || undefined,
       showBirthDate: showBirthDate.value,
+      locationPlaceId: location.value.placeId !== 'manual' ? location.value.placeId : null,
+      locationName: location.value.displayName,
+      locationCity: location.value.city,
+      locationCountry: location.value.country,
+      locationCountryCode: location.value.countryCode,
+      locationLatitude: location.value.latitude,
+      locationLongitude: location.value.longitude,
     })
     // If the user came from an invite link, redirect back to accept it.
     if (inviteToken) {
@@ -102,6 +113,16 @@ async function submit() {
               class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
+
+          <!-- Location (required) -->
+          <PlacePicker
+            v-model="location"
+            mode="cities"
+            label="Where are you from?"
+            placeholder="Search for your city…"
+            :required="true"
+            data-testid="register-location-picker"
+          />
 
           <!-- Auth method -->
           <div>

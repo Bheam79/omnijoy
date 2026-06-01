@@ -12,6 +12,13 @@ export interface RegisterPayload {
   gender?: string
   birthDate?: string
   showBirthDate?: boolean
+  locationPlaceId?: string | null
+  locationName?: string | null
+  locationCity?: string | null
+  locationCountry?: string | null
+  locationCountryCode?: string | null
+  locationLatitude?: number | null
+  locationLongitude?: number | null
 }
 
 export interface AuthResult {
@@ -34,6 +41,9 @@ function toUser(raw: Record<string, unknown>): User {
     showBirthDate: (raw.showBirthDate as boolean) ?? false,
     role: (raw.role as UserRole) ?? 'User',
     createdAt: raw.createdAt as string,
+    locationName: (raw.locationName as string) || null,
+    locationCity: (raw.locationCity as string) || null,
+    locationCountry: (raw.locationCountry as string) || null,
   }
 }
 

@@ -36,6 +36,13 @@ export interface UpdateProfilePayload {
   gender?: string
   birthDate?: string
   showBirthDate?: boolean
+  locationPlaceId?: string | null
+  locationName?: string | null
+  locationCity?: string | null
+  locationCountry?: string | null
+  locationCountryCode?: string | null
+  locationLatitude?: number | null
+  locationLongitude?: number | null
 }
 
 export interface UpdatePrivacyPayload {

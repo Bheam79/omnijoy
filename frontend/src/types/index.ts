@@ -18,6 +18,10 @@ export interface User {
   /** Platform role from JWT/login response. Defaults to 'User' for older payloads. */
   role?: UserRole
   createdAt: string
+  /** Human-readable location label, e.g. "Oslo, Norway". */
+  locationName?: string | null
+  locationCity?: string | null
+  locationCountry?: string | null
 }
 
 export interface AuthTokens {
