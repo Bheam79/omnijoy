@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { CompanyPageDto } from '@/services/companyPageService'
+import type { EventDto } from '@/services/eventService'
 
 /**
  * Company Mode store.
@@ -11,9 +12,14 @@ import type { CompanyPageDto } from '@/services/companyPageService'
  *
  * State is kept in memory only (not persisted across page reload) — the
  * user re-activates it by visiting the company page.
+ *
+ * `activeEvent` is set by event views (EventDetailView, EventEditView, etc.)
+ * so the CompanySidebar can show event-contextual navigation without an
+ * extra network call.
  */
 export const useCompanyModeStore = defineStore('companyMode', () => {
   const activeCompany = ref<CompanyPageDto | null>(null)
+  const activeEvent   = ref<EventDto | null>(null)
 
   const isActive = computed(() => activeCompany.value !== null)
 
@@ -23,7 +29,12 @@ export const useCompanyModeStore = defineStore('companyMode', () => {
 
   function deactivate() {
     activeCompany.value = null
+    activeEvent.value   = null
   }
 
-  return { activeCompany, isActive, activate, deactivate }
+  function setActiveEvent(event: EventDto | null) {
+    activeEvent.value = event
+  }
+
+  return { activeCompany, activeEvent, isActive, activate, deactivate, setActiveEvent }
 })

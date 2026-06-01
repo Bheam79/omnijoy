@@ -62,6 +62,24 @@ const router = createRouter({
       meta: { requiresAuth: true, layout: 'app' },
     },
     {
+      path: '/events/:id/edit',
+      name: 'event-edit',
+      component: () => import('@/views/events/EventEditView.vue'),
+      meta: { requiresAuth: true, layout: 'app' },
+    },
+    {
+      path: '/events/:id/participants',
+      name: 'event-participants',
+      component: () => import('@/views/events/EventParticipantsView.vue'),
+      meta: { requiresAuth: true, layout: 'app' },
+    },
+    {
+      path: '/events/:id/settings',
+      name: 'event-settings',
+      component: () => import('@/views/events/EventSettingsView.vue'),
+      meta: { requiresAuth: true, layout: 'app' },
+    },
+    {
       path: '/company',
       name: 'company-list',
       component: () => import('@/views/company/CompanyListView.vue'),

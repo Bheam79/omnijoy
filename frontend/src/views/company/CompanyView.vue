@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, RouterLink, useRouter } from 'vue-router'
 import { companyPageService, type CompanyPageDto, type AdminsResult } from '@/services/companyPageService'
 import { postService, type PostDto } from '@/services/postService'
 import { eventService, type EventDto } from '@/services/eventService'
@@ -12,8 +12,9 @@ import EventCard from '@/components/events/EventCard.vue'
 import EventCreateModal from '@/components/events/EventCreateModal.vue'
 import SlugPicker from '@/components/shared/SlugPicker.vue'
 
-const route = useRoute()
-const auth  = useAuthStore()
+const route  = useRoute()
+const router = useRouter()
+const auth   = useAuthStore()
 const companyMode = useCompanyModeStore()
 
 const page     = ref<CompanyPageDto | null>(null)
@@ -242,7 +243,51 @@ function onSlugUpdated(newSlug: string | null) {
   }
 }
 
-onMounted(fetchData)
+/**
+ * React to query params injected by the CompanySidebar so the right
+ * tab / modal opens automatically.
+ *
+ * ?action=edit  → open the edit page modal
+ * ?tab=events   → switch to events tab
+ * ?tab=settings → switch to admins/settings tab
+ *
+ * The query param is cleared from the URL after handling so the back
+ * button doesn't re-trigger the action.
+ */
+function applyQueryParams() {
+  const { action, tab } = route.query
+
+  if (action === 'edit') {
+    openEdit()
+    router.replace({ query: { ...route.query, action: undefined } })
+    return
+  }
+
+  if (tab === 'events') {
+    onTabChange('events')
+    router.replace({ query: { ...route.query, tab: undefined } })
+    return
+  }
+
+  if (tab === 'settings') {
+    onTabChange('admins')
+    router.replace({ query: { ...route.query, tab: undefined } })
+    return
+  }
+}
+
+onMounted(async () => {
+  await fetchData()
+  applyQueryParams()
+})
+
+// Also react when navigating from the company sidebar while already on the
+// company page (vue-router reuses the component instance — no new mount).
+watch(() => route.query, () => {
+  if (page.value) {
+    applyQueryParams()
+  }
+})
 </script>
 
 <template>
