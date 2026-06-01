@@ -398,10 +398,14 @@ watch(() => route.query, () => {
           </div>
         </div>
 
-        <!-- Tabs -->
+        <!-- Tabs
+             NOTE: The "admins" / settings tab is intentionally NOT listed here.
+             It's reachable only via the left sidebar's "Settings" link
+             (which sets ?tab=settings → activeTab='admins'), to avoid
+             duplicating admin-only navigation in the public content area. -->
         <div class="flex gap-1 border-b border-slate-700 mb-6">
           <button
-            v-for="tab in ['posts', 'events', 'about', ...(isAdmin ? ['admins'] : [])]"
+            v-for="tab in ['posts', 'events', 'about']"
             :key="tab"
             class="px-4 py-2 text-sm font-medium capitalize border-b-2 transition-colors"
             :class="activeTab === tab

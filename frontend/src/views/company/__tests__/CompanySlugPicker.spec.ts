@@ -78,8 +78,11 @@ function makeRouter() {
   })
 }
 
+let currentRouter: ReturnType<typeof makeRouter> | null = null
+
 async function mountView(urlSlug: string | null = null) {
   const router = makeRouter()
+  currentRouter = router
   await router.push('/company/company-1')
 
   mockCompanyPageService.getPage.mockResolvedValue(makeOwnerPage(urlSlug))
@@ -101,13 +104,18 @@ async function mountView(urlSlug: string | null = null) {
   return wrapper
 }
 
-async function switchToAdminsTab(wrapper: ReturnType<typeof mount>) {
-  const buttons = wrapper.findAll('button')
-  const adminsTab = buttons.find(b => b.text().trim() === 'admins')
-  if (adminsTab) {
-    await adminsTab.trigger('click')
-    await flushPromises()
-  }
+/**
+ * The "admins" tab is no longer rendered as an inline tab button — it's
+ * reachable only via the sidebar's Settings link (which sets
+ * ?tab=settings → activeTab='admins'). Mimic that navigation here.
+ *
+ * The wrapper parameter is intentionally accepted (even though unused) so
+ * call sites read naturally and don't have to be rewritten everywhere.
+ */
+async function switchToAdminsTab(_wrapper: ReturnType<typeof mount>) {
+  if (!currentRouter) throw new Error('Router not initialised — call mountView first')
+  await currentRouter.push('/company/company-1?tab=settings')
+  await flushPromises()
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
