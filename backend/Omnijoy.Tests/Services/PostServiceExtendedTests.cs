@@ -608,6 +608,8 @@ public class PostServiceExtendedTests : IDisposable
         {
             Id               = Guid.NewGuid(),
             Name             = "Acme Inc",
+            LogoUrl          = "/uploads/acme-logo.png",
+            UrlSlug          = "acme",
             CreatedByUserId  = user.Id,
             CreatedByUser    = user,
             CreatedAt        = DateTime.UtcNow,
@@ -626,6 +628,56 @@ public class PostServiceExtendedTests : IDisposable
             null);
 
         dto.CompanyPageId.Should().Be(page.Id);
+
+        // The returned PostDto must carry the company-page snapshot so the
+        // frontend can render the page (not the user) as the author.
+        dto.CompanyPage.Should().NotBeNull();
+        dto.CompanyPage!.Id.Should().Be(page.Id);
+        dto.CompanyPage.Name.Should().Be("Acme Inc");
+        dto.CompanyPage.LogoUrl.Should().Be("/uploads/acme-logo.png");
+        dto.CompanyPage.UrlSlug.Should().Be("acme");
+    }
+
+    [Fact]
+    public async Task CreatePost_PersonalPost_HasNullCompanyPage()
+    {
+        var user = await CreateUserAsync("Alice");
+
+        var dto = await _sut.CreatePostAsync(
+            user.Id,
+            new CreatePostRequest("Just me", "Text", "Friends", null),
+            null);
+
+        dto.CompanyPageId.Should().BeNull();
+        dto.CompanyPage.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetPost_CompanyPagePost_PopulatesCompanyPageSnapshot()
+    {
+        var admin = await CreateUserAsync("Alice");
+        var page  = await CreateCompanyPageAsync(admin.Id);
+
+        var post = new Post
+        {
+            Id            = Guid.NewGuid(),
+            AuthorUserId  = admin.Id,
+            CompanyPageId = page.Id,
+            CompanyPage   = page,
+            Content       = "From the company",
+            PostType      = PostType.Text,
+            Privacy       = PrivacyLevel.Everyone,
+            CreatedAt     = DateTime.UtcNow,
+            UpdatedAt     = DateTime.UtcNow,
+        };
+        _db.Posts.Add(post);
+        await _db.SaveChangesAsync();
+
+        var dto = await _sut.GetPostAsync(post.Id, admin.Id);
+
+        dto.CompanyPage.Should().NotBeNull();
+        dto.CompanyPage!.Id.Should().Be(page.Id);
+        dto.CompanyPage.Name.Should().Be(page.Name);
     }
 
     [Fact]

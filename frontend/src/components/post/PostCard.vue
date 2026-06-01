@@ -4,6 +4,7 @@ import type { PostDto } from '@/services/postService'
 import { useAuthStore } from '@/stores/auth'
 import { useFeedStore } from '@/stores/feed'
 import { useProfileUrl } from '@/composables/useProfileUrl'
+import { useCompanyUrl } from '@/composables/useCompanyUrl'
 import PostReactionBar from './PostReactionBar.vue'
 import CommentThread from './CommentThread.vue'
 import ShareModal from './ShareModal.vue'
@@ -19,7 +20,24 @@ const isLoggedIn = computed(() => !!auth.user)
 
 const isOwn = computed(() => auth.user?.id === props.post.author.id)
 
-const authorUrl = computed(() => useProfileUrl(props.post.author))
+// ── Effective author (company page if posted on behalf of one, else user) ────
+// When a company-page admin posts as the page, the post is owned by the user
+// at the database level but should display the page as the author.
+const postedAsPage = computed(() => !!props.post.companyPage)
+
+const displayName = computed(() =>
+  postedAsPage.value ? props.post.companyPage!.name : props.post.author.displayName
+)
+
+const displayAvatarUrl = computed(() =>
+  postedAsPage.value ? props.post.companyPage!.logoUrl ?? null : props.post.author.avatarUrl ?? null
+)
+
+const authorUrl = computed(() =>
+  postedAsPage.value
+    ? useCompanyUrl({ id: props.post.companyPage!.id, urlSlug: props.post.companyPage!.urlSlug })
+    : useProfileUrl(props.post.author)
+)
 
 // ── Report ────────────────────────────────────────────────────────────────────
 const reportModalOpen = ref(false)
@@ -100,19 +118,25 @@ const tobStyle = computed(() => {
     <!-- Header -->
     <div class="flex items-center justify-between px-4 pt-4 pb-2">
       <div class="flex items-center gap-3">
-        <!-- Avatar -->
+        <!-- Avatar (company logo when posted on behalf of a page, else user avatar). -->
         <RouterLink :to="authorUrl">
           <img
-            v-if="post.author.avatarUrl"
-            :src="post.author.avatarUrl"
-            :alt="post.author.displayName"
+            v-if="displayAvatarUrl"
+            :src="displayAvatarUrl"
+            :alt="displayName"
+            data-testid="post-author-avatar"
             class="w-10 h-10 rounded-full object-cover"
+            :class="{ 'rounded-xl': postedAsPage }"
           />
           <div
             v-else
-            class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-sm"
+            data-testid="post-author-avatar-fallback"
+            class="w-10 h-10 flex items-center justify-center text-white font-semibold text-sm"
+            :class="postedAsPage
+              ? 'rounded-xl bg-indigo-600'
+              : 'rounded-full bg-blue-500'"
           >
-            {{ post.author.displayName.charAt(0).toUpperCase() }}
+            {{ displayName.charAt(0).toUpperCase() }}
           </div>
         </RouterLink>
 
@@ -120,10 +144,23 @@ const tobStyle = computed(() => {
         <div>
           <RouterLink
             :to="authorUrl"
+            data-testid="post-author-name"
             class="font-semibold text-slate-100 hover:underline text-sm"
           >
-            {{ post.author.displayName }}
+            {{ displayName }}
           </RouterLink>
+          <!-- "posted by <user>" attribution when published on behalf of a page -->
+          <div
+            v-if="postedAsPage"
+            class="text-xs text-gray-500 -mt-0.5"
+            data-testid="post-page-byline"
+          >
+            posted by
+            <RouterLink
+              :to="useProfileUrl(post.author)"
+              class="hover:underline"
+            >{{ post.author.displayName }}</RouterLink>
+          </div>
           <div class="flex items-center gap-1.5 text-xs text-gray-500 mt-0.5">
             <span>{{ formatDate(post.createdAt) }}</span>
             <span>·</span>

@@ -250,6 +250,7 @@ public class PostService : IPostService
             ? await _db.Posts.AsNoTracking()
                 .Include(p => p.Author)
                 .Include(p => p.Media)
+                .Include(p => p.CompanyPage)
                 .Where(p => postIds.Contains(p.Id))
                 .ToDictionaryAsync(p => p.Id)
             : new Dictionary<Guid, Post>();
@@ -259,6 +260,7 @@ public class PostService : IPostService
                 .Include(s => s.Sharer)
                 .Include(s => s.OriginalPost).ThenInclude(p => p.Author)
                 .Include(s => s.OriginalPost).ThenInclude(p => p.Media)
+                .Include(s => s.OriginalPost).ThenInclude(p => p.CompanyPage)
                 .Where(s => shareIds.Contains(s.Id))
                 .ToDictionaryAsync(s => s.Id)
             : new Dictionary<Guid, SharedPost>();
@@ -332,6 +334,7 @@ public class PostService : IPostService
             .AsNoTracking()
             .Include(p => p.Author)
             .Include(p => p.Media)
+            .Include(p => p.CompanyPage)
             .Where(p => topPostIds.Contains(p.Id))
             .ToListAsync(ct);
 
@@ -353,6 +356,7 @@ public class PostService : IPostService
             .AsNoTracking()
             .Include(p => p.Author)
             .Include(p => p.Media)
+            .Include(p => p.CompanyPage)
             .FirstOrDefaultAsync(p => p.Id == postId && p.DeletedAt == null)
             ?? throw new KeyNotFoundException($"Post {postId} not found.");
 
@@ -368,6 +372,7 @@ public class PostService : IPostService
         var post = await _db.Posts
             .Include(p => p.Author)
             .Include(p => p.Media)
+            .Include(p => p.CompanyPage)
             .FirstOrDefaultAsync(p => p.Id == postId && p.DeletedAt == null)
             ?? throw new KeyNotFoundException($"Post {postId} not found.");
 
@@ -440,6 +445,7 @@ public class PostService : IPostService
             .AsNoTracking()
             .Include(p => p.Author)
             .Include(p => p.Media)
+            .Include(p => p.CompanyPage)
             .FirstOrDefaultAsync(p => p.Id == postId);
 
         return post is null ? null : MapToDto(post);
@@ -527,6 +533,14 @@ public class PostService : IPostService
                 ImageUrl: post.LinkImageUrl,
                 SiteName: post.LinkSiteName);
 
+        PostCompanyPageDto? companyPage = post.CompanyPage is null
+            ? null
+            : new PostCompanyPageDto(
+                Id: post.CompanyPage.Id,
+                Name: post.CompanyPage.Name,
+                LogoUrl: post.CompanyPage.LogoUrl,
+                UrlSlug: post.CompanyPage.UrlSlug);
+
         return new PostDto(
             Id: post.Id,
             Author: author,
@@ -538,7 +552,8 @@ public class PostService : IPostService
             Media: media,
             LinkPreview: linkPreview,
             CreatedAt: post.CreatedAt,
-            UpdatedAt: post.UpdatedAt
+            UpdatedAt: post.UpdatedAt,
+            CompanyPage: companyPage
         );
     }
 

@@ -231,4 +231,56 @@ describe('PostCard', () => {
     const wrapper = mountCard(post)
     expect(wrapper.text()).toContain('Example Site')
   })
+
+  // ── Posted on behalf of a company page ────────────────────────────────────
+
+  it('renders company page name (not user) as author when post.companyPage is set', () => {
+    const post = makePost({
+      companyPageId: 'page-1',
+      companyPage:   {
+        id:       'page-1',
+        name:     'Acme Inc',
+        logoUrl:  '/uploads/acme.png',
+        urlSlug:  'acme',
+      },
+    })
+    const wrapper = mountCard(post)
+
+    // Author headline should be the company name, not the user's display name.
+    const authorName = wrapper.find('[data-testid="post-author-name"]')
+    expect(authorName.exists()).toBe(true)
+    expect(authorName.text()).toBe('Acme Inc')
+
+    // Byline still credits the user who actually wrote the post.
+    const byline = wrapper.find('[data-testid="post-page-byline"]')
+    expect(byline.exists()).toBe(true)
+    expect(byline.text()).toContain('Alice')
+
+    // Avatar uses the company logo, not the user avatar.
+    const avatar = wrapper.find('[data-testid="post-author-avatar"]')
+    expect(avatar.exists()).toBe(true)
+    expect(avatar.attributes('src')).toBe('/uploads/acme.png')
+  })
+
+  it('falls back to the company-name initial in the avatar when logoUrl is null', () => {
+    const post = makePost({
+      companyPageId: 'page-1',
+      companyPage:   { id: 'page-1', name: 'Beta Co', logoUrl: null, urlSlug: null },
+    })
+    const wrapper = mountCard(post)
+
+    const fallback = wrapper.find('[data-testid="post-author-avatar-fallback"]')
+    expect(fallback.exists()).toBe(true)
+    expect(fallback.text()).toBe('B')
+  })
+
+  it('renders the user as author for a regular personal post (no companyPage)', () => {
+    const wrapper = mountCard(makePost())
+
+    const authorName = wrapper.find('[data-testid="post-author-name"]')
+    expect(authorName.text()).toBe('Alice')
+
+    // No company-page byline for a regular post.
+    expect(wrapper.find('[data-testid="post-page-byline"]').exists()).toBe(false)
+  })
 })

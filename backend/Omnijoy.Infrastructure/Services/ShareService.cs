@@ -39,6 +39,7 @@ public class ShareService : IShareService
             .AsNoTracking()
             .Include(p => p.Author)
             .Include(p => p.Media)
+            .Include(p => p.CompanyPage)
             .FirstOrDefaultAsync(p => p.Id == postId && p.DeletedAt == null)
             ?? throw new KeyNotFoundException($"Post {postId} not found.");
 
@@ -160,6 +161,14 @@ public class ShareService : IShareService
             originalPost.Author.DisplayName,
             originalPost.Author.AvatarUrl);
 
+        PostCompanyPageDto? originalCompanyPage = originalPost.CompanyPage is null
+            ? null
+            : new PostCompanyPageDto(
+                Id: originalPost.CompanyPage.Id,
+                Name: originalPost.CompanyPage.Name,
+                LogoUrl: originalPost.CompanyPage.LogoUrl,
+                UrlSlug: originalPost.CompanyPage.UrlSlug);
+
         var originalPostDto = new PostDto(
             Id: originalPost.Id,
             Author: originalAuthorDto,
@@ -171,7 +180,8 @@ public class ShareService : IShareService
             Media: media,
             LinkPreview: linkPreview,
             CreatedAt: originalPost.CreatedAt,
-            UpdatedAt: originalPost.UpdatedAt);
+            UpdatedAt: originalPost.UpdatedAt,
+            CompanyPage: originalCompanyPage);
 
         return new SharedPostFeedItemDto(
             Id:           share.Id,

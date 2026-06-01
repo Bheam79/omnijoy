@@ -86,22 +86,41 @@ function formatDate(iso: string) {
         v-else-if="post"
         class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 overflow-hidden"
       >
-        <!-- Author header -->
+        <!-- Author header (company page when posted on behalf of one, else user) -->
         <div class="flex items-center gap-3 px-5 pt-5 pb-3">
-          <img
-            v-if="post.author.avatarUrl"
-            :src="post.author.avatarUrl"
-            :alt="post.author.displayName"
-            class="w-12 h-12 rounded-full object-cover"
-          />
-          <div
-            v-else
-            class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold"
-          >{{ post.author.displayName.charAt(0).toUpperCase() }}</div>
-          <div>
-            <p class="font-semibold text-slate-100">{{ post.author.displayName }}</p>
-            <p class="text-xs text-gray-500">{{ formatDate(post.createdAt) }} · 🌐 Public</p>
-          </div>
+          <template v-if="post.companyPage">
+            <img
+              v-if="post.companyPage.logoUrl"
+              :src="post.companyPage.logoUrl"
+              :alt="post.companyPage.name"
+              class="w-12 h-12 rounded-xl object-cover"
+            />
+            <div
+              v-else
+              class="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-semibold"
+            >{{ post.companyPage.name.charAt(0).toUpperCase() }}</div>
+            <div>
+              <p class="font-semibold text-slate-100">{{ post.companyPage.name }}</p>
+              <p class="text-xs text-gray-500">posted by {{ post.author.displayName }}</p>
+              <p class="text-xs text-gray-500">{{ formatDate(post.createdAt) }} · 🌐 Public</p>
+            </div>
+          </template>
+          <template v-else>
+            <img
+              v-if="post.author.avatarUrl"
+              :src="post.author.avatarUrl"
+              :alt="post.author.displayName"
+              class="w-12 h-12 rounded-full object-cover"
+            />
+            <div
+              v-else
+              class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold"
+            >{{ post.author.displayName.charAt(0).toUpperCase() }}</div>
+            <div>
+              <p class="font-semibold text-slate-100">{{ post.author.displayName }}</p>
+              <p class="text-xs text-gray-500">{{ formatDate(post.createdAt) }} · 🌐 Public</p>
+            </div>
+          </template>
         </div>
 
         <!-- Content -->

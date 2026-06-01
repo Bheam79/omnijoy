@@ -4,6 +4,19 @@ namespace Omnijoy.Core.DTOs.Posts;
 
 public record PostAuthorDto(Guid Id, string DisplayName, string? AvatarUrl);
 
+/// <summary>
+/// Lightweight company-page snapshot embedded in a post when the post was
+/// published on behalf of a company page. Frontend displays this as the
+/// post author instead of the user when present.
+/// </summary>
+public record PostCompanyPageDto(
+    Guid Id,
+    string Name,
+    string? LogoUrl,
+    /// <summary>Vanity URL slug; null when unset.</summary>
+    string? UrlSlug
+);
+
 public record PostMediaItemDto(
     Guid Id,
     string MediaType,
@@ -37,7 +50,14 @@ public record PostDto(
     PostMediaItemDto[] Media,
     PostLinkPreviewDto? LinkPreview,
     DateTime CreatedAt,
-    DateTime UpdatedAt
+    DateTime UpdatedAt,
+    /// <summary>
+    /// When set, the post was published on behalf of this company page —
+    /// frontend should display the page (name + logo + slug link) as the
+    /// post author rather than the underlying user. Null for regular
+    /// personal posts.
+    /// </summary>
+    PostCompanyPageDto? CompanyPage = null
 );
 
 // ── Create / Update requests ──────────────────────────────────────────────────

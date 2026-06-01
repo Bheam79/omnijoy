@@ -10,6 +10,19 @@ export interface PostAuthor {
   urlSlug?: string | null
 }
 
+/**
+ * Lightweight company-page snapshot embedded in a post when the post was
+ * published on behalf of a company page. Frontend displays this in place of
+ * the user's author info.
+ */
+export interface PostCompanyPage {
+  id: string
+  name: string
+  logoUrl?: string | null
+  /** Vanity URL slug — null when unset. */
+  urlSlug?: string | null
+}
+
 export interface PostMediaItem {
   id: string
   mediaType: 'Image' | 'Video'
@@ -31,6 +44,12 @@ export interface PostDto {
   id: string
   author: PostAuthor
   companyPageId?: string
+  /**
+   * Present when the post was published on behalf of a company page; the UI
+   * should display this (name + logo + slug link) as the post author rather
+   * than the underlying user.
+   */
+  companyPage?: PostCompanyPage | null
   content: string
   backgroundImageUrl?: string
   postType: 'Text' | 'Image' | 'Video' | 'TextOnBackground'
