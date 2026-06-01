@@ -34,7 +34,7 @@ export interface PostDto {
   content: string
   backgroundImageUrl?: string
   postType: 'Text' | 'Image' | 'Video' | 'TextOnBackground'
-  privacy: 'Everyone' | 'Friends' | 'OnlyMe'
+  privacy: 'Everyone' | 'Friends' | 'OnlyMe' | 'Followers'
   media: PostMediaItem[]
   linkPreview?: PostLinkPreview
   createdAt: string
@@ -72,7 +72,7 @@ export interface FeedPageResult {
 export interface CreatePostPayload {
   content: string
   postType: 'Text' | 'Image' | 'Video' | 'TextOnBackground'
-  privacy: 'Everyone' | 'Friends' | 'OnlyMe'
+  privacy: 'Everyone' | 'Friends' | 'OnlyMe' | 'Followers'
   background?: string
   mediaFiles?: File[]
   /** Post on behalf of this company page (user must be admin). */

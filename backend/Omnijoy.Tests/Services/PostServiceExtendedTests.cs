@@ -794,4 +794,205 @@ public class PostServiceExtendedTests : IDisposable
         await _sut.Invoking(s => s.DeletePostAsync(Guid.NewGuid(), user.Id))
             .Should().ThrowAsync<KeyNotFoundException>();
     }
+
+    // ── Followers privacy — company posts ─────────────────────────────────────
+
+    private async Task<CompanyPage> CreateCompanyPageAsync(Guid ownerId)
+    {
+        var user = await _db.Users.FindAsync(ownerId) ?? throw new InvalidOperationException();
+        var page = new CompanyPage
+        {
+            Id              = Guid.NewGuid(),
+            Name            = "Acme Corp",
+            CreatedByUserId = ownerId,
+            CreatedByUser   = user,
+            CreatedAt       = DateTime.UtcNow,
+        };
+        _db.CompanyPages.Add(page);
+        _db.CompanyPageAdmins.Add(new CompanyPageAdmin
+        {
+            CompanyPageId = page.Id,
+            UserId        = ownerId,
+        });
+        await _db.SaveChangesAsync();
+        return page;
+    }
+
+    private async Task FollowCompanyAsync(Guid pageId, Guid userId)
+    {
+        _db.CompanyPageFollows.Add(new CompanyPageFollow
+        {
+            CompanyPageId = pageId,
+            UserId        = userId,
+            CreatedAt     = DateTime.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task CreatePost_FollowersPrivacy_WithoutCompanyPage_ThrowsArgumentException()
+    {
+        var user = await CreateUserAsync();
+
+        await _sut.Invoking(s => s.CreatePostAsync(
+                user.Id,
+                new CreatePostRequest("Test", "Text", "Followers", null),
+                null))
+            .Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*Followers*company*");
+    }
+
+    [Fact]
+    public async Task CreatePost_FollowersPrivacy_WithCompanyPage_Succeeds()
+    {
+        var admin = await CreateUserAsync("Admin");
+        var page  = await CreateCompanyPageAsync(admin.Id);
+
+        var dto = await _sut.CreatePostAsync(
+            admin.Id,
+            new CreatePostRequest("Followers update", "Text", "Followers", null, page.Id),
+            null);
+
+        dto.Privacy.Should().Be("Followers");
+        dto.CompanyPageId.Should().Be(page.Id);
+    }
+
+    [Fact]
+    public async Task GetFeed_CompanyPostFollowersPrivacy_VisibleToFollower()
+    {
+        var admin     = await CreateUserAsync("Admin");
+        var follower  = await CreateUserAsync("Follower");
+        var page      = await CreateCompanyPageAsync(admin.Id);
+        await FollowCompanyAsync(page.Id, follower.Id);
+
+        _db.Posts.Add(new Post
+        {
+            Id            = Guid.NewGuid(),
+            AuthorUserId  = admin.Id,
+            Author        = admin,
+            CompanyPageId = page.Id,
+            CompanyPage   = page,
+            Content       = "Followers-only company post",
+            PostType      = PostType.Text,
+            Privacy       = PrivacyLevel.Followers,
+            CreatedAt     = DateTime.UtcNow,
+            UpdatedAt     = DateTime.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        var feed = await _sut.GetFeedAsync(follower.Id, 1, 20);
+
+        feed.Items.Should().Contain(i => i.Post != null && i.Post.Content == "Followers-only company post");
+    }
+
+    [Fact]
+    public async Task GetFeed_CompanyPostFollowersPrivacy_NotVisibleToNonFollower()
+    {
+        var admin      = await CreateUserAsync("Admin");
+        var stranger   = await CreateUserAsync("Stranger");
+        var page       = await CreateCompanyPageAsync(admin.Id);
+
+        _db.Posts.Add(new Post
+        {
+            Id            = Guid.NewGuid(),
+            AuthorUserId  = admin.Id,
+            Author        = admin,
+            CompanyPageId = page.Id,
+            CompanyPage   = page,
+            Content       = "Followers-only company post",
+            PostType      = PostType.Text,
+            Privacy       = PrivacyLevel.Followers,
+            CreatedAt     = DateTime.UtcNow,
+            UpdatedAt     = DateTime.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        var feed = await _sut.GetFeedAsync(stranger.Id, 1, 20);
+
+        feed.Items.Should().NotContain(i => i.Post != null && i.Post.Content == "Followers-only company post");
+    }
+
+    [Fact]
+    public async Task GetPost_CompanyPostFollowersPrivacy_VisibleToFollower()
+    {
+        var admin    = await CreateUserAsync("Admin");
+        var follower = await CreateUserAsync("Follower");
+        var page     = await CreateCompanyPageAsync(admin.Id);
+        await FollowCompanyAsync(page.Id, follower.Id);
+
+        var postId = Guid.NewGuid();
+        _db.Posts.Add(new Post
+        {
+            Id            = postId,
+            AuthorUserId  = admin.Id,
+            Author        = admin,
+            CompanyPageId = page.Id,
+            CompanyPage   = page,
+            Content       = "Followers only",
+            PostType      = PostType.Text,
+            Privacy       = PrivacyLevel.Followers,
+            CreatedAt     = DateTime.UtcNow,
+            UpdatedAt     = DateTime.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        var dto = await _sut.GetPostAsync(postId, follower.Id);
+
+        dto.Content.Should().Be("Followers only");
+    }
+
+    [Fact]
+    public async Task GetPost_CompanyPostFollowersPrivacy_VisibleToAdmin()
+    {
+        var admin = await CreateUserAsync("Admin");
+        var page  = await CreateCompanyPageAsync(admin.Id);
+
+        var postId = Guid.NewGuid();
+        _db.Posts.Add(new Post
+        {
+            Id            = postId,
+            AuthorUserId  = admin.Id,
+            Author        = admin,
+            CompanyPageId = page.Id,
+            CompanyPage   = page,
+            Content       = "Followers only",
+            PostType      = PostType.Text,
+            Privacy       = PrivacyLevel.Followers,
+            CreatedAt     = DateTime.UtcNow,
+            UpdatedAt     = DateTime.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        // The admin is also the author so EnforceReadAccess returns early — confirm it works
+        var dto = await _sut.GetPostAsync(postId, admin.Id);
+
+        dto.Content.Should().Be("Followers only");
+    }
+
+    [Fact]
+    public async Task GetPost_CompanyPostFollowersPrivacy_NotVisibleToStranger()
+    {
+        var admin    = await CreateUserAsync("Admin");
+        var stranger = await CreateUserAsync("Stranger");
+        var page     = await CreateCompanyPageAsync(admin.Id);
+
+        var postId = Guid.NewGuid();
+        _db.Posts.Add(new Post
+        {
+            Id            = postId,
+            AuthorUserId  = admin.Id,
+            Author        = admin,
+            CompanyPageId = page.Id,
+            CompanyPage   = page,
+            Content       = "Followers only",
+            PostType      = PostType.Text,
+            Privacy       = PrivacyLevel.Followers,
+            CreatedAt     = DateTime.UtcNow,
+            UpdatedAt     = DateTime.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        await _sut.Invoking(s => s.GetPostAsync(postId, stranger.Id))
+            .Should().ThrowAsync<UnauthorizedAccessException>();
+    }
 }

@@ -53,12 +53,14 @@ const privacyLabel: Record<string, string> = {
   Everyone: 'Public',
   Friends: 'Friends',
   OnlyMe: 'Only me',
+  Followers: 'Followers',
 }
 
 const privacyIcon: Record<string, string> = {
   Everyone: '🌐',
   Friends: '👥',
   OnlyMe: '🔒',
+  Followers: '📣',
 }
 
 function formatDate(iso: string) {

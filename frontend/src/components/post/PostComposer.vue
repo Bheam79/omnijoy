@@ -14,12 +14,12 @@ const companyMode = useCompanyModeStore()
 // ── State ─────────────────────────────────────────────────────────────────────
 
 type PostType = 'Text' | 'Image' | 'Video' | 'TextOnBackground'
-type Privacy = 'Everyone' | 'Friends' | 'OnlyMe'
+type Privacy = 'Everyone' | 'Friends' | 'OnlyMe' | 'Followers'
 
 const isOpen = ref(false)
 const postType = ref<PostType>('Text')
 const content = ref('')
-const privacy = ref<Privacy>('Friends')
+const privacy = ref<Privacy>(companyMode.isActive ? 'Everyone' : 'Friends')
 const background = ref('#1877f2')
 const mediaFiles = ref<File[]>([])
 const mediaPreviewUrls = ref<string[]>([])
@@ -123,12 +123,31 @@ const authorName = computed(() =>
 )
 const authorInitial = computed(() => authorName.value.charAt(0).toUpperCase())
 
+// Privacy options: company posts use Everyone / Followers; personal posts use Everyone / Friends / OnlyMe
+const privacyOptions = computed<{ value: Privacy; label: string }[]>(() =>
+  companyMode.isActive
+    ? [
+        { value: 'Everyone',   label: '🌐 Everyone' },
+        { value: 'Followers',  label: '📣 Followers' },
+      ]
+    : [
+        { value: 'Everyone',   label: '🌐 Everyone' },
+        { value: 'Friends',    label: '👥 Friends' },
+        { value: 'OnlyMe',     label: '🔒 Only me' },
+      ]
+)
+
 // ── Watchers ──────────────────────────────────────────────────────────────────
 
 watch(postType, () => {
   mediaFiles.value = []
   mediaPreviewUrls.value.forEach(URL.revokeObjectURL)
   mediaPreviewUrls.value = []
+})
+
+// When switching between personal / company mode reset privacy to the appropriate default
+watch(() => companyMode.isActive, (active) => {
+  privacy.value = active ? 'Everyone' : 'Friends'
 })
 
 // ── Methods ───────────────────────────────────────────────────────────────────
@@ -144,7 +163,7 @@ function close() {
 
 function reset() {
   content.value = ''
-  privacy.value = 'Friends'
+  privacy.value = companyMode.isActive ? 'Everyone' : 'Friends'
   postType.value = 'Text'
   background.value = '#1877f2'
   mediaFiles.value = []
@@ -274,9 +293,11 @@ defineExpose({ open, close })
                   v-model="privacy"
                   class="mt-0.5 text-xs bg-slate-700 border-0 rounded-md px-2 py-0.5 text-slate-300 focus:ring-2 focus:ring-blue-400 cursor-pointer"
                 >
-                  <option value="Everyone">🌐 Everyone</option>
-                  <option value="Friends">👥 Friends</option>
-                  <option value="OnlyMe">🔒 Only me</option>
+                  <option
+                    v-for="opt in privacyOptions"
+                    :key="opt.value"
+                    :value="opt.value"
+                  >{{ opt.label }}</option>
                 </select>
               </div>
             </div>

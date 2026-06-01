@@ -69,6 +69,10 @@ public class PostService : IPostService
         if (!Enum.TryParse<PrivacyLevel>(request.Privacy, ignoreCase: true, out var privacy))
             throw new ArgumentException($"Invalid Privacy: '{request.Privacy}'.");
 
+        // Followers privacy is only valid for company page posts
+        if (privacy == PrivacyLevel.Followers && !request.CompanyPageId.HasValue)
+            throw new ArgumentException("Followers privacy is only available for company page posts.");
+
         // Validate company page access if posting on behalf of a page
         if (request.CompanyPageId.HasValue)
         {
@@ -195,7 +199,10 @@ public class PostService : IPostService
                 p.AuthorUserId == userId ||
                 (friendIds.Contains(p.AuthorUserId) &&
                  (p.Privacy == PrivacyLevel.Everyone || p.Privacy == PrivacyLevel.Friends || p.Privacy == PrivacyLevel.FriendsOfFriends)) ||
-                (p.Privacy == PrivacyLevel.Everyone && !friendIds.Contains(p.AuthorUserId) && p.AuthorUserId != userId)
+                (p.Privacy == PrivacyLevel.Everyone && !friendIds.Contains(p.AuthorUserId) && p.AuthorUserId != userId) ||
+                // Company page posts with Followers privacy: visible to followers of that page
+                (p.CompanyPageId != null && p.Privacy == PrivacyLevel.Followers &&
+                 _db.CompanyPageFollows.Any(f => f.CompanyPageId == p.CompanyPageId && f.UserId == userId))
             );
 
         // ── Shared posts visible to this user ─────────────────────────────────
@@ -450,17 +457,49 @@ public class PostService : IPostService
             throw new UnauthorizedAccessException("You do not have permission to view this post.");
         }
 
-        bool canRead = post.Privacy switch
+        bool canRead;
+        switch (post.Privacy)
         {
-            PrivacyLevel.Everyone => true,
-            PrivacyLevel.OnlyMe   => false,
-            PrivacyLevel.Friends or PrivacyLevel.FriendsOfFriends => requesterId.HasValue &&
-                await _db.Friends.AnyAsync(f =>
-                    f.Status == FriendStatus.Accepted &&
-                    ((f.RequesterId == requesterId.Value && f.AddresseeId == post.AuthorUserId) ||
-                     (f.RequesterId == post.AuthorUserId && f.AddresseeId == requesterId.Value))),
-            _ => false
-        };
+            case PrivacyLevel.Everyone:
+                canRead = true;
+                break;
+
+            case PrivacyLevel.OnlyMe:
+                canRead = false;
+                break;
+
+            case PrivacyLevel.Friends:
+            case PrivacyLevel.FriendsOfFriends:
+                canRead = requesterId.HasValue &&
+                    await _db.Friends.AnyAsync(f =>
+                        f.Status == FriendStatus.Accepted &&
+                        ((f.RequesterId == requesterId.Value && f.AddresseeId == post.AuthorUserId) ||
+                         (f.RequesterId == post.AuthorUserId && f.AddresseeId == requesterId.Value)));
+                break;
+
+            case PrivacyLevel.Followers:
+                // Only meaningful on company page posts; non-company Followers posts
+                // are treated as private (should never occur due to CreatePostAsync guard).
+                if (post.CompanyPageId.HasValue && requesterId.HasValue)
+                {
+                    canRead =
+                        // Is a follower of the company page
+                        await _db.CompanyPageFollows.AnyAsync(f =>
+                            f.CompanyPageId == post.CompanyPageId.Value && f.UserId == requesterId.Value) ||
+                        // Or an admin of the company page
+                        await _db.CompanyPageAdmins.AnyAsync(a =>
+                            a.CompanyPageId == post.CompanyPageId.Value && a.UserId == requesterId.Value);
+                }
+                else
+                {
+                    canRead = false;
+                }
+                break;
+
+            default:
+                canRead = false;
+                break;
+        }
 
         if (!canRead)
             throw new UnauthorizedAccessException("You do not have permission to view this post.");
