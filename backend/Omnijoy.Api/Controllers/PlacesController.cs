@@ -51,6 +51,7 @@ public class PlacesController : ControllerBase
     /// configured, so dev environments without a key do not break.
     /// </returns>
     [HttpGet("autocomplete")]
+    [AllowAnonymous]
     public async Task<IActionResult> Autocomplete(
         [FromQuery] string? input,
         [FromQuery] string? types        = null,
@@ -79,6 +80,7 @@ public class PlacesController : ControllerBase
     /// or 404 when the API key is not configured or the place is not found.
     /// </returns>
     [HttpGet("details/{placeId}")]
+    [AllowAnonymous]
     public async Task<IActionResult> Details(
         [FromRoute] string  placeId,
         [FromQuery] string? sessiontoken = null)

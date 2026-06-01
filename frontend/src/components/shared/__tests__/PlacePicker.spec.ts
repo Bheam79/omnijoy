@@ -352,7 +352,7 @@ describe('PlacePicker', () => {
 
   // ── Error state ───────────────────────────────────────────────────────────
 
-  it('shows an error message when autocomplete call fails', async () => {
+  it('falls back to manual input when autocomplete call fails', async () => {
     mockPlacesService.autocomplete.mockRejectedValue(new Error('Network error'))
     const wrapper = mountPicker()
     const input = wrapper.find('[data-testid="place-input"]')
@@ -361,8 +361,10 @@ describe('PlacePicker', () => {
     vi.advanceTimersByTime(300)
     await flushPromises()
 
+    // Manual fallback is shown and an inline error is surfaced.
+    expect(wrapper.find('[data-testid="manual-input"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="error-message"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="error-message"]').text()).toContain('failed')
+    expect(wrapper.find('[data-testid="error-message"]').text()).toContain('unavailable')
   })
 
   it('shows an error message when getDetails call fails', async () => {

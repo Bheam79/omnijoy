@@ -135,7 +135,8 @@ function scheduleAutocomplete(input: string) {
         isOpen.value = results.length > 0
       }
     } catch {
-      errorMessage.value = 'Location search failed. Please try again.'
+      apiUnavailable.value = true
+      errorMessage.value = 'Location search unavailable.'
       suggestions.value = []
       isOpen.value = false
     } finally {
