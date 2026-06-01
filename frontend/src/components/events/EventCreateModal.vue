@@ -27,8 +27,11 @@ const submitting = ref(false)
 const formError  = ref<string | null>(null)
 
 const minDate = computed(() => {
+  // datetime-local inputs expect local time, not UTC.
+  // Subtracting the timezone offset converts the UTC ISO representation
+  // so the resulting slice is in the user's local wall-clock time.
   const now = new Date()
-  return now.toISOString().slice(0, 16)
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
 })
 
 function onCoverChange(e: Event) {

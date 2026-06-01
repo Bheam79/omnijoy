@@ -44,12 +44,23 @@ const editCoverPreview = ref<string | null>(null)
 const editSaving     = ref(false)
 const editError      = ref<string | null>(null)
 
+/**
+ * Converts a UTC ISO string (e.g. "2024-06-15T12:30:00Z") to the local-time
+ * string format required by <input type="datetime-local"> ("2024-06-15T14:30"
+ * for a CET user).  Without this conversion the input would show the UTC
+ * time, which is confusing and causes a double-offset when saving.
+ */
+function toDatetimeLocalValue(isoUtc: string): string {
+  const d = new Date(isoUtc)
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+}
+
 function openEdit() {
   if (!event.value) return
   editTitle.value    = event.value.title
   editDesc.value     = event.value.description ?? ''
-  editStartAt.value  = event.value.startAt.slice(0, 16)
-  editEndAt.value    = event.value.endAt ? event.value.endAt.slice(0, 16) : ''
+  editStartAt.value  = toDatetimeLocalValue(event.value.startAt)
+  editEndAt.value    = event.value.endAt ? toDatetimeLocalValue(event.value.endAt) : ''
   editLocation.value = event.value.location ?? ''
   editPrivacy.value  = event.value.privacy as typeof editPrivacy.value
   editCoverFile.value    = null

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Omnijoy.Core.Models;
 
 namespace Omnijoy.Infrastructure.Data;
@@ -43,5 +44,36 @@ public class OmnijoyDbContext : DbContext
 
         // Apply all IEntityTypeConfiguration<T> classes from this assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(OmnijoyDbContext).Assembly);
+
+        // ── UTC DateTime convention ───────────────────────────────────────────
+        // Pomelo returns DateTime values from MySQL with Kind = Unspecified.
+        // System.Text.Json then serialises them without a 'Z' suffix, so
+        // JavaScript's `new Date("2024-06-15T12:30:00")` treats the value as
+        // local time (e.g. CET) instead of UTC, shifting it by the UTC offset.
+        // This converter forces Kind = Utc on every read so the serialiser
+        // emits the 'Z', and JavaScript parses the time correctly.
+        // On writes it normalises any Local-kind values to UTC before storing.
+        var utcConverter = new ValueConverter<DateTime, DateTime>(
+            v => v.Kind == DateTimeKind.Utc ? v : v.ToUniversalTime(),
+            v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+        var utcNullableConverter = new ValueConverter<DateTime?, DateTime?>(
+            v => v.HasValue && v.Value.Kind != DateTimeKind.Utc
+                    ? v.Value.ToUniversalTime()
+                    : v,
+            v => v.HasValue
+                    ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc)
+                    : v);
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entityType.GetProperties())
+            {
+                if (property.ClrType == typeof(DateTime))
+                    property.SetValueConverter(utcConverter);
+                else if (property.ClrType == typeof(DateTime?))
+                    property.SetValueConverter(utcNullableConverter);
+            }
+        }
     }
 }
