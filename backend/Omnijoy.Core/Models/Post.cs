@@ -7,6 +7,8 @@ public class Post
     public Guid Id { get; set; }
     public Guid AuthorUserId { get; set; }
     public Guid? CompanyPageId { get; set; }
+    /// <summary>Set when the post belongs to an event wall; null for regular feed posts.</summary>
+    public Guid? EventId { get; set; }
     public string Content { get; set; } = string.Empty;
     public string? BackgroundImageUrl { get; set; }
     public PostType PostType { get; set; } = PostType.Text;
@@ -27,6 +29,7 @@ public class Post
     // Navigation properties
     public User Author { get; set; } = null!;
     public CompanyPage? CompanyPage { get; set; }
+    public Event? Event { get; set; }
     public ICollection<PostMedia> Media { get; set; } = [];
     public ICollection<PostReaction> Reactions { get; set; } = [];
 }

@@ -1,4 +1,5 @@
 using Omnijoy.Core.DTOs.Events;
+using Omnijoy.Core.DTOs.Posts;
 
 namespace Omnijoy.Core.Interfaces;
 
@@ -68,4 +69,18 @@ public interface IEventService
     /// the controller to push EventCreated SignalR events to the right connections.
     /// </summary>
     Task<List<Guid>> GetFriendIdsAsync(Guid userId);
+
+    /// <summary>
+    /// Returns paginated posts for a specific event wall.
+    /// Enforces read access before returning.
+    /// </summary>
+    Task<EventPostsPageResult> GetEventPostsAsync(Guid eventId, Guid? requesterId, int page, int pageSize);
+
+    /// <summary>
+    /// Creates a post on an event wall.
+    /// Enforces the event's <see cref="Models.Enums.EventPostingPolicy"/>:
+    ///   - OrganizerOnly → only the creator / company-page admin may post.
+    ///   - Everyone      → any authenticated user who can see the event may post.
+    /// </summary>
+    Task<PostDto> CreateEventPostAsync(Guid eventId, Guid authorId, CreateEventPostRequest request);
 }

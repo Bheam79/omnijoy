@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Omnijoy.Core.DTOs.Events;
+using Omnijoy.Core.DTOs.Posts;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models;
 using Omnijoy.Core.Models.Enums;
@@ -33,6 +34,11 @@ public class EventService : IEventService
         if (!Enum.TryParse<PrivacyLevel>(request.Privacy, ignoreCase: true, out var privacy))
             throw new ArgumentException($"Invalid Privacy: '{request.Privacy}'.");
 
+        var postingPolicy = EventPostingPolicy.OrganizerOnly;
+        if (request.PostingPolicy is not null &&
+            !Enum.TryParse<EventPostingPolicy>(request.PostingPolicy, ignoreCase: true, out postingPolicy))
+            throw new ArgumentException($"Invalid PostingPolicy: '{request.PostingPolicy}'.");
+
         if (string.IsNullOrWhiteSpace(request.Title))
             throw new ArgumentException("Title is required.");
 
@@ -61,17 +67,18 @@ public class EventService : IEventService
 
         var ev = new Event
         {
-            Id          = Guid.NewGuid(),
+            Id            = Guid.NewGuid(),
             CreatorUserId = userId,
             CompanyPageId = request.CompanyPageId,
-            Title       = request.Title.Trim(),
-            Description = request.Description?.Trim(),
-            StartAt     = request.StartAt,
-            EndAt       = request.EndAt,
-            Location    = request.Location?.Trim(),
+            Title         = request.Title.Trim(),
+            Description   = request.Description?.Trim(),
+            StartAt       = request.StartAt,
+            EndAt         = request.EndAt,
+            Location      = request.Location?.Trim(),
             CoverImageUrl = coverUrl,
-            Privacy     = privacy,
-            CreatedAt   = DateTime.UtcNow,
+            Privacy       = privacy,
+            PostingPolicy = postingPolicy,
+            CreatedAt     = DateTime.UtcNow,
         };
 
         _db.Events.Add(ev);
@@ -299,6 +306,13 @@ public class EventService : IEventService
             ev.Privacy = privacy;
         }
 
+        if (request.PostingPolicy is not null)
+        {
+            if (!Enum.TryParse<EventPostingPolicy>(request.PostingPolicy, ignoreCase: true, out var pp))
+                throw new ArgumentException($"Invalid PostingPolicy: '{request.PostingPolicy}'.");
+            ev.PostingPolicy = pp;
+        }
+
         if (cover is not null)
         {
             await using var processed = await _imageProcessor.ProcessImageAsync(cover.Content, ImageFolder.Cover);
@@ -406,6 +420,94 @@ public class EventService : IEventService
             .ToListAsync();
     }
 
+    // ── Event posts ───────────────────────────────────────────────────────────
+
+    public async Task<EventPostsPageResult> GetEventPostsAsync(
+        Guid eventId,
+        Guid? requesterId,
+        int page,
+        int pageSize)
+    {
+        if (page < 1) page = 1;
+        if (pageSize < 1 || pageSize > 50) pageSize = 20;
+
+        var ev = await _db.Events
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.Id == eventId)
+            ?? throw new KeyNotFoundException($"Event {eventId} not found.");
+
+        await EnforceReadAccessAsync(ev, requesterId);
+
+        var query = _db.Posts
+            .AsNoTracking()
+            .Where(p => p.EventId == eventId && p.DeletedAt == null)
+            .OrderByDescending(p => p.CreatedAt);
+
+        var total = await query.CountAsync();
+        var posts = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Include(p => p.Author)
+            .Include(p => p.Media)
+            .ToListAsync();
+
+        var items = posts.Select(MapPostToDto).ToArray();
+        return new EventPostsPageResult(items, page, pageSize, (page * pageSize) < total);
+    }
+
+    public async Task<PostDto> CreateEventPostAsync(
+        Guid eventId,
+        Guid authorId,
+        CreateEventPostRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Content))
+            throw new ArgumentException("Content is required.");
+
+        var ev = await _db.Events
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.Id == eventId)
+            ?? throw new KeyNotFoundException($"Event {eventId} not found.");
+
+        await EnforceReadAccessAsync(ev, authorId);
+
+        // Enforce posting policy
+        if (ev.PostingPolicy == EventPostingPolicy.OrganizerOnly)
+        {
+            bool isOrganizer = ev.CreatorUserId == authorId;
+            if (!isOrganizer && ev.CompanyPageId.HasValue)
+            {
+                isOrganizer = await _db.CompanyPageAdmins.AnyAsync(a =>
+                    a.CompanyPageId == ev.CompanyPageId.Value && a.UserId == authorId);
+            }
+            if (!isOrganizer)
+                throw new UnauthorizedAccessException("Only the event organiser may post on this event wall.");
+        }
+
+        var post = new Post
+        {
+            Id           = Guid.NewGuid(),
+            AuthorUserId = authorId,
+            EventId      = eventId,
+            Content      = request.Content.Trim(),
+            PostType     = PostType.Text,
+            Privacy      = PrivacyLevel.Everyone,
+            CreatedAt    = DateTime.UtcNow,
+            UpdatedAt    = DateTime.UtcNow,
+        };
+
+        _db.Posts.Add(post);
+        await _db.SaveChangesAsync();
+
+        // Reload with navigation props
+        var loaded = await _db.Posts
+            .AsNoTracking()
+            .Include(p => p.Author)
+            .Include(p => p.Media)
+            .FirstAsync(p => p.Id == post.Id);
+
+        return MapPostToDto(loaded);
+    }
+
     // ── Private helpers ───────────────────────────────────────────────────────
 
     private async Task<EventDto?> LoadEventDtoAsync(Guid eventId, Guid? requesterId)
@@ -451,6 +553,32 @@ public class EventService : IEventService
             throw new UnauthorizedAccessException("You do not have permission to view this event.");
     }
 
+    private static PostDto MapPostToDto(Post post)
+    {
+        var author = new PostAuthorDto(
+            post.Author.Id,
+            post.Author.DisplayName,
+            post.Author.AvatarUrl);
+
+        var media = post.Media
+            .OrderBy(m => m.Order)
+            .Select(m => new PostMediaItemDto(m.Id, m.MediaType.ToString(), m.Url, m.ThumbnailUrl, m.Order))
+            .ToArray();
+
+        return new PostDto(
+            Id:                 post.Id,
+            Author:             author,
+            CompanyPageId:      post.CompanyPageId,
+            Content:            post.Content,
+            BackgroundImageUrl: post.BackgroundImageUrl,
+            PostType:           post.PostType.ToString(),
+            Privacy:            post.Privacy.ToString(),
+            Media:              media,
+            LinkPreview:        null,
+            CreatedAt:          post.CreatedAt,
+            UpdatedAt:          post.UpdatedAt);
+    }
+
     private static EventDto MapToDto(Event ev, string? myRsvp)
     {
         var creator = new EventCreatorDto(
@@ -470,17 +598,18 @@ public class EventService : IEventService
             CompanyPageName:     ev.CompanyPage?.Name,
             CompanyPageLogoUrl:  ev.CompanyPage?.LogoUrl,
             Title:               ev.Title,
-            Description:   ev.Description,
-            StartAt:       ev.StartAt,
-            EndAt:         ev.EndAt,
-            Location:      ev.Location,
-            CoverImageUrl: ev.CoverImageUrl,
-            Privacy:       ev.Privacy.ToString(),
-            MyRsvp:        myRsvp,
-            GoingCount:    going,
-            MaybeCount:    maybe,
-            NotGoingCount: notGoing,
-            CreatedAt:     ev.CreatedAt
+            Description:         ev.Description,
+            StartAt:             ev.StartAt,
+            EndAt:               ev.EndAt,
+            Location:            ev.Location,
+            CoverImageUrl:       ev.CoverImageUrl,
+            Privacy:             ev.Privacy.ToString(),
+            PostingPolicy:       ev.PostingPolicy.ToString(),
+            MyRsvp:              myRsvp,
+            GoingCount:          going,
+            MaybeCount:          maybe,
+            NotGoingCount:       notGoing,
+            CreatedAt:           ev.CreatedAt
         );
     }
 }

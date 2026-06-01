@@ -14,10 +14,12 @@ public class Event
     public string? Location { get; set; }
     public string? CoverImageUrl { get; set; }
     public PrivacyLevel Privacy { get; set; } = PrivacyLevel.Everyone;
+    public EventPostingPolicy PostingPolicy { get; set; } = EventPostingPolicy.OrganizerOnly;
     public DateTime CreatedAt { get; set; }
 
     // Navigation properties
     public User CreatorUser { get; set; } = null!;
     public CompanyPage? CompanyPage { get; set; }
     public ICollection<EventAttendee> Attendees { get; set; } = [];
+    public ICollection<Post> Posts { get; set; } = [];
 }

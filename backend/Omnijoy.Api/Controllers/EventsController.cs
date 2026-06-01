@@ -78,6 +78,7 @@ public class EventsController : ControllerBase
                 EndAt:         input.EndAt,
                 Location:      input.Location,
                 Privacy:       input.Privacy ?? "Everyone",
+                PostingPolicy: input.PostingPolicy,
                 CompanyPageId: input.CompanyPageId
             );
 
@@ -209,12 +210,13 @@ public class EventsController : ControllerBase
             }
 
             var request = new UpdateEventRequest(
-                Title:       input.Title,
-                Description: input.Description,
-                StartAt:     input.StartAt,
-                EndAt:       input.EndAt,
-                Location:    input.Location,
-                Privacy:     input.Privacy
+                Title:         input.Title,
+                Description:   input.Description,
+                StartAt:       input.StartAt,
+                EndAt:         input.EndAt,
+                Location:      input.Location,
+                Privacy:       input.Privacy,
+                PostingPolicy: input.PostingPolicy
             );
 
             var ev = await _events.UpdateEventAsync(id, userId, request, cover);
@@ -300,6 +302,57 @@ public class EventsController : ControllerBase
             return StatusCode(403, new { error = ex.Message });
         }
     }
+
+    // ── GET /api/events/:id/posts ─────────────────────────────────────────────
+
+    [HttpGet("{id:guid}/posts")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetEventPosts(
+        Guid id,
+        [FromQuery] int page     = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        try
+        {
+            var result = await _events.GetEventPostsAsync(id, CurrentUserId, page, pageSize);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
+        }
+    }
+
+    // ── POST /api/events/:id/posts ────────────────────────────────────────────
+
+    [HttpPost("{id:guid}/posts")]
+    public async Task<IActionResult> CreateEventPost(Guid id, [FromBody] CreateEventPostRequest request)
+    {
+        if (CurrentUserId is not { } userId)
+            return Unauthorized(new { error = "Not authenticated." });
+
+        try
+        {
+            var post = await _events.CreateEventPostAsync(id, userId, request);
+            return Created($"/api/posts/{post.Id}", post);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
 }
 
 // ── Form-data input models ────────────────────────────────────────────────────
@@ -312,17 +365,19 @@ public class CreateEventFormInput
     public DateTime?  EndAt         { get; set; }
     public string?    Location      { get; set; }
     public string?    Privacy       { get; set; }
+    public string?    PostingPolicy { get; set; }
     public Guid?      CompanyPageId { get; set; }
     public IFormFile? CoverImage    { get; set; }
 }
 
 public class UpdateEventFormInput
 {
-    public string?    Title       { get; set; }
-    public string?    Description { get; set; }
-    public DateTime?  StartAt     { get; set; }
-    public DateTime?  EndAt       { get; set; }
-    public string?    Location    { get; set; }
-    public string?    Privacy     { get; set; }
-    public IFormFile? CoverImage  { get; set; }
+    public string?    Title         { get; set; }
+    public string?    Description   { get; set; }
+    public DateTime?  StartAt       { get; set; }
+    public DateTime?  EndAt         { get; set; }
+    public string?    Location      { get; set; }
+    public string?    Privacy       { get; set; }
+    public string?    PostingPolicy { get; set; }
+    public IFormFile? CoverImage    { get; set; }
 }

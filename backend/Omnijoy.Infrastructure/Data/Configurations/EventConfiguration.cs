@@ -30,6 +30,11 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
                .HasConversion<string>()
                .HasMaxLength(32);
 
+        builder.Property(e => e.PostingPolicy)
+               .HasConversion<string>()
+               .HasMaxLength(32)
+               .HasDefaultValue(Omnijoy.Core.Models.Enums.EventPostingPolicy.OrganizerOnly);
+
         builder.Property(e => e.CreatedAt)
                .IsRequired();
 

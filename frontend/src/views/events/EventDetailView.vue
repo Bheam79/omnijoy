@@ -5,6 +5,7 @@ import { eventService, type EventDto, type EventAttendeesResult, type RsvpStatus
 import { companyPageService, type CompanyPageDto } from '@/services/companyPageService'
 import { friendService, type FriendDto } from '@/services/friendService'
 import { useAuthStore } from '@/stores/auth'
+import type { PostDto } from '@/services/postService'
 
 const route  = useRoute()
 const router = useRouter()
@@ -32,17 +33,34 @@ const isCompanyOwner = computed(() =>
 const isOwner = computed(() => isPersonalCreator.value || isCompanyOwner.value)
 
 // ── Edit state ────────────────────────────────────────────────────────────────
-const showEditForm   = ref(false)
-const editTitle      = ref('')
-const editDesc       = ref('')
-const editStartAt    = ref('')
-const editEndAt      = ref('')
-const editLocation   = ref('')
-const editPrivacy    = ref<'Everyone' | 'FriendsOfFriends' | 'Friends' | 'OnlyMe'>('Everyone')
-const editCoverFile  = ref<File | null>(null)
-const editCoverPreview = ref<string | null>(null)
-const editSaving     = ref(false)
-const editError      = ref<string | null>(null)
+const showEditForm      = ref(false)
+const editTitle         = ref('')
+const editDesc          = ref('')
+const editStartAt       = ref('')
+const editEndAt         = ref('')
+const editLocation      = ref('')
+const editPrivacy       = ref<'Everyone' | 'FriendsOfFriends' | 'Friends' | 'OnlyMe'>('Everyone')
+const editPostingPolicy = ref<'OrganizerOnly' | 'Everyone'>('OrganizerOnly')
+const editCoverFile     = ref<File | null>(null)
+const editCoverPreview  = ref<string | null>(null)
+const editSaving        = ref(false)
+const editError         = ref<string | null>(null)
+
+// ── Event posts ───────────────────────────────────────────────────────────────
+const eventPosts     = ref<PostDto[]>([])
+const postsLoading   = ref(false)
+const postsHasMore   = ref(false)
+const postsPage      = ref(1)
+const newPostContent = ref('')
+const postSubmitting = ref(false)
+const postError      = ref<string | null>(null)
+
+// Can the current user post on this event wall?
+const canPost = computed(() => {
+  if (!auth.isAuthenticated || !event.value) return false
+  if (event.value.postingPolicy === 'Everyone') return true
+  return isOwner.value
+})
 
 /**
  * Converts a UTC ISO string (e.g. "2024-06-15T12:30:00Z") to the local-time
@@ -57,16 +75,17 @@ function toDatetimeLocalValue(isoUtc: string): string {
 
 function openEdit() {
   if (!event.value) return
-  editTitle.value    = event.value.title
-  editDesc.value     = event.value.description ?? ''
-  editStartAt.value  = toDatetimeLocalValue(event.value.startAt)
-  editEndAt.value    = event.value.endAt ? toDatetimeLocalValue(event.value.endAt) : ''
-  editLocation.value = event.value.location ?? ''
-  editPrivacy.value  = event.value.privacy as typeof editPrivacy.value
-  editCoverFile.value    = null
-  editCoverPreview.value = null
-  editError.value    = null
-  showEditForm.value = true
+  editTitle.value         = event.value.title
+  editDesc.value          = event.value.description ?? ''
+  editStartAt.value       = toDatetimeLocalValue(event.value.startAt)
+  editEndAt.value         = event.value.endAt ? toDatetimeLocalValue(event.value.endAt) : ''
+  editLocation.value      = event.value.location ?? ''
+  editPrivacy.value       = event.value.privacy as typeof editPrivacy.value
+  editPostingPolicy.value = (event.value.postingPolicy ?? 'OrganizerOnly') as typeof editPostingPolicy.value
+  editCoverFile.value     = null
+  editCoverPreview.value  = null
+  editError.value         = null
+  showEditForm.value      = true
 }
 
 function onEditCoverChange(e: Event) {
@@ -86,13 +105,14 @@ async function saveEdit() {
   editSaving.value = true
   try {
     event.value = await eventService.updateEvent(event.value.id, {
-      title:       editTitle.value.trim(),
-      description: editDesc.value.trim() || undefined,
-      startAt:     new Date(editStartAt.value).toISOString(),
-      endAt:       editEndAt.value ? new Date(editEndAt.value).toISOString() : undefined,
-      location:    editLocation.value.trim() || undefined,
-      privacy:     editPrivacy.value,
-      coverImage:  editCoverFile.value ?? undefined,
+      title:         editTitle.value.trim(),
+      description:   editDesc.value.trim() || undefined,
+      startAt:       new Date(editStartAt.value).toISOString(),
+      endAt:         editEndAt.value ? new Date(editEndAt.value).toISOString() : undefined,
+      location:      editLocation.value.trim() || undefined,
+      privacy:       editPrivacy.value,
+      postingPolicy: editPostingPolicy.value,
+      coverImage:    editCoverFile.value ?? undefined,
     })
     showEditForm.value = false
   } catch (e: unknown) {
@@ -270,7 +290,53 @@ async function handleDelete() {
   }
 }
 
-onMounted(fetchEvent)
+async function fetchEventPosts() {
+  if (!event.value) return
+  postsLoading.value = true
+  try {
+    const result = await eventService.getEventPosts(event.value.id, postsPage.value)
+    if (postsPage.value === 1) {
+      eventPosts.value = result.items
+    } else {
+      eventPosts.value.push(...result.items)
+    }
+    postsHasMore.value = result.hasMore
+  } catch (e: unknown) {
+    console.error('Failed to load event posts', e)
+  } finally {
+    postsLoading.value = false
+  }
+}
+
+async function loadMorePosts() {
+  postsPage.value++
+  await fetchEventPosts()
+}
+
+async function submitPost() {
+  if (!event.value || !newPostContent.value.trim()) return
+  postError.value = null
+  postSubmitting.value = true
+  try {
+    const post = await eventService.createEventPost(event.value.id, newPostContent.value.trim())
+    eventPosts.value.unshift(post)
+    newPostContent.value = ''
+  } catch (e: unknown) {
+    if (typeof e === 'object' && e !== null) {
+      const axiosError = e as { response?: { data?: { error?: string } }; message?: string }
+      postError.value = axiosError.response?.data?.error ?? axiosError.message ?? 'Failed to post.'
+    } else {
+      postError.value = 'Failed to post.'
+    }
+  } finally {
+    postSubmitting.value = false
+  }
+}
+
+onMounted(async () => {
+  await fetchEvent()
+  await fetchEventPosts()
+})
 </script>
 
 <template>
@@ -439,8 +505,8 @@ onMounted(fetchEvent)
         </div>
 
         <!-- RSVP section (upcoming events) -->
-        <div v-if="isUpcoming" class="bg-indigo-900/50 rounded-xl p-4">
-          <h2 class="text-sm font-semibold text-indigo-300 mb-3">Will you attend?</h2>
+        <div v-if="isUpcoming" class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+          <h2 class="text-sm font-semibold text-slate-100 mb-3">Will you attend?</h2>
           <div class="flex gap-2 flex-wrap">
             <button
               v-for="opt in rsvpOptions"
@@ -451,15 +517,15 @@ onMounted(fetchEvent)
                 ? opt.value === 'Going'    ? 'bg-green-600 text-white border-green-600'
                 : opt.value === 'Maybe'    ? 'bg-yellow-500 text-white border-yellow-500'
                 :                           'bg-red-500 text-white border-red-500'
-                : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-indigo-300 hover:bg-indigo-900/50'"
+                : 'bg-slate-700 text-slate-200 border-slate-600 hover:border-indigo-400 hover:bg-slate-600'"
               :disabled="rsvpLoading"
               @click="handleRsvp(opt.value)"
             >
               {{ opt.icon }} {{ opt.label }}
             </button>
           </div>
-          <p v-if="event.myRsvp" class="text-xs text-indigo-300 mt-2">
-            You responded: <strong>{{ event.myRsvp }}</strong>
+          <p v-if="event.myRsvp" class="text-xs text-slate-400 mt-2">
+            You responded: <strong class="text-slate-200">{{ event.myRsvp }}</strong>
           </p>
         </div>
 
@@ -567,6 +633,112 @@ onMounted(fetchEvent)
           </div>
         </div>
 
+        <!-- ── Event Wall Posts ──────────────────────────────────────────── -->
+        <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-semibold text-slate-100">
+              Event Wall
+              <span class="ml-1 text-xs font-normal text-gray-500">
+                ({{ event.postingPolicy === 'Everyone' ? 'anyone can post' : 'organizer only' }})
+              </span>
+            </h2>
+          </div>
+
+          <!-- Post composer (shown when user can post) -->
+          <div v-if="canPost" class="space-y-2">
+            <textarea
+              v-model="newPostContent"
+              rows="3"
+              placeholder="Write something about this event…"
+              class="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+            />
+            <div v-if="postError" class="text-xs text-red-400 bg-red-950 rounded px-2 py-1">{{ postError }}</div>
+            <div class="flex justify-end">
+              <button
+                type="button"
+                :disabled="postSubmitting || !newPostContent.trim()"
+                class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition"
+                @click="submitPost"
+              >
+                <span v-if="postSubmitting">Posting…</span>
+                <span v-else>Post</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- No posts yet -->
+          <p
+            v-if="!postsLoading && eventPosts.length === 0"
+            class="text-sm text-gray-500 italic"
+          >
+            No posts yet.
+            <span v-if="canPost">Be the first to post!</span>
+          </p>
+
+          <!-- Post list -->
+          <div v-if="eventPosts.length > 0" class="space-y-3">
+            <div
+              v-for="post in eventPosts"
+              :key="post.id"
+              class="flex gap-3 p-3 rounded-lg bg-slate-900/60"
+            >
+              <!-- Avatar -->
+              <RouterLink :to="`/profile/${post.author.id}`" class="shrink-0">
+                <img
+                  v-if="post.author.avatarUrl"
+                  :src="post.author.avatarUrl"
+                  :alt="post.author.displayName"
+                  class="w-8 h-8 rounded-full object-cover"
+                />
+                <div
+                  v-else
+                  class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold"
+                >
+                  {{ post.author.displayName.charAt(0).toUpperCase() }}
+                </div>
+              </RouterLink>
+              <!-- Content -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-baseline gap-2 mb-0.5">
+                  <RouterLink
+                    :to="`/profile/${post.author.id}`"
+                    class="text-sm font-semibold text-slate-200 hover:text-indigo-400 transition"
+                  >
+                    {{ post.author.displayName }}
+                  </RouterLink>
+                  <span class="text-xs text-gray-600">
+                    {{ new Date(post.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
+                  </span>
+                </div>
+                <p class="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{{ post.content }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Load more -->
+          <div v-if="postsHasMore" class="text-center">
+            <button
+              type="button"
+              :disabled="postsLoading"
+              class="text-sm text-indigo-400 hover:text-indigo-300 transition disabled:opacity-50"
+              @click="loadMorePosts"
+            >
+              {{ postsLoading ? 'Loading…' : 'Load more posts' }}
+            </button>
+          </div>
+
+          <!-- Loading skeleton -->
+          <div v-if="postsLoading && eventPosts.length === 0" class="space-y-3">
+            <div v-for="n in 2" :key="n" class="flex gap-3 animate-pulse">
+              <div class="w-8 h-8 rounded-full bg-slate-700 shrink-0" />
+              <div class="flex-1 space-y-1.5">
+                <div class="h-3 bg-slate-700 rounded w-1/4" />
+                <div class="h-3 bg-slate-700 rounded w-3/4" />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Inline edit form (triggered from sidebar) -->
         <div v-if="showEditForm && isOwner" class="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-4">
           <div class="flex items-center justify-between">
@@ -646,6 +818,17 @@ onMounted(fetchEvent)
               <option value="FriendsOfFriends">👥 Friends of friends</option>
               <option value="Friends">👥 Friends only</option>
               <option value="OnlyMe">🔒 Only me</option>
+            </select>
+          </div>
+
+          <!-- Posting policy -->
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Who can post on this event?</label>
+            <select v-model="editPostingPolicy"
+              class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="OrganizerOnly">✍️ Organizer only</option>
+              <option value="Everyone">👥 Anyone who can see it</option>
             </select>
           </div>
 

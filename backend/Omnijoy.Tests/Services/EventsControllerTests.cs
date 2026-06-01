@@ -49,6 +49,7 @@ public class EventsControllerTests
         Location:            "Online",
         CoverImageUrl:       null,
         Privacy:             "Everyone",
+        PostingPolicy:       "OrganizerOnly",
         MyRsvp:              null,
         GoingCount:          0,
         MaybeCount:          0,

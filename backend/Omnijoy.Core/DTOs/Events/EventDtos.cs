@@ -23,6 +23,8 @@ public record EventDto(
     string? Location,
     string? CoverImageUrl,
     string Privacy,
+    /// <summary>"OrganizerOnly" | "Everyone"</summary>
+    string PostingPolicy,
     /// <summary>Current user's RSVP status; null if not authenticated or no RSVP recorded.</summary>
     string? MyRsvp,
     int GoingCount,
@@ -45,6 +47,8 @@ public record CreateEventRequest(
     string? Location,
     /// <summary>"Everyone" | "FriendsOfFriends" | "Friends" | "OnlyMe"</summary>
     string Privacy,
+    /// <summary>"OrganizerOnly" | "Everyone"</summary>
+    string? PostingPolicy,
     Guid? CompanyPageId
 );
 
@@ -54,7 +58,20 @@ public record UpdateEventRequest(
     DateTime? StartAt,
     DateTime? EndAt,
     string? Location,
-    string? Privacy
+    string? Privacy,
+    /// <summary>"OrganizerOnly" | "Everyone"</summary>
+    string? PostingPolicy
+);
+
+// ── Event post ────────────────────────────────────────────────────────────────
+
+public record CreateEventPostRequest(string Content);
+
+public record EventPostsPageResult(
+    Omnijoy.Core.DTOs.Posts.PostDto[] Items,
+    int Page,
+    int PageSize,
+    bool HasMore
 );
 
 // ── RSVP ──────────────────────────────────────────────────────────────────────

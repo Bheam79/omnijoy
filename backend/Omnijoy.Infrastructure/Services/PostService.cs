@@ -188,6 +188,7 @@ public class PostService : IPostService
         var postQuery = _db.Posts
             .AsNoTracking()
             .Where(p => p.DeletedAt == null)
+            .Where(p => p.EventId == null)   // exclude event-wall posts from the main feed
             .Where(p => !blockedIds.Contains(p.AuthorUserId))
             .Where(p => !inactiveSet.Contains(p.AuthorUserId))
             .Where(p =>
@@ -302,6 +303,7 @@ public class PostService : IPostService
         var topPostIds = await _db.Posts
             .AsNoTracking()
             .Where(p => p.DeletedAt == null
+                     && p.EventId == null      // exclude event-wall posts from trending
                      && p.Privacy == PrivacyLevel.Everyone
                      && p.CreatedAt >= since
                      && p.Author.IsActive)

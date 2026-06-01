@@ -56,6 +56,7 @@ public class EventsControllerExtendedTests
         Location:            null,
         CoverImageUrl:       null,
         Privacy:             "Everyone",
+        PostingPolicy:       "OrganizerOnly",
         MyRsvp:              null,
         GoingCount:          0,
         MaybeCount:          0,

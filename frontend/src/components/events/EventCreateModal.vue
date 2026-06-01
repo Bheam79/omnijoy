@@ -14,14 +14,15 @@ const companyMode = useCompanyModeStore()
 
 // ── Form state ────────────────────────────────────────────────────────────────
 
-const title       = ref('')
-const description = ref('')
-const startAt     = ref('')
-const endAt       = ref('')
-const location    = ref('')
-const privacy     = ref<'Everyone' | 'FriendsOfFriends' | 'Friends' | 'OnlyMe'>('Everyone')
-const coverFile   = ref<File | null>(null)
-const coverPreview = ref<string | null>(null)
+const title         = ref('')
+const description   = ref('')
+const startAt       = ref('')
+const endAt         = ref('')
+const location      = ref('')
+const privacy       = ref<'Everyone' | 'FriendsOfFriends' | 'Friends' | 'OnlyMe'>('Everyone')
+const postingPolicy = ref<'OrganizerOnly' | 'Everyone'>('OrganizerOnly')
+const coverFile     = ref<File | null>(null)
+const coverPreview  = ref<string | null>(null)
 
 const submitting = ref(false)
 const formError  = ref<string | null>(null)
@@ -72,6 +73,7 @@ async function handleSubmit() {
       endAt:         endAt.value ? new Date(endAt.value).toISOString() : undefined,
       location:      location.value.trim() || undefined,
       privacy:       privacy.value,
+      postingPolicy: postingPolicy.value,
       // Organizer is determined by company mode — no dropdown needed.
       companyPageId: companyMode.activeCompany?.id ?? undefined,
       coverImage:    coverFile.value ?? undefined,
@@ -221,6 +223,18 @@ async function handleSubmit() {
               <option value="FriendsOfFriends">👥 Friends of friends</option>
               <option value="Friends">👥 Friends only</option>
               <option value="OnlyMe">🔒 Only me</option>
+            </select>
+          </div>
+
+          <!-- Posting policy -->
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Who can post on this event?</label>
+            <select
+              v-model="postingPolicy"
+              class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-slate-800"
+            >
+              <option value="OrganizerOnly">✍️ Organizer only</option>
+              <option value="Everyone">👥 Anyone who can see it</option>
             </select>
           </div>
 

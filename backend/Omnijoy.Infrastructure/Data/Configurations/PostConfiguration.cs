@@ -52,6 +52,7 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
         // Indexes for common queries
         builder.HasIndex(p => p.AuthorUserId);
         builder.HasIndex(p => p.CompanyPageId);
+        builder.HasIndex(p => p.EventId);
         builder.HasIndex(p => new { p.AuthorUserId, p.CreatedAt });
         builder.HasIndex(p => p.DeletedAt);
 
@@ -64,5 +65,10 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
                .WithMany(cp => cp.Posts)
                .HasForeignKey(p => p.CompanyPageId)
                .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(p => p.Event)
+               .WithMany(e => e.Posts)
+               .HasForeignKey(p => p.EventId)
+               .OnDelete(DeleteBehavior.Cascade);
     }
 }

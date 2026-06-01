@@ -74,6 +74,7 @@ public class EventServiceTests : IDisposable
         EndAt:         null,
         Location:      "Online",
         Privacy:       privacy,
+        PostingPolicy: null,
         CompanyPageId: null
     );
 
@@ -121,7 +122,7 @@ public class EventServiceTests : IDisposable
         var user = await CreateUserAsync();
 
         await _sut.Invoking(s => s.CreateEventAsync(user.Id,
-            new CreateEventRequest("Title", null, DateTime.UtcNow.AddDays(1), null, null, "BadPrivacy", null), null))
+            new CreateEventRequest("Title", null, DateTime.UtcNow.AddDays(1), null, null, "BadPrivacy", null, null), null))
             .Should().ThrowAsync<ArgumentException>()
             .WithMessage("*Privacy*");
     }
@@ -132,7 +133,7 @@ public class EventServiceTests : IDisposable
         var user = await CreateUserAsync();
 
         await _sut.Invoking(s => s.CreateEventAsync(user.Id,
-            new CreateEventRequest("   ", null, DateTime.UtcNow.AddDays(1), null, null, "Everyone", null), null))
+            new CreateEventRequest("   ", null, DateTime.UtcNow.AddDays(1), null, null, "Everyone", null, null), null))
             .Should().ThrowAsync<ArgumentException>()
             .WithMessage("*Title*");
     }
@@ -165,6 +166,7 @@ public class EventServiceTests : IDisposable
             EndAt:         null,
             Location:      "HQ",
             Privacy:       "Everyone",
+            PostingPolicy: null,
             CompanyPageId: page.Id
         );
 
@@ -188,6 +190,7 @@ public class EventServiceTests : IDisposable
             EndAt:         null,
             Location:      null,
             Privacy:       "Everyone",
+            PostingPolicy: null,
             CompanyPageId: page.Id
         );
 
@@ -208,6 +211,7 @@ public class EventServiceTests : IDisposable
             EndAt:         null,
             Location:      null,
             Privacy:       "Everyone",
+            PostingPolicy: null,
             CompanyPageId: Guid.NewGuid()
         );
 
@@ -279,7 +283,7 @@ public class EventServiceTests : IDisposable
 
         var updated = await _sut.UpdateEventAsync(
             created.Id, creator.Id,
-            new UpdateEventRequest("New Title", "New desc", null, null, "New Location", null),
+            new UpdateEventRequest("New Title", "New desc", null, null, "New Location", null, null),
             null);
 
         updated.Title.Should().Be("New Title");
@@ -294,7 +298,7 @@ public class EventServiceTests : IDisposable
         var created = await _sut.CreateEventAsync(creator.Id, DefaultRequest(), null);
 
         await _sut.Invoking(s => s.UpdateEventAsync(
-                created.Id, other.Id, new UpdateEventRequest("Hack", null, null, null, null, null), null))
+                created.Id, other.Id, new UpdateEventRequest("Hack", null, null, null, null, null, null), null))
             .Should().ThrowAsync<UnauthorizedAccessException>();
     }
 

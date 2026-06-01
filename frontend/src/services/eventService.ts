@@ -1,4 +1,5 @@
 import api from './api'
+import type { PostDto } from './postService'
 
 // ── DTOs (mirrors backend EventDtos.cs) ──────────────────────────────────────
 
@@ -28,11 +29,19 @@ export interface EventDto {
   location?: string
   coverImageUrl?: string
   privacy: 'Everyone' | 'FriendsOfFriends' | 'Friends' | 'OnlyMe'
+  postingPolicy: 'OrganizerOnly' | 'Everyone'
   myRsvp?: 'Going' | 'Maybe' | 'NotGoing'
   goingCount: number
   maybeCount: number
   notGoingCount: number
   createdAt: string
+}
+
+export interface EventPostsPageResult {
+  items: PostDto[]
+  page: number
+  pageSize: number
+  hasMore: boolean
 }
 
 export interface EventsPageResult {
@@ -55,6 +64,7 @@ export interface CreateEventPayload {
   endAt?: string
   location?: string
   privacy: 'Everyone' | 'FriendsOfFriends' | 'Friends' | 'OnlyMe'
+  postingPolicy?: 'OrganizerOnly' | 'Everyone'
   companyPageId?: string
   coverImage?: File
 }
@@ -66,6 +76,7 @@ export interface UpdateEventPayload {
   endAt?: string
   location?: string
   privacy?: string
+  postingPolicy?: string
   coverImage?: File
 }
 
@@ -82,6 +93,7 @@ export const eventService = {
     if (payload.endAt)         form.append('endAt', payload.endAt)
     if (payload.location)      form.append('location', payload.location)
     form.append('privacy',     payload.privacy)
+    if (payload.postingPolicy) form.append('postingPolicy', payload.postingPolicy)
     if (payload.companyPageId) form.append('companyPageId', payload.companyPageId)
     if (payload.coverImage)    form.append('coverImage', payload.coverImage)
 
@@ -136,17 +148,30 @@ export const eventService = {
 
   async updateEvent(id: string, payload: UpdateEventPayload): Promise<EventDto> {
     const form = new FormData()
-    if (payload.title       !== undefined) form.append('title',       payload.title)
-    if (payload.description !== undefined) form.append('description', payload.description ?? '')
-    if (payload.startAt     !== undefined) form.append('startAt',     payload.startAt)
-    if (payload.endAt       !== undefined) form.append('endAt',       payload.endAt)
-    if (payload.location    !== undefined) form.append('location',    payload.location ?? '')
-    if (payload.privacy     !== undefined) form.append('privacy',     payload.privacy)
-    if (payload.coverImage)               form.append('coverImage',   payload.coverImage)
+    if (payload.title          !== undefined) form.append('title',         payload.title)
+    if (payload.description    !== undefined) form.append('description',   payload.description ?? '')
+    if (payload.startAt        !== undefined) form.append('startAt',       payload.startAt)
+    if (payload.endAt          !== undefined) form.append('endAt',         payload.endAt)
+    if (payload.location       !== undefined) form.append('location',      payload.location ?? '')
+    if (payload.privacy        !== undefined) form.append('privacy',       payload.privacy)
+    if (payload.postingPolicy  !== undefined) form.append('postingPolicy', payload.postingPolicy)
+    if (payload.coverImage)                  form.append('coverImage',    payload.coverImage)
 
     const { data } = await api.put<EventDto>(`/api/events/${id}`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
+    return data
+  },
+
+  async getEventPosts(id: string, page = 1, pageSize = 20): Promise<EventPostsPageResult> {
+    const { data } = await api.get<EventPostsPageResult>(`/api/events/${id}/posts`, {
+      params: { page, pageSize },
+    })
+    return data
+  },
+
+  async createEventPost(id: string, content: string): Promise<PostDto> {
+    const { data } = await api.post<PostDto>(`/api/events/${id}/posts`, { content })
     return data
   },
 

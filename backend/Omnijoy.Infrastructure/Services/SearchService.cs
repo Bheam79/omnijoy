@@ -143,6 +143,7 @@ public class SearchService : ISearchService
         var rows = await _db.Posts
             .AsNoTracking()
             .Where(p => p.DeletedAt == null)
+            .Where(p => p.EventId == null)   // exclude event-wall posts from search
             .Where(p => p.Content.ToLower().Contains(ql))
             .Where(p =>
                 p.Privacy == PrivacyLevel.Everyone ||
