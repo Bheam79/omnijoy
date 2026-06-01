@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { eventService, type EventDto, type EventAttendeesResult, type RsvpStatus } from '@/services/eventService'
 import { companyPageService, type CompanyPageDto } from '@/services/companyPageService'
@@ -93,15 +93,19 @@ async function fetchEvent() {
     event.value = await eventService.getEvent(id)
     attendees.value = await eventService.getAttendees(id)
 
-    // Register event with company mode store so the CompanySidebar can show it
-    companyMode.setActiveEvent(event.value)
+    // Register event with company mode store so Sidebar / CompanySidebar can
+    // show event-contextual navigation.  Pass the ownership flag so Sidebar
+    // knows whether to render the management section.
+    companyMode.setActiveEvent(event.value, isPersonalCreator.value || isCompanyOwner.value)
 
     // Load company page if relevant, to check the current user's role
     if (event.value.companyPageId && auth.isAuthenticated) {
       try {
         companyPage.value = await companyPageService.getPage(event.value.companyPageId)
+        // Re-set after companyPage loads — isCompanyOwner may have flipped from false→true
+        companyMode.setActiveEvent(event.value, isPersonalCreator.value || isCompanyOwner.value)
       } catch {
-        // ignore — we just won't show the owner sidebar for this company
+        // ignore — we just won't show the management section for this company
       }
     }
   } catch (e: unknown) {
@@ -182,6 +186,12 @@ onMounted(async () => {
   await fetchEvent()
   await fetchEventPosts()
 })
+
+onUnmounted(() => {
+  // Clear active event so Sidebar stops showing the event management section
+  // when navigating away from event routes.
+  companyMode.setActiveEvent(null)
+})
 </script>
 
 <template>
@@ -219,65 +229,7 @@ onMounted(async () => {
     </div>
 
     <!-- Event detail -->
-    <div v-else-if="event" class="flex items-start gap-6">
-
-      <!-- ── Left sidebar (owner only, hidden in company mode where the
-           global CompanySidebar handles these actions) ──────────────────── -->
-      <aside
-        v-if="isOwner && !companyMode.isActive"
-        class="w-52 shrink-0 sticky top-6"
-        data-testid="owner-sidebar"
-      >
-        <div class="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
-          <div class="px-4 py-2.5 border-b border-slate-700">
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-widest">Manage Event</p>
-          </div>
-          <nav>
-            <!-- Participants -->
-            <RouterLink
-              :to="`/events/${event.id}/participants`"
-              class="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-slate-700 hover:text-indigo-300 transition text-left"
-              data-testid="sidebar-add-participants"
-            >
-              <svg class="w-4 h-4 shrink-0 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-              </svg>
-              Participants
-            </RouterLink>
-
-            <!-- Edit Event -->
-            <RouterLink
-              :to="`/events/${event.id}/edit`"
-              class="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-slate-700 hover:text-indigo-300 transition text-left border-t border-slate-700/50"
-              data-testid="sidebar-edit-event"
-            >
-              <svg class="w-4 h-4 shrink-0 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-              </svg>
-              Edit Event
-            </RouterLink>
-
-            <!-- Event Settings (includes delete) -->
-            <RouterLink
-              :to="`/events/${event.id}/settings`"
-              class="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-slate-700 hover:text-indigo-300 transition text-left border-t border-slate-700/50"
-              data-testid="sidebar-event-settings"
-            >
-              <svg class="w-4 h-4 shrink-0 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-              </svg>
-              Event Settings
-            </RouterLink>
-          </nav>
-        </div>
-      </aside>
-
-      <!-- ── Main content ──────────────────────────────────────────────────── -->
-      <div class="flex-1 min-w-0 space-y-5">
+    <div v-else-if="event" class="space-y-5">
         <!-- Cover -->
         <div class="relative h-56 rounded-2xl overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 shadow">
           <img
@@ -613,7 +565,6 @@ onMounted(async () => {
           </div>
         </div>
 
-      </div><!-- /main content -->
-    </div><!-- /event detail flex row -->
+    </div><!-- /event detail -->
   </div><!-- /page wrapper -->
 </template>

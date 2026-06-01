@@ -4,7 +4,7 @@ import type { CompanyPageDto } from '@/services/companyPageService'
 import type { EventDto } from '@/services/eventService'
 
 /**
- * Company Mode store.
+ * Company Mode store — navigation-context bucket for the active company and event.
  *
  * When active, all post and event creation defaults to the active company
  * instead of the personal user identity.  The UI hides the "Posting as" /
@@ -14,12 +14,17 @@ import type { EventDto } from '@/services/eventService'
  * user re-activates it by visiting the company page.
  *
  * `activeEvent` is set by event views (EventDetailView, EventEditView, etc.)
- * so the CompanySidebar can show event-contextual navigation without an
- * extra network call.
+ * so both CompanySidebar (company mode) and Sidebar (personal mode) can show
+ * event-contextual navigation without an extra network call.
+ *
+ * `canManageActiveEvent` is true when the current user may manage the active
+ * event (personal creator, or company Owner/Admin).  Sidebar uses this to
+ * decide whether to render the Event management section.
  */
 export const useCompanyModeStore = defineStore('companyMode', () => {
-  const activeCompany = ref<CompanyPageDto | null>(null)
-  const activeEvent   = ref<EventDto | null>(null)
+  const activeCompany         = ref<CompanyPageDto | null>(null)
+  const activeEvent           = ref<EventDto | null>(null)
+  const canManageActiveEvent  = ref(false)
 
   const isActive = computed(() => activeCompany.value !== null)
 
@@ -28,13 +33,15 @@ export const useCompanyModeStore = defineStore('companyMode', () => {
   }
 
   function deactivate() {
-    activeCompany.value = null
-    activeEvent.value   = null
+    activeCompany.value        = null
+    activeEvent.value          = null
+    canManageActiveEvent.value = false
   }
 
-  function setActiveEvent(event: EventDto | null) {
-    activeEvent.value = event
+  function setActiveEvent(event: EventDto | null, canManage = false) {
+    activeEvent.value          = event
+    canManageActiveEvent.value = canManage
   }
 
-  return { activeCompany, activeEvent, isActive, activate, deactivate, setActiveEvent }
+  return { activeCompany, activeEvent, canManageActiveEvent, isActive, activate, deactivate, setActiveEvent }
 })
