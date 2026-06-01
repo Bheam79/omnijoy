@@ -16,9 +16,9 @@ const META = {
 // ── Location + welcome modal state ──────────────────────────────────────────
 const { publicLocation, setLocation } = usePublicLocation()
 
-// Show the welcome modal automatically the first time a guest lands here
-// (before they have picked a location or explicitly skipped it).
-const HAS_SEEN_MODAL_KEY = 'omnijoy_public_landing_seen'
+// The welcome modal no longer pops up automatically (OMNIJOY-158). Visitors
+// can still open it on demand via the "Change location" / "Set a location"
+// button in the toolbar below.
 const showModal = ref(false)
 
 // ── Events feed state ───────────────────────────────────────────────────────
@@ -44,17 +44,6 @@ const feedSubheading = computed(() =>
 // ── Lifecycle ───────────────────────────────────────────────────────────────
 onMounted(() => {
   applyMetaTags()
-
-  // Open the modal on first visit (regardless of whether they will choose a
-  // location or just dismiss). After dismissal it stays closed unless the
-  // visitor clicks "Change location".
-  try {
-    const seen = localStorage.getItem(HAS_SEEN_MODAL_KEY)
-    if (!seen) showModal.value = true
-  } catch {
-    showModal.value = true
-  }
-
   void loadEvents()
 })
 
@@ -108,11 +97,6 @@ async function loadMore() {
 // ── Modal handling ──────────────────────────────────────────────────────────
 function dismissModal() {
   showModal.value = false
-  try {
-    localStorage.setItem(HAS_SEEN_MODAL_KEY, '1')
-  } catch {
-    /* ignore */
-  }
 }
 
 function reopenLocationModal() {

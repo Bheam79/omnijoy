@@ -92,11 +92,27 @@ async function handleRsvp(status: RsvpStatus) {
     <!-- Body -->
     <div class="p-4">
       <!-- Title + creator -->
-      <RouterLink :to="`/events/${event.id}`" class="block group">
-        <h3 class="font-semibold text-slate-100 text-base group-hover:text-indigo-300 transition-colors leading-snug mb-1">
-          {{ event.title }}
-        </h3>
-      </RouterLink>
+      <div class="flex items-start justify-between gap-2 mb-1">
+        <RouterLink :to="`/events/${event.id}`" class="block group min-w-0 flex-1">
+          <h3 class="font-semibold text-slate-100 text-base group-hover:text-indigo-300 transition-colors leading-snug">
+            {{ event.title }}
+          </h3>
+        </RouterLink>
+        <a
+          v-if="event.ticketUrl"
+          :href="event.ticketUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-testid="event-card-buy-tickets"
+          class="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 shadow transition"
+        >
+          <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/>
+          </svg>
+          Get tickets
+        </a>
+      </div>
 
       <!-- Organizer: company page or personal creator -->
       <div class="flex items-center gap-1.5 text-xs text-gray-500 mb-2">
