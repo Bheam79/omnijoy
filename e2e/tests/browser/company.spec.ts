@@ -61,7 +61,7 @@ test.describe('Company pages', () => {
     const cp = new CompanyPage(page)
     await cp.gotoCompany(companyPage.id)
     await page.waitForLoadState('networkidle')
-    await expect(page.getByText(companyPage.name)).toBeVisible({ timeout: 8_000 })
+    await expect(page.getByRole('heading', { name: companyPage.name })).toBeVisible({ timeout: 8_000 })
 
     // Add admin via API
     const addAdminResp = await request.post(`${baseURL}/api/company-pages/${companyPage.id}/admins`, {
