@@ -29,6 +29,24 @@ const router = createRouter({
       component: () => import('@/views/auth/RegisterView.vue'),
       meta: { guest: true },
     },
+    // Static info pages — public (no auth gate), shown to guests and signed-in
+    // users alike. The path segments `privacy`, `terms`, and `about` are
+    // already in backend SlugValidator.ReservedSlugs.
+    {
+      path: '/privacy',
+      name: 'privacy',
+      component: () => import('@/views/PrivacyView.vue'),
+    },
+    {
+      path: '/terms',
+      name: 'terms',
+      component: () => import('@/views/TermsView.vue'),
+    },
+    {
+      path: '/about',
+      name: 'about',
+      component: () => import('@/views/AboutView.vue'),
+    },
 
     // ── Authenticated routes (wrapped in AppShell) ────────────────────────────
     {

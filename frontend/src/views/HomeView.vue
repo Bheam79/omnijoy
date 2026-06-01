@@ -152,12 +152,10 @@ function applyMetaTags() {
     <!-- ── Top navigation ───────────────────────────────────────────────── -->
     <nav class="sticky top-0 z-30 bg-slate-800/90 backdrop-blur border-b border-slate-700">
       <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <div class="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-            <span class="text-white font-bold text-sm">OJ</span>
-          </div>
+        <RouterLink to="/" class="flex items-center gap-2">
+          <img src="/logo.png" alt="Omnijoy" class="h-8 w-8 rounded-lg" />
           <span class="text-lg font-bold text-slate-100 tracking-tight">Omnijoy</span>
-        </div>
+        </RouterLink>
 
         <div class="flex items-center gap-3">
           <RouterLink
@@ -346,17 +344,15 @@ function applyMetaTags() {
     <!-- ── Footer ───────────────────────────────────────────────────────── -->
     <footer class="bg-gray-900 text-slate-500 py-8">
       <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
-          <div class="h-6 w-6 rounded-md bg-indigo-500 flex items-center justify-center">
-            <span class="text-white font-bold text-xs">OJ</span>
-          </div>
+        <RouterLink to="/" class="flex items-center gap-2">
+          <img src="/logo.png" alt="Omnijoy" class="h-6 w-6 rounded-md" />
           <span class="text-sm font-medium text-slate-400">Omnijoy</span>
-        </div>
-        <p class="text-xs">© 2025 Omnijoy · No ads. No data sales. Ever.</p>
+        </RouterLink>
+        <p class="text-xs">© 2026 Omnijoy · No ads. No data sales. Ever.</p>
         <div class="flex gap-4 text-xs">
-          <a href="#" class="hover:text-gray-200 transition-colors">Privacy</a>
-          <a href="#" class="hover:text-gray-200 transition-colors">Terms</a>
-          <a href="#" class="hover:text-gray-200 transition-colors">About</a>
+          <RouterLink to="/privacy" class="hover:text-gray-200 transition-colors">Privacy</RouterLink>
+          <RouterLink to="/terms"   class="hover:text-gray-200 transition-colors">Terms</RouterLink>
+          <RouterLink to="/about"   class="hover:text-gray-200 transition-colors">About</RouterLink>
         </div>
       </div>
     </footer>
