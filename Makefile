@@ -344,10 +344,14 @@ _check-env:
 	  exit 1; \
 	fi
 
+# Capture the short git hash once so all prod targets use the same value.
+# Falls back to "dev" if git is unavailable (CI without the repo).
+GIT_HASH ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
+
 # Build the Docker image (runs frontend + backend compilation inside Docker).
 prod-build: _check-env
-	@echo ">> Building production image..."
-	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) build --pull
+	@echo ">> Building production image (GIT_HASH=$(GIT_HASH))..."
+	GIT_HASH=$(GIT_HASH) $(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) build --pull
 
 # Build image + start all services. This is the main 'git pull → make' target.
 #
@@ -364,12 +368,12 @@ prod-build: _check-env
 # 'make prod-migrate' is only needed for the very first deploy or to run
 # migrations manually outside of normal startup.
 prod-up: _check-env
-	@echo ">> Building backend image..."
-	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) build backend
+	@echo ">> Building backend image (GIT_HASH=$(GIT_HASH))..."
+	GIT_HASH=$(GIT_HASH) $(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) build backend
 	@echo ">> Ensuring all services are running..."
-	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) up -d --remove-orphans
+	GIT_HASH=$(GIT_HASH) $(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) up -d --remove-orphans
 	@echo ">> Applying new image to backend + nginx..."
-	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) up -d --no-deps --force-recreate backend nginx
+	GIT_HASH=$(GIT_HASH) $(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) up -d --no-deps --force-recreate backend nginx
 	@echo ""
 	@echo "  Deploy complete. DB migrations applied automatically on startup."
 	@echo "  Public port: $$(grep PUBLIC_PORT $(PROD_ENV) | cut -d= -f2 || echo 80)"
@@ -389,10 +393,10 @@ prod-down: _check-env
 # Rebuild backend image and force-recreate just the backend + nginx services.
 # Fastest deploy path — skips data services entirely.
 prod-restart: _check-env
-	@echo ">> Rebuilding backend image..."
-	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) build --pull backend
+	@echo ">> Rebuilding backend image (GIT_HASH=$(GIT_HASH))..."
+	GIT_HASH=$(GIT_HASH) $(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) build --pull backend
 	@echo ">> Force-recreating backend + nginx with new image..."
-	$(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) up -d --no-deps --force-recreate backend nginx
+	GIT_HASH=$(GIT_HASH) $(COMPOSE) -f $(PROD_COMPOSE) --env-file $(PROD_ENV) up -d --no-deps --force-recreate backend nginx
 
 # Run EF Core migrations via a temporary SDK container joined to the Docker network.
 # This avoids having to publish the DB port to the host.

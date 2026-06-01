@@ -5,13 +5,16 @@ import TopNav from './TopNav.vue'
 import Sidebar from './Sidebar.vue'
 import CompanySidebar from './CompanySidebar.vue'
 import MessengerPopup from '@/components/chat/MessengerPopup.vue'
+import UpdateAvailableBanner from '@/components/shared/UpdateAvailableBanner.vue'
 import { useLiveStore } from '@/stores/live'
 import { useCompanyModeStore } from '@/stores/companyMode'
+import { useVersionCheck } from '@/composables/useVersionCheck'
 
 const sidebarOpen = ref(false)
 const route = useRoute()
 const liveStore = useLiveStore()
 const companyMode = useCompanyModeStore()
+const { updateAvailable, dismiss } = useVersionCheck()
 
 /** Wide-content routes manage their own max-width; standard routes use the default wrapper. */
 const isWideContent = computed(() => !!route.meta.wideContent)
@@ -29,6 +32,12 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-slate-950">
+    <!-- New-version banner (shown below TopNav when a deploy is detected) -->
+    <UpdateAvailableBanner
+      :visible="updateAvailable"
+      @dismiss="dismiss"
+    />
+
     <!-- Fixed top navigation -->
     <TopNav
       :sidebar-open="sidebarOpen"

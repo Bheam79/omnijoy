@@ -51,6 +51,12 @@ services:
     build:
       context: ..          # repo root (needs both frontend/ and backend/)
       dockerfile: Dockerfile
+      args:
+        # Inject the current git commit hash so GET /api/version returns a
+        # meaningful identifier that clients can use to detect deploys.
+        # Set GIT_HASH in docker/.env or pass it on the command line:
+        #   make prod-up GIT_HASH=$(git rev-parse --short HEAD)
+        GIT_HASH: ${GIT_HASH:-}
     restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: Production

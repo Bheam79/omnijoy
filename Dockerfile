@@ -26,6 +26,14 @@ RUN npx vite build --outDir /dist --emptyOutDir
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS backend-build
 WORKDIR /src
 
+# Optional: git commit hash injected at build time so GET /api/version returns
+# a meaningful identifier that clients can use to detect deploys.
+# Usage:  docker build --build-arg GIT_HASH=$(git rev-parse --short HEAD) .
+# When omitted the SDK fills AssemblyInformationalVersion with the package
+# version from the .csproj (e.g. "1.0.0"), which is still a stable value
+# the client can use to detect a version change after a redeploy.
+ARG GIT_HASH=""
+
 COPY backend/ ./
 
 # Restore separately for layer caching (only re-runs when .csproj files change)
@@ -34,11 +42,20 @@ RUN dotnet restore Omnijoy.Api/Omnijoy.Api.csproj
 # Inject built frontend so it ends up in the publish output's wwwroot
 COPY --from=frontend-build /dist Omnijoy.Api/wwwroot/
 
-RUN dotnet publish Omnijoy.Api/Omnijoy.Api.csproj \
-      --configuration Release \
-      --output /app/publish \
-      --no-self-contained \
-      --no-restore
+RUN if [ -n "$GIT_HASH" ]; then \
+      dotnet publish Omnijoy.Api/Omnijoy.Api.csproj \
+        --configuration Release \
+        --output /app/publish \
+        --no-self-contained \
+        --no-restore \
+        /p:InformationalVersion="$GIT_HASH"; \
+    else \
+      dotnet publish Omnijoy.Api/Omnijoy.Api.csproj \
+        --configuration Release \
+        --output /app/publish \
+        --no-self-contained \
+        --no-restore; \
+    fi
 
 
 # ── Stage 3: ASP.NET Core runtime ────────────────────────────────────────────
