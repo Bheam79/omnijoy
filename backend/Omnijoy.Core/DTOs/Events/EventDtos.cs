@@ -32,7 +32,13 @@ public record EventDto(
     int GoingCount,
     int MaybeCount,
     int NotGoingCount,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    // ── Structured venue location ─────────────────────────────────────────────
+    string? LocationPlaceId = null,
+    string? LocationCity = null,
+    string? LocationCountry = null,
+    decimal? LocationLatitude = null,
+    decimal? LocationLongitude = null
 );
 
 // ── Create / Update requests ──────────────────────────────────────────────────
@@ -53,7 +59,13 @@ public record CreateEventRequest(
     string? PostingPolicy,
     Guid? CompanyPageId,
     /// <summary>Optional external URL for purchasing tickets.</summary>
-    string? TicketUrl = null
+    string? TicketUrl = null,
+    // ── Structured venue location ─────────────────────────────────────────────
+    string? LocationPlaceId = null,
+    string? LocationCity = null,
+    string? LocationCountry = null,
+    decimal? LocationLatitude = null,
+    decimal? LocationLongitude = null
 );
 
 public record UpdateEventRequest(
@@ -69,7 +81,13 @@ public record UpdateEventRequest(
     /// Optional external URL for purchasing tickets. Pass an empty string to clear.
     /// Pass null to leave the existing value unchanged.
     /// </summary>
-    string? TicketUrl = null
+    string? TicketUrl = null,
+    // ── Structured venue location ─────────────────────────────────────────────
+    string? LocationPlaceId = null,
+    string? LocationCity = null,
+    string? LocationCountry = null,
+    decimal? LocationLatitude = null,
+    decimal? LocationLongitude = null
 );
 
 // ── Event post ────────────────────────────────────────────────────────────────

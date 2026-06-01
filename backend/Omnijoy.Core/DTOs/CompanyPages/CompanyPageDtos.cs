@@ -26,19 +26,39 @@ public record CompanyPageDto(
     string? MyRole,
     DateTime CreatedAt,
     /// <summary>Vanity URL slug — null when unset.</summary>
-    string? UrlSlug = null
+    string? UrlSlug = null,
+    // ── Physical address ──────────────────────────────────────────────────────
+    string? AddressText = null,
+    string? AddressCity = null,
+    string? AddressCountry = null,
+    decimal? AddressLatitude = null,
+    decimal? AddressLongitude = null
 );
 
 // ── Create / Update requests ──────────────────────────────────────────────────
 
 public record CreateCompanyPageRequest(
     string Name,
-    string? Description
+    string? Description,
+    // ── Physical address ──────────────────────────────────────────────────────
+    string? AddressPlaceId = null,
+    string? AddressText = null,
+    string? AddressCity = null,
+    string? AddressCountry = null,
+    decimal? AddressLatitude = null,
+    decimal? AddressLongitude = null
 );
 
 public record UpdateCompanyPageRequest(
     string? Name,
-    string? Description
+    string? Description,
+    // ── Physical address ──────────────────────────────────────────────────────
+    string? AddressPlaceId = null,
+    string? AddressText = null,
+    string? AddressCity = null,
+    string? AddressCountry = null,
+    decimal? AddressLatitude = null,
+    decimal? AddressLongitude = null
 );
 
 // ── Admin management ──────────────────────────────────────────────────────────

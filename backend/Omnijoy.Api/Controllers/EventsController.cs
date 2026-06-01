@@ -72,15 +72,20 @@ public class EventsController : ControllerBase
             }
 
             var request = new CreateEventRequest(
-                Title:         input.Title ?? string.Empty,
-                Description:   input.Description,
-                StartAt:       input.StartAt,
-                EndAt:         input.EndAt,
-                Location:      input.Location,
-                Privacy:       input.Privacy ?? "Everyone",
-                PostingPolicy: input.PostingPolicy,
-                CompanyPageId: input.CompanyPageId,
-                TicketUrl:     input.TicketUrl
+                Title:             input.Title ?? string.Empty,
+                Description:       input.Description,
+                StartAt:           input.StartAt,
+                EndAt:             input.EndAt,
+                Location:          input.Location,
+                Privacy:           input.Privacy ?? "Everyone",
+                PostingPolicy:     input.PostingPolicy,
+                CompanyPageId:     input.CompanyPageId,
+                TicketUrl:         input.TicketUrl,
+                LocationPlaceId:   input.LocationPlaceId,
+                LocationCity:      input.LocationCity,
+                LocationCountry:   input.LocationCountry,
+                LocationLatitude:  input.LocationLatitude,
+                LocationLongitude: input.LocationLongitude
             );
 
             var ev = await _events.CreateEventAsync(userId, request, cover);
@@ -211,14 +216,19 @@ public class EventsController : ControllerBase
             }
 
             var request = new UpdateEventRequest(
-                Title:         input.Title,
-                Description:   input.Description,
-                StartAt:       input.StartAt,
-                EndAt:         input.EndAt,
-                Location:      input.Location,
-                Privacy:       input.Privacy,
-                PostingPolicy: input.PostingPolicy,
-                TicketUrl:     input.TicketUrl
+                Title:             input.Title,
+                Description:       input.Description,
+                StartAt:           input.StartAt,
+                EndAt:             input.EndAt,
+                Location:          input.Location,
+                Privacy:           input.Privacy,
+                PostingPolicy:     input.PostingPolicy,
+                TicketUrl:         input.TicketUrl,
+                LocationPlaceId:   input.LocationPlaceId,
+                LocationCity:      input.LocationCity,
+                LocationCountry:   input.LocationCountry,
+                LocationLatitude:  input.LocationLatitude,
+                LocationLongitude: input.LocationLongitude
             );
 
             var ev = await _events.UpdateEventAsync(id, userId, request, cover);
@@ -361,27 +371,39 @@ public class EventsController : ControllerBase
 
 public class CreateEventFormInput
 {
-    public string?    Title         { get; set; }
-    public string?    Description   { get; set; }
-    public DateTime   StartAt       { get; set; }
-    public DateTime?  EndAt         { get; set; }
-    public string?    Location      { get; set; }
-    public string?    Privacy       { get; set; }
-    public string?    PostingPolicy { get; set; }
-    public Guid?      CompanyPageId { get; set; }
-    public string?    TicketUrl     { get; set; }
-    public IFormFile? CoverImage    { get; set; }
+    public string?    Title            { get; set; }
+    public string?    Description      { get; set; }
+    public DateTime   StartAt          { get; set; }
+    public DateTime?  EndAt            { get; set; }
+    public string?    Location         { get; set; }
+    public string?    Privacy          { get; set; }
+    public string?    PostingPolicy    { get; set; }
+    public Guid?      CompanyPageId    { get; set; }
+    public string?    TicketUrl        { get; set; }
+    public IFormFile? CoverImage       { get; set; }
+    // ── Structured venue location ─────────────────────────────────────────────
+    public string?    LocationPlaceId  { get; set; }
+    public string?    LocationCity     { get; set; }
+    public string?    LocationCountry  { get; set; }
+    public decimal?   LocationLatitude { get; set; }
+    public decimal?   LocationLongitude{ get; set; }
 }
 
 public class UpdateEventFormInput
 {
-    public string?    Title         { get; set; }
-    public string?    Description   { get; set; }
-    public DateTime?  StartAt       { get; set; }
-    public DateTime?  EndAt         { get; set; }
-    public string?    Location      { get; set; }
-    public string?    Privacy       { get; set; }
-    public string?    PostingPolicy { get; set; }
-    public string?    TicketUrl     { get; set; }
-    public IFormFile? CoverImage    { get; set; }
+    public string?    Title            { get; set; }
+    public string?    Description      { get; set; }
+    public DateTime?  StartAt          { get; set; }
+    public DateTime?  EndAt            { get; set; }
+    public string?    Location         { get; set; }
+    public string?    Privacy          { get; set; }
+    public string?    PostingPolicy    { get; set; }
+    public string?    TicketUrl        { get; set; }
+    public IFormFile? CoverImage       { get; set; }
+    // ── Structured venue location ─────────────────────────────────────────────
+    public string?    LocationPlaceId  { get; set; }
+    public string?    LocationCity     { get; set; }
+    public string?    LocationCountry  { get; set; }
+    public decimal?   LocationLatitude { get; set; }
+    public decimal?   LocationLongitude{ get; set; }
 }

@@ -50,13 +50,19 @@ public class CompanyPageService : ICompanyPageService
 
         var page = new CompanyPage
         {
-            Id              = Guid.NewGuid(),
-            Name            = request.Name.Trim(),
-            Description     = request.Description?.Trim(),
-            LogoUrl         = logoUrl,
-            CoverUrl        = coverUrl,
-            CreatedByUserId = creatorId,
-            CreatedAt       = DateTime.UtcNow,
+            Id               = Guid.NewGuid(),
+            Name             = request.Name.Trim(),
+            Description      = request.Description?.Trim(),
+            LogoUrl          = logoUrl,
+            CoverUrl         = coverUrl,
+            CreatedByUserId  = creatorId,
+            CreatedAt        = DateTime.UtcNow,
+            AddressPlaceId   = request.AddressPlaceId,
+            AddressText      = request.AddressText?.Trim(),
+            AddressCity      = request.AddressCity?.Trim(),
+            AddressCountry   = request.AddressCountry?.Trim(),
+            AddressLatitude  = request.AddressLatitude,
+            AddressLongitude = request.AddressLongitude,
         };
 
         _db.CompanyPages.Add(page);
@@ -148,6 +154,24 @@ public class CompanyPageService : ICompanyPageService
 
         if (request.Description is not null)
             cp.Description = request.Description.Trim();
+
+        if (request.AddressPlaceId is not null)
+            cp.AddressPlaceId = string.IsNullOrWhiteSpace(request.AddressPlaceId) ? null : request.AddressPlaceId;
+
+        if (request.AddressText is not null)
+            cp.AddressText = string.IsNullOrWhiteSpace(request.AddressText) ? null : request.AddressText.Trim();
+
+        if (request.AddressCity is not null)
+            cp.AddressCity = string.IsNullOrWhiteSpace(request.AddressCity) ? null : request.AddressCity.Trim();
+
+        if (request.AddressCountry is not null)
+            cp.AddressCountry = string.IsNullOrWhiteSpace(request.AddressCountry) ? null : request.AddressCountry.Trim();
+
+        if (request.AddressLatitude is not null)
+            cp.AddressLatitude = request.AddressLatitude;
+
+        if (request.AddressLongitude is not null)
+            cp.AddressLongitude = request.AddressLongitude;
 
         if (logo is not null)
         {
@@ -362,17 +386,22 @@ public class CompanyPageService : ICompanyPageService
             : null;
 
         return new CompanyPageDto(
-            Id:            cp.Id,
-            Name:          cp.Name,
-            Description:   cp.Description,
-            LogoUrl:       cp.LogoUrl,
-            CoverUrl:      cp.CoverUrl,
-            CreatedBy:     creator,
-            FollowerCount: followerCount,
-            IsFollowing:   isFollowing,
-            MyRole:        myRole,
-            CreatedAt:     cp.CreatedAt,
-            UrlSlug:       cp.UrlSlug
+            Id:               cp.Id,
+            Name:             cp.Name,
+            Description:      cp.Description,
+            LogoUrl:          cp.LogoUrl,
+            CoverUrl:         cp.CoverUrl,
+            CreatedBy:        creator,
+            FollowerCount:    followerCount,
+            IsFollowing:      isFollowing,
+            MyRole:           myRole,
+            CreatedAt:        cp.CreatedAt,
+            UrlSlug:          cp.UrlSlug,
+            AddressText:      cp.AddressText,
+            AddressCity:      cp.AddressCity,
+            AddressCountry:   cp.AddressCountry,
+            AddressLatitude:  cp.AddressLatitude,
+            AddressLongitude: cp.AddressLongitude
         );
     }
 

@@ -69,19 +69,24 @@ public class EventService : IEventService
 
         var ev = new Event
         {
-            Id            = Guid.NewGuid(),
-            CreatorUserId = userId,
-            CompanyPageId = request.CompanyPageId,
-            Title         = request.Title.Trim(),
-            Description   = request.Description?.Trim(),
-            StartAt       = request.StartAt,
-            EndAt         = request.EndAt,
-            Location      = request.Location?.Trim(),
-            CoverImageUrl = coverUrl,
-            TicketUrl     = ticketUrl,
-            Privacy       = privacy,
-            PostingPolicy = postingPolicy,
-            CreatedAt     = DateTime.UtcNow,
+            Id               = Guid.NewGuid(),
+            CreatorUserId    = userId,
+            CompanyPageId    = request.CompanyPageId,
+            Title            = request.Title.Trim(),
+            Description      = request.Description?.Trim(),
+            StartAt          = request.StartAt,
+            EndAt            = request.EndAt,
+            Location         = request.Location?.Trim(),
+            LocationPlaceId  = request.LocationPlaceId,
+            LocationCity     = request.LocationCity?.Trim(),
+            LocationCountry  = request.LocationCountry?.Trim(),
+            LocationLatitude = request.LocationLatitude,
+            LocationLongitude= request.LocationLongitude,
+            CoverImageUrl    = coverUrl,
+            TicketUrl        = ticketUrl,
+            Privacy          = privacy,
+            PostingPolicy    = postingPolicy,
+            CreatedAt        = DateTime.UtcNow,
         };
 
         _db.Events.Add(ev);
@@ -301,6 +306,21 @@ public class EventService : IEventService
 
         if (request.Location is not null)
             ev.Location = request.Location.Trim();
+
+        if (request.LocationPlaceId is not null)
+            ev.LocationPlaceId = string.IsNullOrWhiteSpace(request.LocationPlaceId) ? null : request.LocationPlaceId;
+
+        if (request.LocationCity is not null)
+            ev.LocationCity = string.IsNullOrWhiteSpace(request.LocationCity) ? null : request.LocationCity.Trim();
+
+        if (request.LocationCountry is not null)
+            ev.LocationCountry = string.IsNullOrWhiteSpace(request.LocationCountry) ? null : request.LocationCountry.Trim();
+
+        if (request.LocationLatitude is not null)
+            ev.LocationLatitude = request.LocationLatitude;
+
+        if (request.LocationLongitude is not null)
+            ev.LocationLongitude = request.LocationLongitude;
 
         if (request.Privacy is not null)
         {
@@ -637,7 +657,12 @@ public class EventService : IEventService
             GoingCount:          going,
             MaybeCount:          maybe,
             NotGoingCount:       notGoing,
-            CreatedAt:           ev.CreatedAt
+            CreatedAt:           ev.CreatedAt,
+            LocationPlaceId:     ev.LocationPlaceId,
+            LocationCity:        ev.LocationCity,
+            LocationCountry:     ev.LocationCountry,
+            LocationLatitude:    ev.LocationLatitude,
+            LocationLongitude:   ev.LocationLongitude
         );
     }
 }

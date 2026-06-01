@@ -64,7 +64,12 @@ public class AuthServiceTests : IDisposable
 
     private async Task<User> RegisterPasswordUserAsync(string email = "test@example.com", string password = "P@ssw0rd!")
     {
-        await _sut.RegisterAsync(new RegisterRequest(email, "Test User", "password", password));
+        await _sut.RegisterAsync(new RegisterRequest(
+            Email: email,
+            DisplayName: "Test User",
+            AuthMethod: "password",
+            Password: password,
+            LocationCountry: "Norway"));
         return await _db.Users.FirstAsync(u => u.Email == email.ToLowerInvariant());
     }
 
@@ -73,7 +78,14 @@ public class AuthServiceTests : IDisposable
     [Fact]
     public async Task Register_PasswordAuth_CreatesUserAndReturnsResponse()
     {
-        var request = new RegisterRequest("alice@example.com", "Alice", "password", "P@ssw0rd!");
+        var request = new RegisterRequest(
+            Email: "alice@example.com",
+            DisplayName: "Alice",
+            AuthMethod: "password",
+            Password: "P@ssw0rd!",
+            LocationCountry: "France",
+            LocationCity: "Paris",
+            LocationName: "Paris, France");
 
         var response = await _sut.RegisterAsync(request);
 
@@ -81,10 +93,14 @@ public class AuthServiceTests : IDisposable
         response.AccessToken.Should().Be("fake-access-token");
         response.User.Email.Should().Be("alice@example.com");
         response.User.DisplayName.Should().Be("Alice");
+        response.User.LocationCountry.Should().Be("France");
+        response.User.LocationCity.Should().Be("Paris");
 
         var user = await _db.Users.FirstAsync();
         user.Email.Should().Be("alice@example.com");
         user.PasswordHash.Should().NotBeNullOrEmpty();
+        user.LocationCountry.Should().Be("France");
+        user.LocationCity.Should().Be("Paris");
 
         var authProvider = await _db.AuthProviders.FirstAsync();
         authProvider.Provider.Should().Be(AuthProviderType.Password);
@@ -95,7 +111,12 @@ public class AuthServiceTests : IDisposable
     {
         await RegisterPasswordUserAsync("dup@example.com");
 
-        await _sut.Invoking(s => s.RegisterAsync(new RegisterRequest("dup@example.com", "Second", "password", "P@ss!")))
+        await _sut.Invoking(s => s.RegisterAsync(new RegisterRequest(
+                Email: "dup@example.com",
+                DisplayName: "Second",
+                AuthMethod: "password",
+                Password: "P@ss!",
+                LocationCountry: "Norway")))
             .Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*already exists*");
     }
@@ -121,9 +142,30 @@ public class AuthServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Register_MissingCountry_ThrowsArgumentException()
+    {
+        // Registration must require a country selection so the frontend can
+        // show the location picker before completing sign-up.
+        var request = new RegisterRequest(
+            Email: "noplace@example.com",
+            DisplayName: "No Place",
+            AuthMethod: "password",
+            Password: "P@ssw0rd!");
+
+        await _sut.Invoking(s => s.RegisterAsync(request))
+            .Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*Please select your location to continue*");
+    }
+
+    [Fact]
     public async Task Register_OtpAuth_DoesNotRequirePassword()
     {
-        var request = new RegisterRequest("otp@example.com", "OTP User", "otp", null);
+        var request = new RegisterRequest(
+            Email: "otp@example.com",
+            DisplayName: "OTP User",
+            AuthMethod: "otp",
+            Password: null,
+            LocationCountry: "Germany");
 
         var response = await _sut.RegisterAsync(request);
 

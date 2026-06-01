@@ -12,7 +12,17 @@ public record RegisterRequest(
     string? Password,
     string Gender = "NotDisclosed",
     DateOnly? BirthDate = null,
-    bool ShowBirthDate = false
+    bool ShowBirthDate = false,
+    /// <summary>Google Place ID for the user's home location.</summary>
+    string? LocationPlaceId = null,
+    /// <summary>Human-readable location label, e.g. "Oslo, Norway".</summary>
+    string? LocationName = null,
+    string? LocationCity = null,
+    /// <summary>Required at registration — "Please select your location to continue".</summary>
+    string? LocationCountry = null,
+    string? LocationCountryCode = null,
+    decimal? LocationLatitude = null,
+    decimal? LocationLongitude = null
 );
 
 public record LoginPasswordRequest(string Email, string Password);
@@ -62,7 +72,11 @@ public record UserDto(
     /// <summary>Vanity URL slug — null when unset.</summary>
     string? UrlSlug = null,
     /// <summary>Platform role: "User" | "Moderator" | "Admin".</summary>
-    string Role = "User"
+    string Role = "User",
+    /// <summary>Human-readable location label, e.g. "Oslo, Norway".</summary>
+    string? LocationName = null,
+    string? LocationCity = null,
+    string? LocationCountry = null
 );
 
 public record AuthResponse(

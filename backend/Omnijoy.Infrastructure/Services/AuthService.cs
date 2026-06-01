@@ -54,6 +54,9 @@ public class AuthService : IAuthService
         if (authMethod == "password" && string.IsNullOrWhiteSpace(request.Password))
             throw new ArgumentException("Password is required for password authentication.");
 
+        if (string.IsNullOrWhiteSpace(request.LocationCountry))
+            throw new ArgumentException("Please select your location to continue.");
+
         var now = DateTime.UtcNow;
         var user = new User
         {
@@ -63,6 +66,13 @@ public class AuthService : IAuthService
             Gender = Enum.TryParse<Gender>(request.Gender, true, out var g) ? g : Gender.NotDisclosed,
             BirthDate = request.BirthDate,
             ShowBirthDate = request.ShowBirthDate,
+            LocationPlaceId = request.LocationPlaceId,
+            LocationName = request.LocationName,
+            LocationCity = request.LocationCity,
+            LocationCountry = request.LocationCountry,
+            LocationCountryCode = request.LocationCountryCode,
+            LocationLatitude = request.LocationLatitude,
+            LocationLongitude = request.LocationLongitude,
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -398,7 +408,11 @@ public class AuthService : IAuthService
         BirthDate: u.BirthDate?.ToString("yyyy-MM-dd"),
         ShowBirthDate: u.ShowBirthDate,
         CreatedAt: u.CreatedAt,
-        Role: u.Role.ToString()
+        UrlSlug: u.UrlSlug,
+        Role: u.Role.ToString(),
+        LocationName: u.LocationName,
+        LocationCity: u.LocationCity,
+        LocationCountry: u.LocationCountry
     );
 
     private static string HashCode(string code)

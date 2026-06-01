@@ -99,7 +99,13 @@ public class UserService : IUserService
             IsOwnProfile: isOwn,
             IsFriend: isFriend,
             CreatedAt: user.CreatedAt,
-            UrlSlug: user.UrlSlug
+            UrlSlug: user.UrlSlug,
+            LocationName: user.LocationName,
+            LocationCity: user.LocationCity,
+            LocationCountry: user.LocationCountry,
+            LocationCountryCode: user.LocationCountryCode,
+            LocationLatitude: user.LocationLatitude,
+            LocationLongitude: user.LocationLongitude
         );
     }
 
@@ -151,6 +157,28 @@ public class UserService : IUserService
 
         if (request.ShowBirthDate is not null)
             user.ShowBirthDate = request.ShowBirthDate.Value;
+
+        // Location fields — all optional; pass null to leave unchanged
+        if (request.LocationPlaceId is not null)
+            user.LocationPlaceId = string.IsNullOrWhiteSpace(request.LocationPlaceId) ? null : request.LocationPlaceId;
+
+        if (request.LocationName is not null)
+            user.LocationName = string.IsNullOrWhiteSpace(request.LocationName) ? null : request.LocationName.Trim();
+
+        if (request.LocationCity is not null)
+            user.LocationCity = string.IsNullOrWhiteSpace(request.LocationCity) ? null : request.LocationCity.Trim();
+
+        if (request.LocationCountry is not null)
+            user.LocationCountry = string.IsNullOrWhiteSpace(request.LocationCountry) ? null : request.LocationCountry.Trim();
+
+        if (request.LocationCountryCode is not null)
+            user.LocationCountryCode = string.IsNullOrWhiteSpace(request.LocationCountryCode) ? null : request.LocationCountryCode.Trim();
+
+        if (request.LocationLatitude is not null)
+            user.LocationLatitude = request.LocationLatitude;
+
+        if (request.LocationLongitude is not null)
+            user.LocationLongitude = request.LocationLongitude;
 
         user.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
@@ -266,7 +294,10 @@ public class UserService : IUserService
         ShowBirthDate: u.ShowBirthDate,
         CreatedAt: u.CreatedAt,
         UrlSlug: u.UrlSlug,
-        Role: u.Role.ToString()
+        Role: u.Role.ToString(),
+        LocationName: u.LocationName,
+        LocationCity: u.LocationCity,
+        LocationCountry: u.LocationCountry
     );
 
     private static PrivacySettingsDto MapPrivacyDto(UserPrivacySettings s) => new(

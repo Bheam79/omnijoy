@@ -22,7 +22,14 @@ public record UserProfileDto(
     bool IsFriend,
     DateTime CreatedAt,
     /// <summary>Vanity URL slug — null when unset; canonical lowercased form.</summary>
-    string? UrlSlug = null
+    string? UrlSlug = null,
+    /// <summary>Human-readable location label, e.g. "Oslo, Norway".</summary>
+    string? LocationName = null,
+    string? LocationCity = null,
+    string? LocationCountry = null,
+    string? LocationCountryCode = null,
+    decimal? LocationLatitude = null,
+    decimal? LocationLongitude = null
 );
 
 // ── Slug DTOs ─────────────────────────────────────────────────────────────────
@@ -51,7 +58,16 @@ public record UpdateProfileRequest(
     string? Bio,
     string? Gender,
     string? BirthDate,      // "yyyy-MM-dd" or null to clear
-    bool? ShowBirthDate
+    bool? ShowBirthDate,
+    /// <summary>Google Place ID — pass to update the structured location fields.</summary>
+    string? LocationPlaceId = null,
+    /// <summary>Human-readable location label, e.g. "Oslo, Norway". Pass empty string to clear.</summary>
+    string? LocationName = null,
+    string? LocationCity = null,
+    string? LocationCountry = null,
+    string? LocationCountryCode = null,
+    decimal? LocationLatitude = null,
+    decimal? LocationLongitude = null
 );
 
 // ── Privacy DTOs ──────────────────────────────────────────────────────────────

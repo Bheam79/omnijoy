@@ -45,8 +45,14 @@ public class CompanyPagesController : ControllerBase
             var cover = await ReadFileWithBracketFallbackAsync(input.Cover, "Cover", "cover");
 
             var request = new CreateCompanyPageRequest(
-                Name:        input.Name ?? string.Empty,
-                Description: input.Description
+                Name:             input.Name ?? string.Empty,
+                Description:      input.Description,
+                AddressPlaceId:   input.AddressPlaceId,
+                AddressText:      input.AddressText,
+                AddressCity:      input.AddressCity,
+                AddressCountry:   input.AddressCountry,
+                AddressLatitude:  input.AddressLatitude,
+                AddressLongitude: input.AddressLongitude
             );
 
             var page = await _pages.CreatePageAsync(userId, request, logo, cover);
@@ -124,8 +130,14 @@ public class CompanyPagesController : ControllerBase
             var cover = await ReadFileWithBracketFallbackAsync(input.Cover, "Cover", "cover");
 
             var request = new UpdateCompanyPageRequest(
-                Name:        input.Name,
-                Description: input.Description
+                Name:             input.Name,
+                Description:      input.Description,
+                AddressPlaceId:   input.AddressPlaceId,
+                AddressText:      input.AddressText,
+                AddressCity:      input.AddressCity,
+                AddressCountry:   input.AddressCountry,
+                AddressLatitude:  input.AddressLatitude,
+                AddressLongitude: input.AddressLongitude
             );
 
             var page = await _pages.UpdatePageAsync(id, userId, request, logo, cover);
@@ -330,16 +342,30 @@ public class CompanyPagesController : ControllerBase
 
 public class CreatePageFormInput
 {
-    public string?    Name        { get; set; }
-    public string?    Description { get; set; }
-    public IFormFile? Logo        { get; set; }
-    public IFormFile? Cover       { get; set; }
+    public string?    Name             { get; set; }
+    public string?    Description      { get; set; }
+    public IFormFile? Logo             { get; set; }
+    public IFormFile? Cover            { get; set; }
+    // ── Physical address ──────────────────────────────────────────────────────
+    public string?    AddressPlaceId   { get; set; }
+    public string?    AddressText      { get; set; }
+    public string?    AddressCity      { get; set; }
+    public string?    AddressCountry   { get; set; }
+    public decimal?   AddressLatitude  { get; set; }
+    public decimal?   AddressLongitude { get; set; }
 }
 
 public class UpdatePageFormInput
 {
-    public string?    Name        { get; set; }
-    public string?    Description { get; set; }
-    public IFormFile? Logo        { get; set; }
-    public IFormFile? Cover       { get; set; }
+    public string?    Name             { get; set; }
+    public string?    Description      { get; set; }
+    public IFormFile? Logo             { get; set; }
+    public IFormFile? Cover            { get; set; }
+    // ── Physical address ──────────────────────────────────────────────────────
+    public string?    AddressPlaceId   { get; set; }
+    public string?    AddressText      { get; set; }
+    public string?    AddressCity      { get; set; }
+    public string?    AddressCountry   { get; set; }
+    public decimal?   AddressLatitude  { get; set; }
+    public decimal?   AddressLongitude { get; set; }
 }
