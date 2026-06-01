@@ -345,6 +345,16 @@ onMounted(async () => {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
             <span>{{ event.location }}</span>
+            <a
+              v-if="event.locationLatitude != null && event.locationLongitude != null"
+              :href="`https://maps.google.com/?q=${event.locationLatitude},${event.locationLongitude}`"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-indigo-400 hover:text-indigo-300 text-xs underline transition shrink-0"
+              data-testid="event-open-in-maps"
+            >
+              Open in Maps
+            </a>
           </div>
 
           <!-- Buy tickets button -->

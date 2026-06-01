@@ -3,6 +3,8 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { eventService, type EventDto } from '@/services/eventService'
 import { useCompanyModeStore } from '@/stores/companyMode'
+import PlacePicker from '@/components/shared/PlacePicker.vue'
+import type { PlaceSelection } from '@/types/places'
 
 const route       = useRoute()
 const router      = useRouter()
@@ -13,18 +15,18 @@ const loading = ref(true)
 const error   = ref<string | null>(null)
 
 // ── Edit form state ────────────────────────────────────────────────────────────
-const editTitle         = ref('')
-const editDesc          = ref('')
-const editStartAt       = ref('')
-const editEndAt         = ref('')
-const editLocation      = ref('')
-const editPrivacy       = ref<'Everyone' | 'FriendsOfFriends' | 'Friends' | 'OnlyMe'>('Everyone')
-const editPostingPolicy = ref<'OrganizerOnly' | 'Everyone'>('OrganizerOnly')
-const editTicketUrl     = ref('')
-const editCoverFile     = ref<File | null>(null)
-const editCoverPreview  = ref<string | null>(null)
-const editSaving        = ref(false)
-const editError         = ref<string | null>(null)
+const editTitle             = ref('')
+const editDesc              = ref('')
+const editStartAt           = ref('')
+const editEndAt             = ref('')
+const editLocationSelection = ref<PlaceSelection | null>(null)
+const editPrivacy           = ref<'Everyone' | 'FriendsOfFriends' | 'Friends' | 'OnlyMe'>('Everyone')
+const editPostingPolicy     = ref<'OrganizerOnly' | 'Everyone'>('OrganizerOnly')
+const editTicketUrl         = ref('')
+const editCoverFile         = ref<File | null>(null)
+const editCoverPreview      = ref<string | null>(null)
+const editSaving            = ref(false)
+const editError             = ref<string | null>(null)
 
 function toDatetimeLocalValue(isoUtc: string): string {
   const d = new Date(isoUtc)
@@ -36,7 +38,21 @@ function populateForm(ev: EventDto) {
   editDesc.value          = ev.description ?? ''
   editStartAt.value       = toDatetimeLocalValue(ev.startAt)
   editEndAt.value         = ev.endAt ? toDatetimeLocalValue(ev.endAt) : ''
-  editLocation.value      = ev.location ?? ''
+  // Populate PlacePicker from structured fields if available, or fall back to legacy text
+  if (ev.location) {
+    editLocationSelection.value = {
+      placeId:          ev.locationPlaceId ?? 'manual',
+      displayName:      ev.location,
+      city:             ev.locationCity    ?? null,
+      country:          ev.locationCountry ?? null,
+      countryCode:      null,
+      latitude:         ev.locationLatitude  ?? null,
+      longitude:        ev.locationLongitude ?? null,
+      formattedAddress: null,
+    }
+  } else {
+    editLocationSelection.value = null
+  }
   editPrivacy.value       = ev.privacy as typeof editPrivacy.value
   editPostingPolicy.value = (ev.postingPolicy ?? 'OrganizerOnly') as typeof editPostingPolicy.value
   editTicketUrl.value     = ev.ticketUrl ?? ''
@@ -67,15 +83,20 @@ async function saveEdit() {
   editSaving.value = true
   try {
     const updated = await eventService.updateEvent(event.value.id, {
-      title:         editTitle.value.trim(),
-      description:   editDesc.value.trim() || undefined,
-      startAt:       new Date(editStartAt.value).toISOString(),
-      endAt:         editEndAt.value ? new Date(editEndAt.value).toISOString() : undefined,
-      location:      editLocation.value.trim() || undefined,
-      privacy:       editPrivacy.value,
-      postingPolicy: editPostingPolicy.value,
-      ticketUrl:     trimmedTicket,
-      coverImage:    editCoverFile.value ?? undefined,
+      title:               editTitle.value.trim(),
+      description:         editDesc.value.trim() || undefined,
+      startAt:             new Date(editStartAt.value).toISOString(),
+      endAt:               editEndAt.value ? new Date(editEndAt.value).toISOString() : undefined,
+      location:            editLocationSelection.value?.displayName || undefined,
+      locationPlaceId:     editLocationSelection.value?.placeId !== 'manual' ? (editLocationSelection.value?.placeId ?? undefined) : undefined,
+      locationCity:        editLocationSelection.value?.city ?? undefined,
+      locationCountry:     editLocationSelection.value?.country ?? undefined,
+      locationLatitude:    editLocationSelection.value?.latitude ?? undefined,
+      locationLongitude:   editLocationSelection.value?.longitude ?? undefined,
+      privacy:             editPrivacy.value,
+      postingPolicy:       editPostingPolicy.value,
+      ticketUrl:           trimmedTicket,
+      coverImage:          editCoverFile.value ?? undefined,
     })
     event.value = updated
     companyMode.setActiveEvent(updated)
@@ -235,16 +256,12 @@ onMounted(fetchEvent)
       </div>
 
       <!-- Location -->
-      <div>
-        <label class="block text-sm font-medium text-slate-300 mb-1">Location</label>
-        <input
-          v-model="editLocation"
-          type="text"
-          maxlength="512"
-          placeholder="Where is this event?"
-          class="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-      </div>
+      <PlacePicker
+        v-model="editLocationSelection"
+        mode="address"
+        label="Location"
+        placeholder="Where is this event?"
+      />
 
       <!-- Ticket URL -->
       <div>

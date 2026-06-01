@@ -27,6 +27,11 @@ export interface EventDto {
   startAt: string
   endAt?: string
   location?: string
+  locationPlaceId?: string
+  locationCity?: string
+  locationCountry?: string
+  locationLatitude?: number
+  locationLongitude?: number
   coverImageUrl?: string
   /** Optional external URL for buying tickets to this event. */
   ticketUrl?: string
@@ -65,6 +70,11 @@ export interface CreateEventPayload {
   startAt: string   // ISO date-time string
   endAt?: string
   location?: string
+  locationPlaceId?: string
+  locationCity?: string
+  locationCountry?: string
+  locationLatitude?: number
+  locationLongitude?: number
   privacy: 'Everyone' | 'FriendsOfFriends' | 'Friends' | 'OnlyMe'
   postingPolicy?: 'OrganizerOnly' | 'Everyone'
   companyPageId?: string
@@ -79,6 +89,11 @@ export interface UpdateEventPayload {
   startAt?: string
   endAt?: string
   location?: string
+  locationPlaceId?: string
+  locationCity?: string
+  locationCountry?: string
+  locationLatitude?: number
+  locationLongitude?: number
   privacy?: string
   postingPolicy?: string
   /**
@@ -97,15 +112,20 @@ export const eventService = {
   async createEvent(payload: CreateEventPayload): Promise<EventDto> {
     const form = new FormData()
     form.append('title', payload.title)
-    if (payload.description)   form.append('description', payload.description)
-    form.append('startAt',     payload.startAt)
-    if (payload.endAt)         form.append('endAt', payload.endAt)
-    if (payload.location)      form.append('location', payload.location)
-    form.append('privacy',     payload.privacy)
-    if (payload.postingPolicy) form.append('postingPolicy', payload.postingPolicy)
-    if (payload.companyPageId) form.append('companyPageId', payload.companyPageId)
-    if (payload.ticketUrl)     form.append('ticketUrl', payload.ticketUrl)
-    if (payload.coverImage)    form.append('coverImage', payload.coverImage)
+    if (payload.description)         form.append('description',       payload.description)
+    form.append('startAt',           payload.startAt)
+    if (payload.endAt)               form.append('endAt',             payload.endAt)
+    if (payload.location)            form.append('location',          payload.location)
+    if (payload.locationPlaceId)     form.append('locationPlaceId',   payload.locationPlaceId)
+    if (payload.locationCity)        form.append('locationCity',      payload.locationCity)
+    if (payload.locationCountry)     form.append('locationCountry',   payload.locationCountry)
+    if (payload.locationLatitude  != null) form.append('locationLatitude',  String(payload.locationLatitude))
+    if (payload.locationLongitude != null) form.append('locationLongitude', String(payload.locationLongitude))
+    form.append('privacy',           payload.privacy)
+    if (payload.postingPolicy)       form.append('postingPolicy',     payload.postingPolicy)
+    if (payload.companyPageId)       form.append('companyPageId',     payload.companyPageId)
+    if (payload.ticketUrl)           form.append('ticketUrl',         payload.ticketUrl)
+    if (payload.coverImage)          form.append('coverImage',        payload.coverImage)
 
     const { data } = await api.post<EventDto>('/api/events', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -158,15 +178,20 @@ export const eventService = {
 
   async updateEvent(id: string, payload: UpdateEventPayload): Promise<EventDto> {
     const form = new FormData()
-    if (payload.title          !== undefined) form.append('title',         payload.title)
-    if (payload.description    !== undefined) form.append('description',   payload.description ?? '')
-    if (payload.startAt        !== undefined) form.append('startAt',       payload.startAt)
-    if (payload.endAt          !== undefined) form.append('endAt',         payload.endAt)
-    if (payload.location       !== undefined) form.append('location',      payload.location ?? '')
-    if (payload.privacy        !== undefined) form.append('privacy',       payload.privacy)
-    if (payload.postingPolicy  !== undefined) form.append('postingPolicy', payload.postingPolicy)
-    if (payload.ticketUrl      !== undefined) form.append('ticketUrl',     payload.ticketUrl)
-    if (payload.coverImage)                  form.append('coverImage',    payload.coverImage)
+    if (payload.title             !== undefined) form.append('title',             payload.title)
+    if (payload.description       !== undefined) form.append('description',       payload.description ?? '')
+    if (payload.startAt           !== undefined) form.append('startAt',           payload.startAt)
+    if (payload.endAt             !== undefined) form.append('endAt',             payload.endAt)
+    if (payload.location          !== undefined) form.append('location',          payload.location ?? '')
+    if (payload.locationPlaceId   !== undefined) form.append('locationPlaceId',   payload.locationPlaceId ?? '')
+    if (payload.locationCity      !== undefined) form.append('locationCity',      payload.locationCity ?? '')
+    if (payload.locationCountry   !== undefined) form.append('locationCountry',   payload.locationCountry ?? '')
+    if (payload.locationLatitude  !== undefined) form.append('locationLatitude',  payload.locationLatitude != null ? String(payload.locationLatitude) : '')
+    if (payload.locationLongitude !== undefined) form.append('locationLongitude', payload.locationLongitude != null ? String(payload.locationLongitude) : '')
+    if (payload.privacy           !== undefined) form.append('privacy',           payload.privacy)
+    if (payload.postingPolicy     !== undefined) form.append('postingPolicy',     payload.postingPolicy)
+    if (payload.ticketUrl         !== undefined) form.append('ticketUrl',         payload.ticketUrl)
+    if (payload.coverImage)                      form.append('coverImage',        payload.coverImage)
 
     const { data } = await api.put<EventDto>(`/api/events/${id}`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },

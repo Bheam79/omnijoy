@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 import type { EventDto } from '@/services/eventService'
 import { useEventsStore } from '@/stores/events'
 import { useCompanyModeStore } from '@/stores/companyMode'
+import PlacePicker from '@/components/shared/PlacePicker.vue'
+import type { PlaceSelection } from '@/types/places'
 
 const emit = defineEmits<{
   close: []
@@ -14,12 +16,12 @@ const companyMode = useCompanyModeStore()
 
 // ── Form state ────────────────────────────────────────────────────────────────
 
-const title         = ref('')
-const description   = ref('')
-const startAt       = ref('')
-const endAt         = ref('')
-const location      = ref('')
-const ticketUrl     = ref('')
+const title             = ref('')
+const description       = ref('')
+const startAt           = ref('')
+const endAt             = ref('')
+const locationSelection = ref<PlaceSelection | null>(null)
+const ticketUrl         = ref('')
 const privacy       = ref<'Everyone' | 'FriendsOfFriends' | 'Friends' | 'OnlyMe'>('Everyone')
 const postingPolicy = ref<'OrganizerOnly' | 'Everyone'>('OrganizerOnly')
 const coverFile     = ref<File | null>(null)
@@ -73,17 +75,22 @@ async function handleSubmit() {
   submitting.value = true
   try {
     const ev = await eventsStore.createEvent({
-      title:         title.value.trim(),
-      description:   description.value.trim() || undefined,
-      startAt:       new Date(startAt.value).toISOString(),
-      endAt:         endAt.value ? new Date(endAt.value).toISOString() : undefined,
-      location:      location.value.trim() || undefined,
-      privacy:       privacy.value,
-      postingPolicy: postingPolicy.value,
+      title:               title.value.trim(),
+      description:         description.value.trim() || undefined,
+      startAt:             new Date(startAt.value).toISOString(),
+      endAt:               endAt.value ? new Date(endAt.value).toISOString() : undefined,
+      location:            locationSelection.value?.displayName || undefined,
+      locationPlaceId:     locationSelection.value?.placeId !== 'manual' ? (locationSelection.value?.placeId ?? undefined) : undefined,
+      locationCity:        locationSelection.value?.city ?? undefined,
+      locationCountry:     locationSelection.value?.country ?? undefined,
+      locationLatitude:    locationSelection.value?.latitude ?? undefined,
+      locationLongitude:   locationSelection.value?.longitude ?? undefined,
+      privacy:             privacy.value,
+      postingPolicy:       postingPolicy.value,
       // Organizer is determined by company mode — no dropdown needed.
-      companyPageId: companyMode.activeCompany?.id ?? undefined,
-      ticketUrl:     trimmedTicket || undefined,
-      coverImage:    coverFile.value ?? undefined,
+      companyPageId:       companyMode.activeCompany?.id ?? undefined,
+      ticketUrl:           trimmedTicket || undefined,
+      coverImage:          coverFile.value ?? undefined,
     })
     emit('created', ev)
     emit('close')
@@ -208,16 +215,12 @@ async function handleSubmit() {
           </div>
 
           <!-- Location -->
-          <div>
-            <label class="block text-sm font-medium text-slate-300 mb-1">Location</label>
-            <input
-              v-model="location"
-              type="text"
-              class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="Where is it happening?"
-              maxlength="512"
-            />
-          </div>
+          <PlacePicker
+            v-model="locationSelection"
+            mode="address"
+            label="Location"
+            placeholder="Where is it happening?"
+          />
 
           <!-- Ticket URL -->
           <div>
