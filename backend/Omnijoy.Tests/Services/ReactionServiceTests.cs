@@ -281,6 +281,131 @@ public class ReactionServiceTests : IDisposable
         await act.Should().ThrowAsync<KeyNotFoundException>();
     }
 
+    // ── GetReactionWhoAsync ───────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetReactionWho_NoReactions_ReturnsEmptyList()
+    {
+        var user = await CreateUserAsync();
+        var post = await CreatePostAsync(user.Id);
+
+        var dto = await _sut.GetReactionWhoAsync(post.Id, user.Id);
+
+        dto.People.Should().BeEmpty();
+        dto.Remaining.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GetReactionWho_PostNotFound_ThrowsKeyNotFoundException()
+    {
+        var act = async () => await _sut.GetReactionWhoAsync(Guid.NewGuid(), null);
+
+        await act.Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public async Task GetReactionWho_FewReactions_ListsAll()
+    {
+        var alice = await CreateUserAsync("Alice");
+        var bob   = await CreateUserAsync("Bob");
+        var post  = await CreatePostAsync(alice.Id);
+
+        _db.PostReactions.AddRange(
+            new PostReaction { Id = Guid.NewGuid(), PostId = post.Id, UserId = alice.Id, ReactionType = ReactionType.Like,  CreatedAt = DateTime.UtcNow },
+            new PostReaction { Id = Guid.NewGuid(), PostId = post.Id, UserId = bob.Id,   ReactionType = ReactionType.Love,  CreatedAt = DateTime.UtcNow }
+        );
+        await _db.SaveChangesAsync();
+
+        var dto = await _sut.GetReactionWhoAsync(post.Id, null);
+
+        dto.People.Should().HaveCount(2);
+        dto.Remaining.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GetReactionWho_MoreThan5Reactions_LimitsTo5AndReturnsRemaining()
+    {
+        var alice = await CreateUserAsync("Alice");
+        var post  = await CreatePostAsync(alice.Id);
+
+        for (int i = 0; i < 7; i++)
+        {
+            var u = await CreateUserAsync($"User{i}");
+            _db.PostReactions.Add(new PostReaction
+            {
+                Id = Guid.NewGuid(),
+                PostId = post.Id,
+                UserId = u.Id,
+                ReactionType = ReactionType.Like,
+                CreatedAt = DateTime.UtcNow.AddSeconds(i),
+            });
+        }
+        await _db.SaveChangesAsync();
+
+        var dto = await _sut.GetReactionWhoAsync(post.Id, null);
+
+        dto.People.Should().HaveCount(5);
+        dto.Remaining.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GetReactionWho_FriendsListedFirst()
+    {
+        var viewer  = await CreateUserAsync("Viewer");
+        var friend1 = await CreateUserAsync("Friend1");
+        var friend2 = await CreateUserAsync("Friend2");
+        var stranger1 = await CreateUserAsync("Stranger1");
+        var stranger2 = await CreateUserAsync("Stranger2");
+        var stranger3 = await CreateUserAsync("Stranger3");
+        var post = await CreatePostAsync(stranger1.Id);
+
+        // Make friend1 and friend2 accepted friends of viewer
+        _db.Friends.AddRange(
+            new Friend { Id = Guid.NewGuid(), RequesterId = viewer.Id, AddresseeId = friend1.Id, Status = FriendStatus.Accepted, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+            new Friend { Id = Guid.NewGuid(), RequesterId = friend2.Id, AddresseeId = viewer.Id, Status = FriendStatus.Accepted, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+        );
+
+        // Reactions: strangers react first, friends react later
+        var t = DateTime.UtcNow;
+        _db.PostReactions.AddRange(
+            new PostReaction { Id = Guid.NewGuid(), PostId = post.Id, UserId = stranger1.Id, ReactionType = ReactionType.Like, CreatedAt = t.AddSeconds(1) },
+            new PostReaction { Id = Guid.NewGuid(), PostId = post.Id, UserId = stranger2.Id, ReactionType = ReactionType.Wow,  CreatedAt = t.AddSeconds(2) },
+            new PostReaction { Id = Guid.NewGuid(), PostId = post.Id, UserId = stranger3.Id, ReactionType = ReactionType.Haha, CreatedAt = t.AddSeconds(3) },
+            new PostReaction { Id = Guid.NewGuid(), PostId = post.Id, UserId = friend1.Id,   ReactionType = ReactionType.Love, CreatedAt = t.AddSeconds(4) },
+            new PostReaction { Id = Guid.NewGuid(), PostId = post.Id, UserId = friend2.Id,   ReactionType = ReactionType.Sad,  CreatedAt = t.AddSeconds(5) }
+        );
+        await _db.SaveChangesAsync();
+
+        var dto = await _sut.GetReactionWhoAsync(post.Id, viewer.Id);
+
+        dto.People.Should().HaveCount(5);
+        dto.Remaining.Should().Be(0);
+
+        // Friends should appear first
+        new[] { friend1.Id, friend2.Id }.Should().Contain(dto.People[0].Id);
+        new[] { friend1.Id, friend2.Id }.Should().Contain(dto.People[1].Id);
+        dto.People.Take(2).Should().OnlyContain(p => p.IsFriend);
+        dto.People.Skip(2).Should().OnlyContain(p => !p.IsFriend);
+    }
+
+    [Fact]
+    public async Task GetReactionWho_AnonymousViewer_NoIsFriendFlags()
+    {
+        var alice = await CreateUserAsync("Alice");
+        var bob   = await CreateUserAsync("Bob");
+        var post  = await CreatePostAsync(alice.Id);
+
+        _db.PostReactions.AddRange(
+            new PostReaction { Id = Guid.NewGuid(), PostId = post.Id, UserId = alice.Id, ReactionType = ReactionType.Like,  CreatedAt = DateTime.UtcNow },
+            new PostReaction { Id = Guid.NewGuid(), PostId = post.Id, UserId = bob.Id,   ReactionType = ReactionType.Love,  CreatedAt = DateTime.UtcNow }
+        );
+        await _db.SaveChangesAsync();
+
+        var dto = await _sut.GetReactionWhoAsync(post.Id, null);
+
+        dto.People.Should().AllSatisfy(p => p.IsFriend.Should().BeFalse());
+    }
+
     // ── All six reaction types ────────────────────────────────────────────────
 
     [Theory]

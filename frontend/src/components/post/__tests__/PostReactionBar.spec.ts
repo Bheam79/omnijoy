@@ -3,7 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import PostReactionBar from '@/components/post/PostReactionBar.vue'
 import { useReactionsStore } from '@/stores/reactions'
-import type { PostReactionsDto } from '@/services/reactionService'
+import type { PostReactionsDto, ReactionWhoDto } from '@/services/reactionService'
 
 // ── Mock reactionService so store actions don't hit the network ───────────────
 
@@ -17,6 +17,7 @@ vi.mock('@/services/reactionService', async () => {
       getReactions:        vi.fn().mockResolvedValue({ counts: [], totalCount: 0, currentUserReaction: null }),
       addOrUpdateReaction: vi.fn().mockResolvedValue({ counts: [], totalCount: 0, currentUserReaction: null }),
       removeReaction:      vi.fn().mockResolvedValue({ counts: [], totalCount: 0, currentUserReaction: null }),
+      getReactionWho:      vi.fn().mockResolvedValue({ people: [], remaining: 0 }),
     },
   }
 })
@@ -257,5 +258,99 @@ describe('PostReactionBar', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-testid="reaction-count-button"]').text()).toContain('7')
+  })
+
+  // ── Who-reacted tooltip ───────────────────────────────────────────────────
+
+  it('shows tooltip with names on mouseenter after delay', async () => {
+    vi.useFakeTimers()
+    const { reactionService } = await import('@/services/reactionService')
+    const whoMock = vi.mocked(reactionService.getReactionWho)
+    whoMock.mockResolvedValue({
+      people: [
+        { id: 'u1', displayName: 'Alice', avatarUrl: null, isFriend: true, reactionType: 'Like' },
+        { id: 'u2', displayName: 'Bob',   avatarUrl: null, isFriend: false, reactionType: 'Love' },
+      ],
+      remaining: 0,
+    })
+
+    const { wrapper } = mountBar({
+      seed: {
+        counts: [{ reactionType: 'Like', count: 2 }],
+        totalCount: 2,
+        currentUserReaction: null,
+      },
+    })
+    await flushPromises()
+
+    const hoverZone = wrapper.find('[data-testid="reaction-count-button"]').element.closest('.relative')!
+    await wrapper.find('.relative').trigger('mouseenter')
+
+    // Before 200ms delay: tooltip not visible yet
+    expect(wrapper.find('[data-testid="reaction-who-tooltip"]').exists()).toBe(false)
+
+    // Advance past the 200ms debounce
+    vi.advanceTimersByTime(200)
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="reaction-who-tooltip"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="reaction-who-tooltip"]').text()).toContain('Alice')
+    expect(wrapper.find('[data-testid="reaction-who-tooltip"]').text()).toContain('Bob')
+
+    vi.useRealTimers()
+  })
+
+  it('hides tooltip on mouseleave', async () => {
+    vi.useFakeTimers()
+
+    const { wrapper } = mountBar({
+      seed: {
+        counts: [{ reactionType: 'Like', count: 1 }],
+        totalCount: 1,
+        currentUserReaction: null,
+      },
+    })
+    await flushPromises()
+
+    await wrapper.find('.relative').trigger('mouseenter')
+    vi.advanceTimersByTime(200)
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="reaction-who-tooltip"]').exists()).toBe(true)
+
+    await wrapper.find('.relative').trigger('mouseleave')
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="reaction-who-tooltip"]').exists()).toBe(false)
+
+    vi.useRealTimers()
+  })
+
+  it('shows "+N more…" when remaining > 0', async () => {
+    vi.useFakeTimers()
+    const { reactionService } = await import('@/services/reactionService')
+    vi.mocked(reactionService.getReactionWho).mockResolvedValue({
+      people: [
+        { id: 'u1', displayName: 'Alice', avatarUrl: null, isFriend: false, reactionType: 'Like' },
+      ],
+      remaining: 12,
+    })
+
+    const { wrapper } = mountBar({
+      seed: {
+        counts: [{ reactionType: 'Like', count: 13 }],
+        totalCount: 13,
+        currentUserReaction: null,
+      },
+    })
+    await flushPromises()
+
+    await wrapper.find('.relative').trigger('mouseenter')
+    vi.advanceTimersByTime(200)
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="reaction-who-tooltip"]').text()).toContain('+12 more')
+
+    vi.useRealTimers()
   })
 })

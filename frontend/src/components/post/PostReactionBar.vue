@@ -11,7 +11,7 @@
  */
 import { computed, onMounted, ref } from 'vue'
 import { useReactionsStore } from '@/stores/reactions'
-import { REACTION_EMOJIS, type ReactionType } from '@/services/reactionService'
+import { REACTION_EMOJIS, reactionService, type ReactionType, type ReactionWhoDto } from '@/services/reactionService'
 import ReactionPicker from './ReactionPicker.vue'
 import ReactionsModal from './ReactionsModal.vue'
 
@@ -43,6 +43,38 @@ const topEmojis = computed(() =>
     .map(c => REACTION_EMOJIS[c.reactionType]),
 )
 
+// ── Who reacted tooltip ───────────────────────────────────────────────────────
+
+const whoData = ref<ReactionWhoDto | null>(null)
+const whoLoading = ref(false)
+const showWhoTooltip = ref(false)
+let hoverTimeout: ReturnType<typeof setTimeout> | null = null
+
+async function onCountMouseEnter() {
+  // Delay slightly so fast mouse-overs don't trigger a fetch
+  hoverTimeout = setTimeout(async () => {
+    showWhoTooltip.value = true
+    if (!whoData.value && !whoLoading.value) {
+      whoLoading.value = true
+      try {
+        whoData.value = await reactionService.getReactionWho(props.postId)
+      } catch {
+        // silently ignore — tooltip just won't show names
+      } finally {
+        whoLoading.value = false
+      }
+    }
+  }, 200)
+}
+
+function onCountMouseLeave() {
+  if (hoverTimeout) {
+    clearTimeout(hoverTimeout)
+    hoverTimeout = null
+  }
+  showWhoTooltip.value = false
+}
+
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
 onMounted(() => {
@@ -70,22 +102,57 @@ function onRemove() {
       v-if="totalCount > 0"
       class="px-4 py-1 flex items-center gap-1 text-sm text-gray-500 border-b border-slate-700"
     >
-      <button
-        class="flex items-center gap-1 hover:underline focus:outline-none"
-        aria-label="See reactions"
-        data-testid="reaction-count-button"
-        @click="showModal = true"
+      <!-- Wrapper with hover tooltip -->
+      <div
+        class="relative"
+        @mouseenter="onCountMouseEnter"
+        @mouseleave="onCountMouseLeave"
       >
-        <!-- Top-3 emoji strip -->
-        <span
-          v-for="(emoji, i) in topEmojis"
-          :key="i"
-          class="text-base leading-none"
-          aria-hidden="true"
-        >{{ emoji }}</span>
-        <!-- Total count -->
-        <span class="ml-1 text-xs text-gray-500">{{ totalCount }}</span>
-      </button>
+        <button
+          class="flex items-center gap-1 hover:underline focus:outline-none"
+          aria-label="See reactions"
+          data-testid="reaction-count-button"
+          @click="showModal = true"
+        >
+          <!-- Top-3 emoji strip -->
+          <span
+            v-for="(emoji, i) in topEmojis"
+            :key="i"
+            class="text-base leading-none"
+            aria-hidden="true"
+          >{{ emoji }}</span>
+          <!-- Total count -->
+          <span class="ml-1 text-xs text-gray-500">{{ totalCount }}</span>
+        </button>
+
+        <!-- Who-reacted tooltip -->
+        <div
+          v-if="showWhoTooltip && totalCount > 0"
+          class="absolute bottom-full left-0 mb-2 z-50 bg-gray-900 text-white text-xs rounded-lg shadow-xl px-3 py-2 min-w-[140px] max-w-[220px] pointer-events-none"
+          data-testid="reaction-who-tooltip"
+        >
+          <!-- Loading state -->
+          <span v-if="whoLoading" class="text-gray-400">Loading…</span>
+
+          <!-- Populated list -->
+          <template v-else-if="whoData && whoData.people.length > 0">
+            <div
+              v-for="person in whoData.people"
+              :key="person.id"
+              class="flex items-center gap-1.5 py-0.5"
+            >
+              <span class="text-sm leading-none">{{ REACTION_EMOJIS[person.reactionType] }}</span>
+              <span class="truncate font-medium">{{ person.displayName }}</span>
+            </div>
+            <div v-if="whoData.remaining > 0" class="mt-1 text-gray-400">
+              +{{ whoData.remaining }} more…
+            </div>
+          </template>
+
+          <!-- Empty / error fallback -->
+          <span v-else class="text-gray-400">No reactions yet</span>
+        </div>
+      </div>
     </div>
 
     <!-- Picker + count row -->

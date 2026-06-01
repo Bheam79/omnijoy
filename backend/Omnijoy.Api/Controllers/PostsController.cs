@@ -276,6 +276,27 @@ public class PostsController : ControllerBase
         }
     }
 
+    // ── GET /api/posts/{id}/reactions/who ────────────────────────────────────
+
+    /// <summary>
+    /// Returns up to 5 people who reacted to a post, prioritising friends of
+    /// the current user, plus the count of remaining reactors not listed.
+    /// </summary>
+    [HttpGet("{id:guid}/reactions/who")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetReactionWho(Guid id)
+    {
+        try
+        {
+            var dto = await _reactions.GetReactionWhoAsync(id, CurrentUserId);
+            return Ok(dto);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
     // ── POST /api/posts/{id}/reactions ────────────────────────────────────────
 
     /// <summary>

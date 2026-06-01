@@ -87,6 +87,68 @@ public class ReactionService : IReactionService
         return await BuildReactionsDtoAsync(postId, userId);
     }
 
+    // ── Who reacted ───────────────────────────────────────────────────────────
+
+    public async Task<ReactionWhoDto> GetReactionWhoAsync(Guid postId, Guid? currentUserId)
+    {
+        var postExists = await _db.Posts.AnyAsync(p => p.Id == postId && p.DeletedAt == null);
+        if (!postExists)
+            throw new KeyNotFoundException($"Post {postId} not found.");
+
+        // Fetch all reactors with their display names and avatars.
+        var reactors = await _db.PostReactions
+            .AsNoTracking()
+            .Where(r => r.PostId == postId)
+            .OrderBy(r => r.CreatedAt)
+            .Select(r => new
+            {
+                r.UserId,
+                r.User.DisplayName,
+                r.User.AvatarUrl,
+                ReactionType = r.ReactionType.ToString(),
+            })
+            .ToListAsync();
+
+        int total = reactors.Count;
+        const int maxListed = 5;
+
+        if (total == 0)
+            return new ReactionWhoDto([], 0);
+
+        // Determine which of these users are friends of the current user.
+        HashSet<Guid> friendIds = [];
+        if (currentUserId.HasValue)
+        {
+            var userId = currentUserId.Value;
+            var ids = await _db.Friends
+                .AsNoTracking()
+                .Where(f => f.Status == FriendStatus.Accepted &&
+                            (f.RequesterId == userId || f.AddresseeId == userId))
+                .Select(f => f.RequesterId == userId ? f.AddresseeId : f.RequesterId)
+                .ToListAsync();
+            friendIds = [.. ids];
+        }
+
+        // Sort: friends first, then rest — preserving CreatedAt order within each group.
+        var sorted = reactors
+            .OrderByDescending(r => friendIds.Contains(r.UserId))
+            .ThenBy(_ => 0)  // preserve stable relative order from the original OrderBy
+            .ToList();
+
+        var listed = sorted.Take(maxListed).ToArray();
+        int remaining = total - listed.Length;
+
+        var people = listed.Select(r => new ReactionWhoUserDto(
+            r.UserId,
+            r.DisplayName,
+            r.AvatarUrl,
+            friendIds.Contains(r.UserId),
+            r.ReactionType
+        )).ToArray();
+
+        return new ReactionWhoDto(people, remaining);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private async Task<PostReactionsDto> BuildReactionsDtoAsync(Guid postId, Guid? currentUserId)

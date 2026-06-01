@@ -44,6 +44,19 @@ export interface ReactionCountsUpdatedEvent {
   totalCount: number
 }
 
+export interface ReactionWhoUserDto {
+  id: string
+  displayName: string
+  avatarUrl: string | null
+  isFriend: boolean
+  reactionType: ReactionType
+}
+
+export interface ReactionWhoDto {
+  people: ReactionWhoUserDto[]
+  remaining: number
+}
+
 // ── Service ───────────────────────────────────────────────────────────────────
 
 export const reactionService = {
@@ -61,6 +74,11 @@ export const reactionService = {
 
   async removeReaction(postId: string): Promise<PostReactionsDto> {
     const { data } = await api.delete<PostReactionsDto>(`/api/posts/${postId}/reactions`)
+    return data
+  },
+
+  async getReactionWho(postId: string): Promise<ReactionWhoDto> {
+    const { data } = await api.get<ReactionWhoDto>(`/api/posts/${postId}/reactions/who`)
     return data
   },
 }
