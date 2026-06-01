@@ -74,7 +74,7 @@ describe('useVersionCheck', () => {
   })
 
   /** Mounts checker and registers it for auto-cleanup in afterEach. */
-  function mount_(label?: string) {
+  function mount_() {
     const c = mountChecker()
     mounted.push(c.wrapper)
     return c
