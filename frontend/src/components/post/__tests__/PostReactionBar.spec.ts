@@ -3,7 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import PostReactionBar from '@/components/post/PostReactionBar.vue'
 import { useReactionsStore } from '@/stores/reactions'
-import type { PostReactionsDto, ReactionWhoDto } from '@/services/reactionService'
+import type { PostReactionsDto } from '@/services/reactionService'
 
 // ── Mock reactionService so store actions don't hit the network ───────────────
 
@@ -283,7 +283,6 @@ describe('PostReactionBar', () => {
     })
     await flushPromises()
 
-    const hoverZone = wrapper.find('[data-testid="reaction-count-button"]').element.closest('.relative')!
     await wrapper.find('.relative').trigger('mouseenter')
 
     // Before 200ms delay: tooltip not visible yet

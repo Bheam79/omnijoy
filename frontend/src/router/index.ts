@@ -279,4 +279,25 @@ router.beforeEach((to) => {
   }
 })
 
+// ── Chunk-load failure recovery ───────────────────────────────────────────────
+//
+// After a backend redeploy, Vite's content-hashed filenames change (e.g.
+// ShareEventView-DjoIrJyI.js). A client that still holds the old index.html
+// will try to lazy-import a chunk that no longer exists, producing:
+//   TypeError: Failed to fetch dynamically imported module
+//
+// We catch that here and perform a hard navigation to the intended route,
+// which re-fetches index.html and picks up the updated chunk manifest.
+// The user lands on the page they clicked with no visible error.
+router.onError((error, to) => {
+  const isChunkError =
+    error instanceof TypeError &&
+    (error.message.includes('Failed to fetch dynamically imported module') ||
+     error.message.includes('Importing a module script failed')) // Safari variant
+
+  if (!isChunkError) return
+
+  window.location.href = to?.fullPath ?? window.location.pathname
+})
+
 export default router
