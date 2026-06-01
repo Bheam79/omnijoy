@@ -24,7 +24,7 @@ interface NavItem {
 
 const navItems = computed<NavItem[]>(() => {
   const items: NavItem[] = [
-    { label: 'My Wall',       to: '/wall',    icon: 'home',      testId: 'nav-wall' },
+    { label: auth.user?.displayName ?? 'My Wall', to: '/wall', icon: 'home', testId: 'nav-wall' },
     { label: 'Friends',       to: '/friends', icon: 'users',     testId: 'nav-friends' },
     { label: 'Events',        to: '/events',  icon: 'calendar',  matchPrefix: true, testId: 'nav-events' },
     { label: 'Company Pages', to: '/company', icon: 'building',  matchPrefix: true, testId: 'nav-company' },
@@ -80,10 +80,21 @@ function isActive(item: NavItem): boolean {
           : 'text-slate-300 hover:bg-slate-700'"
         @click="emit('close')"
       >
-        <!-- Home / Wall -->
-        <svg v-if="item.icon === 'home'" class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-        </svg>
+        <!-- My Wall — user avatar or initial -->
+        <template v-if="item.icon === 'home'">
+          <img
+            v-if="auth.user?.avatarUrl"
+            :src="auth.user.avatarUrl"
+            :alt="auth.user.displayName"
+            class="h-5 w-5 shrink-0 rounded-full object-cover"
+          />
+          <div
+            v-else
+            class="h-5 w-5 shrink-0 rounded-full bg-indigo-900 text-indigo-400 flex items-center justify-center text-xs font-bold"
+          >
+            {{ auth.user?.displayName?.[0]?.toUpperCase() ?? '?' }}
+          </div>
+        </template>
 
         <!-- Friends / Users -->
         <svg v-else-if="item.icon === 'users'" class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
