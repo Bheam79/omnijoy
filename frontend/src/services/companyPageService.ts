@@ -28,6 +28,12 @@ export interface CompanyPageDto {
   createdAt: string
   /** Vanity URL slug — null when unset. */
   urlSlug?: string | null
+  /** Physical address fields — populated when set by an admin. */
+  addressText?: string | null
+  addressCity?: string | null
+  addressCountry?: string | null
+  addressLatitude?: number | null
+  addressLongitude?: number | null
 }
 
 export interface CompanyPagesPageResult {
@@ -46,6 +52,12 @@ export interface CreatePagePayload {
   description?: string
   logo?: File
   cover?: File
+  addressPlaceId?: string | null
+  addressText?: string | null
+  addressCity?: string | null
+  addressCountry?: string | null
+  addressLatitude?: number | null
+  addressLongitude?: number | null
 }
 
 export interface UpdatePagePayload {
@@ -53,6 +65,12 @@ export interface UpdatePagePayload {
   description?: string
   logo?: File
   cover?: File
+  addressPlaceId?: string | null
+  addressText?: string | null
+  addressCity?: string | null
+  addressCountry?: string | null
+  addressLatitude?: number | null
+  addressLongitude?: number | null
 }
 
 export interface AddAdminPayload {
@@ -66,9 +84,15 @@ export const companyPageService = {
   async createPage(payload: CreatePagePayload): Promise<CompanyPageDto> {
     const form = new FormData()
     form.append('name', payload.name)
-    if (payload.description) form.append('description', payload.description)
-    if (payload.logo)        form.append('logo',        payload.logo)
-    if (payload.cover)       form.append('cover',       payload.cover)
+    if (payload.description)                   form.append('description',      payload.description)
+    if (payload.logo)                          form.append('logo',             payload.logo)
+    if (payload.cover)                         form.append('cover',            payload.cover)
+    if (payload.addressPlaceId != null)        form.append('addressPlaceId',   payload.addressPlaceId)
+    if (payload.addressText != null)           form.append('addressText',      payload.addressText)
+    if (payload.addressCity != null)           form.append('addressCity',      payload.addressCity)
+    if (payload.addressCountry != null)        form.append('addressCountry',   payload.addressCountry)
+    if (payload.addressLatitude != null)       form.append('addressLatitude',  String(payload.addressLatitude))
+    if (payload.addressLongitude != null)      form.append('addressLongitude', String(payload.addressLongitude))
 
     const { data } = await api.post<CompanyPageDto>('/api/company-pages', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -103,6 +127,12 @@ export const companyPageService = {
     if (payload.description !== undefined) form.append('description', payload.description ?? '')
     if (payload.logo)                      form.append('logo',        payload.logo)
     if (payload.cover)                     form.append('cover',       payload.cover)
+    if (payload.addressPlaceId  !== undefined && payload.addressPlaceId  != null) form.append('addressPlaceId',   payload.addressPlaceId)
+    if (payload.addressText     !== undefined && payload.addressText     != null) form.append('addressText',      payload.addressText)
+    if (payload.addressCity     !== undefined && payload.addressCity     != null) form.append('addressCity',      payload.addressCity)
+    if (payload.addressCountry  !== undefined && payload.addressCountry  != null) form.append('addressCountry',   payload.addressCountry)
+    if (payload.addressLatitude !== undefined && payload.addressLatitude != null) form.append('addressLatitude',  String(payload.addressLatitude))
+    if (payload.addressLongitude !== undefined && payload.addressLongitude != null) form.append('addressLongitude', String(payload.addressLongitude))
 
     const { data } = await api.put<CompanyPageDto>(`/api/company-pages/${id}`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },

@@ -2,6 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { companyPageService, type CompanyPageDto } from '@/services/companyPageService'
+import PlacePicker from '@/components/shared/PlacePicker.vue'
+import type { PlaceSelection } from '@/types/places'
 
 const pages = ref<CompanyPageDto[]>([])
 const loading = ref(true)
@@ -19,6 +21,7 @@ const createLogo = ref<File | null>(null)
 const createCover = ref<File | null>(null)
 const logoPreview = ref<string | null>(null)
 const coverPreview = ref<string | null>(null)
+const createAddress = ref<PlaceSelection | null>(null)
 const creating = ref(false)
 const createError = ref<string | null>(null)
 
@@ -77,10 +80,17 @@ async function handleCreate() {
   creating.value = true
   try {
     const p = await companyPageService.createPage({
-      name:        createName.value.trim(),
-      description: createDesc.value.trim() || undefined,
-      logo:        createLogo.value  ?? undefined,
-      cover:       createCover.value ?? undefined,
+      name:             createName.value.trim(),
+      description:      createDesc.value.trim() || undefined,
+      logo:             createLogo.value  ?? undefined,
+      cover:            createCover.value ?? undefined,
+      addressPlaceId:   createAddress.value && createAddress.value.placeId !== 'manual' && createAddress.value.placeId !== 'stored'
+                          ? createAddress.value.placeId : null,
+      addressText:      createAddress.value?.formattedAddress ?? createAddress.value?.displayName ?? null,
+      addressCity:      createAddress.value?.city ?? null,
+      addressCountry:   createAddress.value?.country ?? null,
+      addressLatitude:  createAddress.value?.latitude ?? null,
+      addressLongitude: createAddress.value?.longitude ?? null,
     })
     pages.value.unshift(p)
     showCreateModal.value = false
@@ -93,10 +103,11 @@ async function handleCreate() {
 }
 
 function resetCreateForm() {
-  createName.value  = ''
-  createDesc.value  = ''
-  createLogo.value  = null
-  createCover.value = null
+  createName.value    = ''
+  createDesc.value    = ''
+  createLogo.value    = null
+  createCover.value   = null
+  createAddress.value = null
   if (logoPreview.value)  URL.revokeObjectURL(logoPreview.value)
   if (coverPreview.value) URL.revokeObjectURL(coverPreview.value)
   logoPreview.value  = null
@@ -348,6 +359,14 @@ function extractError(e: unknown): string {
               class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
             />
           </div>
+
+          <!-- Business address (optional) -->
+          <PlacePicker
+            v-model="createAddress"
+            mode="address"
+            label="Business address"
+            placeholder="Search for address…"
+          />
 
           <div v-if="createError" class="text-sm text-red-400 bg-red-950 rounded-lg px-3 py-2">
             {{ createError }}
