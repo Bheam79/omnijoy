@@ -141,16 +141,16 @@ const whenLabel = computed(() => {
 
             <dl class="mt-5 space-y-3 text-sm text-slate-300">
               <div class="flex gap-2">
-                <dt class="font-semibold w-20">When</dt>
+                <dt class="font-semibold w-28 shrink-0">When</dt>
                 <dd>{{ whenLabel }}</dd>
               </div>
               <div v-if="event.location" class="flex gap-2">
-                <dt class="font-semibold w-20">Where</dt>
+                <dt class="font-semibold w-28 shrink-0">Where</dt>
                 <dd>{{ event.location }}</dd>
               </div>
               <div class="flex gap-2">
-                <dt class="font-semibold w-20">Going</dt>
-                <dd>{{ event.goingCount }} · {{ event.maybeCount }} maybe</dd>
+                <dt class="font-semibold w-28 shrink-0">Participants</dt>
+                <dd>Going {{ event.goingCount }} - Maybe {{ event.maybeCount }}</dd>
               </div>
             </dl>
 
