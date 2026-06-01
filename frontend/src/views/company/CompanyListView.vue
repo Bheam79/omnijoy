@@ -293,7 +293,7 @@ function extractError(e: unknown): string {
       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
       @click.self="showCreateModal = false; resetCreateForm()"
     >
-      <div class="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
+      <div class="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700">
           <h2 class="text-lg font-bold text-slate-100">Create Company Page</h2>

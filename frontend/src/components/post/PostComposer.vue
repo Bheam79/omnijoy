@@ -258,7 +258,7 @@ defineExpose({ open, close })
       >
         <div
           data-testid="post-modal"
-          class="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]"
+          class="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh]"
           @click.stop
         >
           <!-- Modal header -->

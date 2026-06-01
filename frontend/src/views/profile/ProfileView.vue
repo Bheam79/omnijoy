@@ -388,7 +388,7 @@ const reportModalOpen = ref(false)
   <Teleport to="body">
     <Transition enter-active-class="transition ease-out duration-200" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition ease-in duration-150" leave-from-class="opacity-100" leave-to-class="opacity-0">
       <div v-if="editOpen" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50" @click.self="editOpen = false">
-        <div class="bg-slate-800 rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div class="bg-slate-800 rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
           <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700">
             <h2 class="text-lg font-semibold text-slate-100">Edit profile</h2>
             <button class="p-1.5 text-slate-500 hover:text-slate-400 hover:bg-slate-700 rounded-lg" @click="editOpen = false">
@@ -452,7 +452,7 @@ const reportModalOpen = ref(false)
   <Teleport to="body">
     <Transition enter-active-class="transition ease-out duration-200" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition ease-in duration-150" leave-from-class="opacity-100" leave-to-class="opacity-0">
       <div v-if="privacyOpen" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50" @click.self="privacyOpen = false">
-        <div class="bg-slate-800 rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div class="bg-slate-800 rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
           <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700">
             <h2 class="text-lg font-semibold text-slate-100">Privacy settings</h2>
             <button class="p-1.5 text-slate-500 hover:text-slate-400 hover:bg-slate-700 rounded-lg" @click="privacyOpen = false">

@@ -619,7 +619,7 @@ watch(() => route.query, () => {
       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
       @click.self="showEditModal = false"
     >
-      <div class="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
+      <div class="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700">
           <h2 class="text-lg font-bold text-slate-100">Edit Page</h2>
           <button class="text-slate-500 hover:text-slate-400 p-1 rounded-full hover:bg-slate-700 transition" @click="showEditModal = false">
