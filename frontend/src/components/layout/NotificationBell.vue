@@ -55,8 +55,11 @@ function describe(n: Notification): string {
 
 function targetRoute(n: Notification): string | null {
   switch (n.type as NotificationType) {
-    case 'FriendRequest':
     case 'FriendRequestAccepted':
+      // Once accepted, the friend request flow is done — jump straight to
+      // the new friend's wall instead of the friends list.
+      return n.actor?.id ? `/profile/${n.actor.id}` : '/friends'
+    case 'FriendRequest':
     case 'NewFollower':
     case 'FamilyRelationRequest':
       return '/friends'
