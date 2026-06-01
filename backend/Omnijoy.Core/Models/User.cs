@@ -63,6 +63,29 @@ public class User
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
+    // ── Location ('where I'm from' — city/country level) ──────────────────────
+
+    /// <summary>Google Place ID for the user's home location.</summary>
+    public string? LocationPlaceId { get; set; }
+
+    /// <summary>Human-readable display label, e.g. "Oslo, Norway".</summary>
+    public string? LocationName { get; set; }
+
+    /// <summary>City or town name.</summary>
+    public string? LocationCity { get; set; }
+
+    /// <summary>Country name.</summary>
+    public string? LocationCountry { get; set; }
+
+    /// <summary>ISO 3166-1 alpha-2 country code, e.g. "NO".</summary>
+    public string? LocationCountryCode { get; set; }
+
+    /// <summary>Latitude for distance comparisons (decimal degrees, WGS-84).</summary>
+    public decimal? LocationLatitude { get; set; }
+
+    /// <summary>Longitude for distance comparisons (decimal degrees, WGS-84).</summary>
+    public decimal? LocationLongitude { get; set; }
+
     // Navigation properties
     public UserPrivacySettings? PrivacySettings { get; set; }
     public NotificationPreferences? NotificationPreferences { get; set; }

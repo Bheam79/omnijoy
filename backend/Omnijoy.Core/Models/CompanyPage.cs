@@ -16,6 +16,26 @@ public class CompanyPage
     /// </summary>
     public string? UrlSlug { get; set; }
 
+    // ── Physical address ───────────────────────────────────────────────────────
+
+    /// <summary>Google Place ID for the business address.</summary>
+    public string? AddressPlaceId { get; set; }
+
+    /// <summary>Full formatted address, e.g. "123 Main St, Oslo, Norway".</summary>
+    public string? AddressText { get; set; }
+
+    /// <summary>City name.</summary>
+    public string? AddressCity { get; set; }
+
+    /// <summary>Country name.</summary>
+    public string? AddressCountry { get; set; }
+
+    /// <summary>Latitude for distance comparisons (decimal degrees, WGS-84).</summary>
+    public decimal? AddressLatitude { get; set; }
+
+    /// <summary>Longitude for distance comparisons (decimal degrees, WGS-84).</summary>
+    public decimal? AddressLongitude { get; set; }
+
     // Navigation properties
     public User CreatedByUser { get; set; } = null!;
     public ICollection<CompanyPageAdmin> Admins { get; set; } = [];

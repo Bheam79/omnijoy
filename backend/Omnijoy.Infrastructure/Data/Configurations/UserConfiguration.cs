@@ -72,6 +72,28 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.UpdatedAt)
                .IsRequired();
 
+        // ── Location fields ────────────────────────────────────────────────────
+        builder.Property(u => u.LocationPlaceId)
+               .HasMaxLength(512);
+
+        builder.Property(u => u.LocationName)
+               .HasMaxLength(512);
+
+        builder.Property(u => u.LocationCity)
+               .HasMaxLength(256);
+
+        builder.Property(u => u.LocationCountry)
+               .HasMaxLength(256);
+
+        builder.Property(u => u.LocationCountryCode)
+               .HasMaxLength(8);
+
+        builder.Property(u => u.LocationLatitude)
+               .HasPrecision(9, 6);
+
+        builder.Property(u => u.LocationLongitude)
+               .HasPrecision(9, 6);
+
         // One-to-one with UserPrivacySettings
         builder.HasOne(u => u.PrivacySettings)
                .WithOne(ps => ps.User)

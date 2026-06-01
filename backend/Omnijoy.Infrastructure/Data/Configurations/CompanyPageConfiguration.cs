@@ -40,6 +40,25 @@ public class CompanyPageConfiguration : IEntityTypeConfiguration<CompanyPage>
         builder.HasIndex(cp => cp.UrlSlug)
                .IsUnique();
 
+        // ── Address fields ─────────────────────────────────────────────────────
+        builder.Property(cp => cp.AddressPlaceId)
+               .HasMaxLength(512);
+
+        builder.Property(cp => cp.AddressText)
+               .HasMaxLength(512);
+
+        builder.Property(cp => cp.AddressCity)
+               .HasMaxLength(256);
+
+        builder.Property(cp => cp.AddressCountry)
+               .HasMaxLength(256);
+
+        builder.Property(cp => cp.AddressLatitude)
+               .HasPrecision(9, 6);
+
+        builder.Property(cp => cp.AddressLongitude)
+               .HasPrecision(9, 6);
+
         builder.HasOne(cp => cp.CreatedByUser)
                .WithMany(u => u.CreatedCompanyPages)
                .HasForeignKey(cp => cp.CreatedByUserId)

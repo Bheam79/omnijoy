@@ -23,6 +23,22 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
         builder.Property(e => e.Location)
                .HasMaxLength(512);
 
+        // ── Structured venue address fields ────────────────────────────────────
+        builder.Property(e => e.LocationPlaceId)
+               .HasMaxLength(512);
+
+        builder.Property(e => e.LocationCity)
+               .HasMaxLength(256);
+
+        builder.Property(e => e.LocationCountry)
+               .HasMaxLength(256);
+
+        builder.Property(e => e.LocationLatitude)
+               .HasPrecision(9, 6);
+
+        builder.Property(e => e.LocationLongitude)
+               .HasPrecision(9, 6);
+
         builder.Property(e => e.CoverImageUrl)
                .HasMaxLength(2048);
 
