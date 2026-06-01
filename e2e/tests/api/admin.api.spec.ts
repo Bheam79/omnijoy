@@ -1,5 +1,5 @@
 import { test, expect } from '../../support/fixtures'
-import { SEED } from '../../fixtures/seed-data'
+import { SEED, TEST_LOCATION } from '../../fixtures/seed-data'
 import { getSharedTokenFor } from '../../support/shared-auth'
 
 /**
@@ -161,6 +161,7 @@ test.describe('POST /api/admin/users/:id/ban', () => {
         password: banTarget.password,
         gender: 'NotDisclosed',
         birthDate: '1990-01-01',
+        ...TEST_LOCATION,
       },
     })
     const regBody = await regResp.json()

@@ -53,6 +53,10 @@ async function globalSetup(config: FullConfig) {
           password: user.password,
           gender: user.gender,
           birthDate: user.birthDate,
+          locationCountry: user.locationCountry,
+          locationCountryCode: user.locationCountryCode,
+          locationCity: user.locationCity,
+          locationName: user.locationName,
         },
       })
 

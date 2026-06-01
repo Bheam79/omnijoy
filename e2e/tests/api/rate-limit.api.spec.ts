@@ -1,5 +1,5 @@
 import { test, expect } from '../../support/fixtures'
-import { SEED } from '../../fixtures/seed-data'
+import { SEED, TEST_LOCATION } from '../../fixtures/seed-data'
 
 /**
  * Rate-limit E2E tests.
@@ -199,6 +199,7 @@ test.describe.serial('Rate limit — upload policy (POST /api/posts, 20/hour per
         password: 'Test@12345!',
         gender: 'NotDisclosed',
         birthDate: '1990-01-01',
+        ...TEST_LOCATION,
       },
     })
 

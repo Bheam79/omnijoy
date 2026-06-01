@@ -12,7 +12,22 @@ export interface SeedUser {
   displayName: string
   gender: string
   birthDate: string
+  locationCountry?: string
+  locationCountryCode?: string
+  locationCity?: string
+  locationName?: string
 }
+
+/**
+ * Minimal location payload required by the registration endpoint.
+ * Spread into any inline register call: `{ ...TEST_LOCATION, ... }`.
+ */
+export const TEST_LOCATION = {
+  locationCountry: 'Norway',
+  locationCountryCode: 'NO',
+  locationCity: 'Oslo',
+  locationName: 'Oslo, Norway',
+} as const
 
 export const SEED: Record<string, SeedUser> & {
   user1: SeedUser
@@ -27,6 +42,7 @@ export const SEED: Record<string, SeedUser> & {
     displayName: 'Alice E2E',
     gender: 'Female',
     birthDate: '1990-01-15',
+    ...TEST_LOCATION,
   },
   /** Secondary user — friend / conversation partner */
   user2: {
@@ -35,6 +51,7 @@ export const SEED: Record<string, SeedUser> & {
     displayName: 'Bob E2E',
     gender: 'Male',
     birthDate: '1988-03-22',
+    ...TEST_LOCATION,
   },
   /** Third user — used for privacy / block tests */
   user3: {
@@ -43,6 +60,7 @@ export const SEED: Record<string, SeedUser> & {
     displayName: 'Carol E2E',
     gender: 'NotDisclosed',
     birthDate: '1995-07-04',
+    ...TEST_LOCATION,
   },
   /**
    * Admin user — promoted to the Admin platform role by global-setup via a
@@ -55,5 +73,6 @@ export const SEED: Record<string, SeedUser> & {
     displayName: 'Admin E2E',
     gender: 'NotDisclosed',
     birthDate: '1985-06-15',
+    ...TEST_LOCATION,
   },
 }

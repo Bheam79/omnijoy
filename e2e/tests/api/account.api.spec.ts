@@ -1,5 +1,5 @@
 import { test, expect, type APIRequestContext } from '../../support/fixtures'
-import { SEED } from '../../fixtures/seed-data'
+import { SEED, TEST_LOCATION } from '../../fixtures/seed-data'
 import { getSharedTokenFor } from '../../support/shared-auth'
 
 /**
@@ -28,6 +28,7 @@ async function registerDisposable(
       password,
       gender: 'NotDisclosed',
       birthDate: '1990-01-01',
+      ...TEST_LOCATION,
     },
   })
   const body = await regResp.json()

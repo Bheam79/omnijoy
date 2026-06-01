@@ -1,5 +1,5 @@
 import { test, expect, type APIRequestContext } from '../../support/fixtures'
-import { SEED } from '../../fixtures/seed-data'
+import { SEED, TEST_LOCATION } from '../../fixtures/seed-data'
 
 /**
  * API E2E tests for /api/auth/* endpoints.
@@ -17,6 +17,7 @@ test.describe('POST /api/auth/register', () => {
         authMethod: 'password',
         password: 'Test@12345!',
         gender: 'NotDisclosed',
+        ...TEST_LOCATION,
       },
     })
     expect(resp.status()).toBe(200)
@@ -54,6 +55,7 @@ test.describe('POST /api/auth/register', () => {
         displayName: `OTPUser${RUN_ID}`,
         authMethod: 'otp',
         gender: 'NotDisclosed',
+        ...TEST_LOCATION,
       },
     })
     expect(resp.status()).toBe(200)
