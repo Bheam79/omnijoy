@@ -144,7 +144,6 @@ function setFilter(f: FilterOption) {
         v-for="event in eventsStore.events"
         :key="event.id"
         :event="event"
-        @deleted="eventsStore.events = eventsStore.events.filter(e => e.id !== $event)"
       />
     </div>
 

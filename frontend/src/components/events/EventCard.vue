@@ -2,17 +2,12 @@
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { EventDto, RsvpStatus } from '@/services/eventService'
-import { useAuthStore } from '@/stores/auth'
 import { eventService } from '@/services/eventService'
 import { useEventsStore } from '@/stores/events'
 
 const props = defineProps<{ event: EventDto }>()
-const emit = defineEmits<{ deleted: [id: string] }>()
 
-const auth = useAuthStore()
 const eventsStore = useEventsStore()
-
-const isOwn = computed(() => auth.user?.id === props.event.creator.id)
 
 const privacyLabel: Record<string, string> = {
   Everyone:          'Public',
@@ -64,12 +59,6 @@ const rsvpOptions: { label: string; value: RsvpStatus; icon: string }[] = [
 async function handleRsvp(status: RsvpStatus) {
   const updated = await eventService.rsvp(props.event.id, status)
   eventsStore.updateEventInList(updated)
-}
-
-async function handleDelete() {
-  if (!confirm('Delete this event?')) return
-  await eventsStore.deleteEvent(props.event.id)
-  emit('deleted', props.event.id)
 }
 </script>
 
@@ -175,22 +164,6 @@ async function handleDelete() {
         >
           <span>{{ opt.icon }}</span>
           <span>{{ opt.label }}</span>
-        </button>
-      </div>
-
-      <!-- Owner actions -->
-      <div v-if="isOwn" class="mt-3 flex gap-2 border-t border-slate-700 pt-3">
-        <RouterLink
-          :to="`/events/${event.id}`"
-          class="text-xs text-indigo-400 hover:text-indigo-800 font-medium"
-        >
-          Manage
-        </RouterLink>
-        <button
-          class="text-xs text-red-500 hover:text-red-400 font-medium"
-          @click="handleDelete"
-        >
-          Delete
         </button>
       </div>
     </div>
