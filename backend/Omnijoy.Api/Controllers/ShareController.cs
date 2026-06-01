@@ -216,6 +216,58 @@ public class ShareController : ControllerBase
             NotPublicMessage: null)));
     }
 
+    // ── GET /invite/{token} ──────────────────────────────────────────────────
+    // Serves the SPA shell enriched with OG / Twitter Card meta tags so that
+    // social-media bots (Facebook, Twitter, Slack, Discord …) see a rich
+    // preview when a friend invite link is shared.  Human visitors get the
+    // same response — the SPA boots normally and renders InviteAcceptView.
+
+    private const string InviteTagline =
+        "the new social platform - no ads - just you, your friends and the events you go to";
+
+    [HttpGet("/invite/{token}")]
+    public async Task<IActionResult> ShareInvite(string token)
+    {
+        var invite = await _db.FriendInvites
+            .AsNoTracking()
+            .Include(fi => fi.Inviter)
+            .FirstOrDefaultAsync(fi => fi.Token == token);
+
+        var canonical = BuildCanonical($"/invite/{token}");
+
+        if (invite is null ||
+            invite.Status == FriendInviteStatus.Revoked ||
+            invite.ExpiresAt < DateTime.UtcNow)
+        {
+            // Invalid / expired invite — still serve a branded OG shell so
+            // the share card at least shows the site logo and tagline.
+            return HtmlContent(BuildShell(new MetaTags(
+                Title: $"Join OmniJoy — {InviteTagline}",
+                Description: $"Join OmniJoy — {InviteTagline}",
+                ImageUrl: AbsoluteUrl("/logo.png"),
+                Canonical: canonical,
+                OgType: "website",
+                Author: null,
+                IsPublic: true,
+                NotPublicMessage: null)));
+        }
+
+        var title       = $"Join {invite.Inviter.DisplayName} on OmniJoy - {InviteTagline}";
+        var description = title;
+        // Prefer the inviter's avatar; fall back to the site logo.
+        var image = invite.Inviter.AvatarUrl ?? "/logo.png";
+
+        return HtmlContent(BuildShell(new MetaTags(
+            Title: title,
+            Description: description,
+            ImageUrl: AbsoluteUrl(image),
+            Canonical: canonical,
+            OgType: "website",
+            Author: invite.Inviter.DisplayName,
+            IsPublic: true,
+            NotPublicMessage: null)));
+    }
+
     // ── Shell construction ────────────────────────────────────────────────────
 
     /// <summary>Bundle of values needed to render meta tags + page body.</summary>
