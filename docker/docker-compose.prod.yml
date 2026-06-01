@@ -92,6 +92,9 @@ services:
       # Object URLs returned to clients are relative — served by nginx at /media/.
       Storage__S3__PublicBaseUrl:  /media
 
+      # Google Places API proxy (optional — leave blank to disable)
+      Google__PlacesApiKey: ${GOOGLE_PLACES_API_KEY:-}
+
       # OAuth (optional)
       OAuth__Google__ClientId:     ${OAUTH_GOOGLE_CLIENT_ID:-}
       OAuth__Google__ClientSecret: ${OAUTH_GOOGLE_CLIENT_SECRET:-}

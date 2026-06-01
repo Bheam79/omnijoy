@@ -169,6 +169,18 @@ builder.Services.AddProblemDetails();
 // ── HTTP Client (for OG meta fetching & OAuth) ───────────────────────────────
 builder.Services.AddHttpClient();
 
+// ── Google Places API proxy ───────────────────────────────────────────────────
+// Named client used by PlacesProxyService. The API key is read from
+// configuration (Google:PlacesApiKey / env var Google__PlacesApiKey).
+// When the key is absent the service returns empty results so dev
+// environments without a key do not break.
+builder.Services.AddHttpClient("GooglePlaces", client =>
+{
+    client.BaseAddress = new Uri("https://maps.googleapis.com/");
+    client.Timeout     = TimeSpan.FromSeconds(10);
+});
+builder.Services.AddScoped<IPlacesProxyService, PlacesProxyService>();
+
 // ── Memory Cache (for OG preview cache) ──────────────────────────────────────
 builder.Services.AddMemoryCache();
 
