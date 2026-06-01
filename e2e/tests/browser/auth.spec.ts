@@ -22,6 +22,7 @@ test.describe('Registration flow', () => {
     const email = `e2e_new_${RUN_ID}@omnijoy.test`
     await reg.emailInput.fill(email)
     await reg.displayNameInput.fill(`New User ${RUN_ID}`)
+    await reg.selectLocation()
     await reg.passwordInput.fill('Test@12345!')
     await reg.confirmPasswordInput.fill('Test@12345!')
     await reg.submitButton.click()
@@ -36,6 +37,7 @@ test.describe('Registration flow', () => {
 
     await reg.emailInput.fill(`mismatch_${RUN_ID}@omnijoy.test`)
     await reg.displayNameInput.fill('Mismatch User')
+    await reg.selectLocation()
     await reg.passwordInput.fill('Test@12345!')
     await reg.confirmPasswordInput.fill('DifferentPassword!')
     await reg.submitButton.click()
@@ -62,6 +64,7 @@ test.describe('Registration flow', () => {
     // Seed user1 should already be registered by globalSetup
     await reg.emailInput.fill(SEED.user1.email)
     await reg.displayNameInput.fill('Duplicate User')
+    await reg.selectLocation()
     await reg.passwordInput.fill('Test@12345!')
     await reg.confirmPasswordInput.fill('Test@12345!')
     await reg.submitButton.click()
