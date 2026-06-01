@@ -13,6 +13,8 @@ public class Event
     public DateTime? EndAt { get; set; }
     public string? Location { get; set; }
     public string? CoverImageUrl { get; set; }
+    /// <summary>Optional external URL for purchasing tickets to this event.</summary>
+    public string? TicketUrl { get; set; }
     public PrivacyLevel Privacy { get; set; } = PrivacyLevel.Everyone;
     public EventPostingPolicy PostingPolicy { get; set; } = EventPostingPolicy.OrganizerOnly;
     public DateTime CreatedAt { get; set; }

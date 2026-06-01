@@ -48,6 +48,7 @@ public class EventsControllerTests
         EndAt:               null,
         Location:            "Online",
         CoverImageUrl:       null,
+        TicketUrl:           null,
         Privacy:             "Everyone",
         PostingPolicy:       "OrganizerOnly",
         MyRsvp:              null,

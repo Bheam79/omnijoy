@@ -44,7 +44,7 @@ public class ControllerExceptionPathTests
 
     private static EventDto SampleEvent(Guid id) => new(
         id, new EventCreatorDto(Guid.NewGuid(), "Alice", null), null, null, null,
-        "Event", null, DateTime.UtcNow.AddDays(1), null, null, null,
+        "Event", null, DateTime.UtcNow.AddDays(1), null, null, null, null,
         "Everyone", "OrganizerOnly", null, 0, 0, 0, DateTime.UtcNow);
 
     // ── CompanyPagesController ────────────────────────────────────────────────

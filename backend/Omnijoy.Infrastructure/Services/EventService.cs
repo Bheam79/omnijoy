@@ -65,6 +65,8 @@ public class EventService : IEventService
             coverUrl = await _storage.StoreAsync(processed, "cover.webp", "events/covers");
         }
 
+        var ticketUrl = NormalizeTicketUrl(request.TicketUrl);
+
         var ev = new Event
         {
             Id            = Guid.NewGuid(),
@@ -76,6 +78,7 @@ public class EventService : IEventService
             EndAt         = request.EndAt,
             Location      = request.Location?.Trim(),
             CoverImageUrl = coverUrl,
+            TicketUrl     = ticketUrl,
             Privacy       = privacy,
             PostingPolicy = postingPolicy,
             CreatedAt     = DateTime.UtcNow,
@@ -311,6 +314,14 @@ public class EventService : IEventService
             if (!Enum.TryParse<EventPostingPolicy>(request.PostingPolicy, ignoreCase: true, out var pp))
                 throw new ArgumentException($"Invalid PostingPolicy: '{request.PostingPolicy}'.");
             ev.PostingPolicy = pp;
+        }
+
+        if (request.TicketUrl is not null)
+        {
+            // Empty / whitespace clears the link; otherwise normalize + validate.
+            ev.TicketUrl = string.IsNullOrWhiteSpace(request.TicketUrl)
+                ? null
+                : NormalizeTicketUrl(request.TicketUrl);
         }
 
         if (cover is not null)
@@ -579,6 +590,22 @@ public class EventService : IEventService
             UpdatedAt:          post.UpdatedAt);
     }
 
+    /// <summary>
+    /// Trims, length-checks (≤ 2048), and validates that the ticket URL is a
+    /// well-formed absolute http(s) URI. Returns null for null/whitespace input.
+    /// </summary>
+    private static string? NormalizeTicketUrl(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return null;
+        var trimmed = input.Trim();
+        if (trimmed.Length > 2048)
+            throw new ArgumentException("TicketUrl must be 2048 characters or fewer.");
+        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+            throw new ArgumentException("TicketUrl must be a valid http(s) URL.");
+        return trimmed;
+    }
+
     private static EventDto MapToDto(Event ev, string? myRsvp)
     {
         var creator = new EventCreatorDto(
@@ -603,6 +630,7 @@ public class EventService : IEventService
             EndAt:               ev.EndAt,
             Location:            ev.Location,
             CoverImageUrl:       ev.CoverImageUrl,
+            TicketUrl:           ev.TicketUrl,
             Privacy:             ev.Privacy.ToString(),
             PostingPolicy:       ev.PostingPolicy.ToString(),
             MyRsvp:              myRsvp,

@@ -26,6 +26,9 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
         builder.Property(e => e.CoverImageUrl)
                .HasMaxLength(2048);
 
+        builder.Property(e => e.TicketUrl)
+               .HasMaxLength(2048);
+
         builder.Property(e => e.Privacy)
                .HasConversion<string>()
                .HasMaxLength(32);

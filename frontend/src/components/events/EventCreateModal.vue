@@ -19,6 +19,7 @@ const description   = ref('')
 const startAt       = ref('')
 const endAt         = ref('')
 const location      = ref('')
+const ticketUrl     = ref('')
 const privacy       = ref<'Everyone' | 'FriendsOfFriends' | 'Friends' | 'OnlyMe'>('Everyone')
 const postingPolicy = ref<'OrganizerOnly' | 'Everyone'>('OrganizerOnly')
 const coverFile     = ref<File | null>(null)
@@ -63,6 +64,11 @@ async function handleSubmit() {
     formError.value = 'Start date/time is required.'
     return
   }
+  const trimmedTicket = ticketUrl.value.trim()
+  if (trimmedTicket && !/^https?:\/\//i.test(trimmedTicket)) {
+    formError.value = 'Ticket link must start with http:// or https://.'
+    return
+  }
 
   submitting.value = true
   try {
@@ -76,6 +82,7 @@ async function handleSubmit() {
       postingPolicy: postingPolicy.value,
       // Organizer is determined by company mode — no dropdown needed.
       companyPageId: companyMode.activeCompany?.id ?? undefined,
+      ticketUrl:     trimmedTicket || undefined,
       coverImage:    coverFile.value ?? undefined,
     })
     emit('created', ev)
@@ -210,6 +217,22 @@ async function handleSubmit() {
               placeholder="Where is it happening?"
               maxlength="512"
             />
+          </div>
+
+          <!-- Ticket URL -->
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Ticket link</label>
+            <input
+              v-model="ticketUrl"
+              type="url"
+              data-testid="event-ticket-url-input"
+              class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="https://tickets.example.com/your-event"
+              maxlength="2048"
+            />
+            <p class="text-xs text-gray-500 mt-1">
+              Optional. Attendees will see a “Buy tickets” button on the event page.
+            </p>
           </div>
 
           <!-- Privacy -->

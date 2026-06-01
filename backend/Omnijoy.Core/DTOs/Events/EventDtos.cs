@@ -22,6 +22,8 @@ public record EventDto(
     DateTime? EndAt,
     string? Location,
     string? CoverImageUrl,
+    /// <summary>Optional external URL for purchasing tickets to this event.</summary>
+    string? TicketUrl,
     string Privacy,
     /// <summary>"OrganizerOnly" | "Everyone"</summary>
     string PostingPolicy,
@@ -49,7 +51,9 @@ public record CreateEventRequest(
     string Privacy,
     /// <summary>"OrganizerOnly" | "Everyone"</summary>
     string? PostingPolicy,
-    Guid? CompanyPageId
+    Guid? CompanyPageId,
+    /// <summary>Optional external URL for purchasing tickets.</summary>
+    string? TicketUrl = null
 );
 
 public record UpdateEventRequest(
@@ -60,7 +64,12 @@ public record UpdateEventRequest(
     string? Location,
     string? Privacy,
     /// <summary>"OrganizerOnly" | "Everyone"</summary>
-    string? PostingPolicy
+    string? PostingPolicy,
+    /// <summary>
+    /// Optional external URL for purchasing tickets. Pass an empty string to clear.
+    /// Pass null to leave the existing value unchanged.
+    /// </summary>
+    string? TicketUrl = null
 );
 
 // ── Event post ────────────────────────────────────────────────────────────────

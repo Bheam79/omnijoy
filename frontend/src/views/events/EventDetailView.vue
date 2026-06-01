@@ -41,6 +41,7 @@ const editEndAt         = ref('')
 const editLocation      = ref('')
 const editPrivacy       = ref<'Everyone' | 'FriendsOfFriends' | 'Friends' | 'OnlyMe'>('Everyone')
 const editPostingPolicy = ref<'OrganizerOnly' | 'Everyone'>('OrganizerOnly')
+const editTicketUrl     = ref('')
 const editCoverFile     = ref<File | null>(null)
 const editCoverPreview  = ref<string | null>(null)
 const editSaving        = ref(false)
@@ -82,6 +83,7 @@ function openEdit() {
   editLocation.value      = event.value.location ?? ''
   editPrivacy.value       = event.value.privacy as typeof editPrivacy.value
   editPostingPolicy.value = (event.value.postingPolicy ?? 'OrganizerOnly') as typeof editPostingPolicy.value
+  editTicketUrl.value     = event.value.ticketUrl ?? ''
   editCoverFile.value     = null
   editCoverPreview.value  = null
   editError.value         = null
@@ -102,6 +104,11 @@ async function saveEdit() {
   editError.value = null
   if (!editTitle.value.trim()) { editError.value = 'Title is required.'; return }
   if (!editStartAt.value)      { editError.value = 'Start date/time is required.'; return }
+  const trimmedTicket = editTicketUrl.value.trim()
+  if (trimmedTicket && !/^https?:\/\//i.test(trimmedTicket)) {
+    editError.value = 'Ticket link must start with http:// or https://.'
+    return
+  }
   editSaving.value = true
   try {
     event.value = await eventService.updateEvent(event.value.id, {
@@ -112,6 +119,9 @@ async function saveEdit() {
       location:      editLocation.value.trim() || undefined,
       privacy:       editPrivacy.value,
       postingPolicy: editPostingPolicy.value,
+      // Send empty string to clear; never send `undefined` because it would
+      // hide a deliberate "remove the link" from the user.
+      ticketUrl:     trimmedTicket,
       coverImage:    editCoverFile.value ?? undefined,
     })
     showEditForm.value = false
@@ -502,6 +512,26 @@ onMounted(async () => {
             </svg>
             <span>{{ event.location }}</span>
           </div>
+
+          <!-- Buy tickets button -->
+          <a
+            v-if="event.ticketUrl"
+            :href="event.ticketUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid="event-buy-tickets"
+            class="inline-flex items-center gap-2 px-4 py-2 mt-1 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 shadow transition"
+          >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/>
+            </svg>
+            Buy tickets
+            <svg class="h-3.5 w-3.5 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+            </svg>
+          </a>
         </div>
 
         <!-- RSVP section (upcoming events) -->
@@ -806,6 +836,19 @@ onMounted(async () => {
             <input v-model="editLocation" type="text" maxlength="512"
               class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
+          </div>
+
+          <!-- Ticket URL -->
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Ticket link</label>
+            <input v-model="editTicketUrl" type="url" maxlength="2048"
+              data-testid="event-edit-ticket-url-input"
+              placeholder="https://tickets.example.com/your-event"
+              class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <p class="text-xs text-gray-500 mt-1">
+              Optional. Leave empty to remove the existing link.
+            </p>
           </div>
 
           <!-- Privacy -->

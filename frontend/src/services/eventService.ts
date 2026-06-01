@@ -28,6 +28,8 @@ export interface EventDto {
   endAt?: string
   location?: string
   coverImageUrl?: string
+  /** Optional external URL for buying tickets to this event. */
+  ticketUrl?: string
   privacy: 'Everyone' | 'FriendsOfFriends' | 'Friends' | 'OnlyMe'
   postingPolicy: 'OrganizerOnly' | 'Everyone'
   myRsvp?: 'Going' | 'Maybe' | 'NotGoing'
@@ -66,6 +68,8 @@ export interface CreateEventPayload {
   privacy: 'Everyone' | 'FriendsOfFriends' | 'Friends' | 'OnlyMe'
   postingPolicy?: 'OrganizerOnly' | 'Everyone'
   companyPageId?: string
+  /** Optional external URL for purchasing tickets. */
+  ticketUrl?: string
   coverImage?: File
 }
 
@@ -77,6 +81,11 @@ export interface UpdateEventPayload {
   location?: string
   privacy?: string
   postingPolicy?: string
+  /**
+   * Optional external URL for buying tickets. Pass an empty string to clear
+   * the existing link. Pass `undefined` to leave it unchanged.
+   */
+  ticketUrl?: string
   coverImage?: File
 }
 
@@ -95,6 +104,7 @@ export const eventService = {
     form.append('privacy',     payload.privacy)
     if (payload.postingPolicy) form.append('postingPolicy', payload.postingPolicy)
     if (payload.companyPageId) form.append('companyPageId', payload.companyPageId)
+    if (payload.ticketUrl)     form.append('ticketUrl', payload.ticketUrl)
     if (payload.coverImage)    form.append('coverImage', payload.coverImage)
 
     const { data } = await api.post<EventDto>('/api/events', form, {
@@ -155,6 +165,7 @@ export const eventService = {
     if (payload.location       !== undefined) form.append('location',      payload.location ?? '')
     if (payload.privacy        !== undefined) form.append('privacy',       payload.privacy)
     if (payload.postingPolicy  !== undefined) form.append('postingPolicy', payload.postingPolicy)
+    if (payload.ticketUrl      !== undefined) form.append('ticketUrl',     payload.ticketUrl)
     if (payload.coverImage)                  form.append('coverImage',    payload.coverImage)
 
     const { data } = await api.put<EventDto>(`/api/events/${id}`, form, {

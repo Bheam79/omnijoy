@@ -79,7 +79,8 @@ public class EventsController : ControllerBase
                 Location:      input.Location,
                 Privacy:       input.Privacy ?? "Everyone",
                 PostingPolicy: input.PostingPolicy,
-                CompanyPageId: input.CompanyPageId
+                CompanyPageId: input.CompanyPageId,
+                TicketUrl:     input.TicketUrl
             );
 
             var ev = await _events.CreateEventAsync(userId, request, cover);
@@ -216,7 +217,8 @@ public class EventsController : ControllerBase
                 EndAt:         input.EndAt,
                 Location:      input.Location,
                 Privacy:       input.Privacy,
-                PostingPolicy: input.PostingPolicy
+                PostingPolicy: input.PostingPolicy,
+                TicketUrl:     input.TicketUrl
             );
 
             var ev = await _events.UpdateEventAsync(id, userId, request, cover);
@@ -367,6 +369,7 @@ public class CreateEventFormInput
     public string?    Privacy       { get; set; }
     public string?    PostingPolicy { get; set; }
     public Guid?      CompanyPageId { get; set; }
+    public string?    TicketUrl     { get; set; }
     public IFormFile? CoverImage    { get; set; }
 }
 
@@ -379,5 +382,6 @@ public class UpdateEventFormInput
     public string?    Location      { get; set; }
     public string?    Privacy       { get; set; }
     public string?    PostingPolicy { get; set; }
+    public string?    TicketUrl     { get; set; }
     public IFormFile? CoverImage    { get; set; }
 }

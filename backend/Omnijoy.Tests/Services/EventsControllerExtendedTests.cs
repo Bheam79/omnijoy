@@ -55,6 +55,7 @@ public class EventsControllerExtendedTests
         EndAt:               null,
         Location:            null,
         CoverImageUrl:       null,
+        TicketUrl:           null,
         Privacy:             "Everyone",
         PostingPolicy:       "OrganizerOnly",
         MyRsvp:              null,
