@@ -78,26 +78,37 @@ test.describe('Navigation — sidebar and top nav links', () => {
 })
 
 test.describe('Share pages (OG meta tags)', () => {
-  test('/share/posts/:id with invalid ID renders non-crashed page', async ({ page }) => {
-    await page.goto('/share/posts/00000000-0000-0000-0000-000000000000')
-    await page.waitForLoadState('networkidle')
-    // Should not be a blank page
-    await expect(page.locator('body')).not.toBeEmpty()
-    // Should contain some meaningful text (error or OG content)
-    const content = await page.locator('body').innerText()
-    expect(content.length).toBeGreaterThan(5)
+  // These three tests use `request.get()` (API mode, no browser rendering) instead of
+  // `page.goto()` because the dev-mode Vite proxy forwards `/share/*` to the backend,
+  // which returns the built SPA shell (`backend/Omnijoy.Api/wwwroot/index.html`) with
+  // OG meta tags injected. That shell references production-hashed `/assets/*.js`
+  // bundles which the Vite dev server does not know about — Vite falls back to
+  // serving `index.html` as `text/html`, the browser can't parse HTML as a JS
+  // module, the SPA never boots, and `<div id="app"></div>` stays empty.
+  // The share endpoint's job is to produce a non-empty HTML response with the right
+  // meta tags; we verify that directly via the HTTP client.
+  test('/share/posts/:id with invalid ID renders non-crashed page', async ({ request, baseURL }) => {
+    const resp = await request.get(`${baseURL}/share/posts/00000000-0000-0000-0000-000000000000`)
+    expect(resp.status()).toBe(200)
+    const html = await resp.text()
+    expect(html.length).toBeGreaterThan(50)
+    expect(html).toContain('not found')
   })
 
-  test('/share/users/:id with invalid ID renders non-crashed page', async ({ page }) => {
-    await page.goto('/share/users/00000000-0000-0000-0000-000000000000')
-    await page.waitForLoadState('networkidle')
-    await expect(page.locator('body')).not.toBeEmpty()
+  test('/share/users/:id with invalid ID renders non-crashed page', async ({ request, baseURL }) => {
+    const resp = await request.get(`${baseURL}/share/users/00000000-0000-0000-0000-000000000000`)
+    expect(resp.status()).toBe(200)
+    const html = await resp.text()
+    expect(html.length).toBeGreaterThan(50)
+    expect(html).toContain('not found')
   })
 
-  test('/share/events/:id with invalid ID renders non-crashed page', async ({ page }) => {
-    await page.goto('/share/events/00000000-0000-0000-0000-000000000000')
-    await page.waitForLoadState('networkidle')
-    await expect(page.locator('body')).not.toBeEmpty()
+  test('/share/events/:id with invalid ID renders non-crashed page', async ({ request, baseURL }) => {
+    const resp = await request.get(`${baseURL}/share/events/00000000-0000-0000-0000-000000000000`)
+    expect(resp.status()).toBe(200)
+    const html = await resp.text()
+    expect(html.length).toBeGreaterThan(50)
+    expect(html).toContain('not found')
   })
 
   test('share post page includes OG meta tags', async ({ page, request, baseURL }) => {
