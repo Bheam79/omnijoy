@@ -185,8 +185,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <!-- Page wrapper — fixed width -->
-  <div class="max-w-3xl mx-auto px-4 py-6">
+  <!-- Page wrapper — width + padding come from AppShell -->
+  <div>
     <!-- Back link -->
     <RouterLink
       to="/events"

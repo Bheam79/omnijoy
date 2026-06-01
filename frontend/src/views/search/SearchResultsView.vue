@@ -225,7 +225,7 @@ const activeHasMore = computed(() => hasMoreFor(activeTab.value))
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto px-4 py-6 space-y-4">
+  <div class="space-y-4">
     <!-- Header -->
     <header>
       <h1 class="text-2xl font-bold text-slate-100">
