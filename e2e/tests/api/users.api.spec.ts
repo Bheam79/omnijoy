@@ -69,6 +69,7 @@ test.describe('POST /api/users/me/avatar', () => {
     const { token } = getSharedTokenFor(SEED.user1)
     const resp = await request.post(`${baseURL}/api/users/me/avatar`, {
       headers: { Authorization: `Bearer ${token}` },
+      multipart: {},
     })
     expect([400, 415]).toContain(resp.status())
   })

@@ -87,6 +87,7 @@ public class UsersController : ControllerBase
     [HttpPost("me/avatar")]
     [RequestSizeLimit(10 * 1024 * 1024)] // 10 MB request limit
     [EnableRateLimiting(RateLimitConstants.UploadPolicy)]
+    [Consumes("multipart/form-data")]
     public async Task<IActionResult> UploadAvatar(IFormFile? file)
     {
         if (CurrentUserId is not { } userId)
@@ -116,6 +117,7 @@ public class UsersController : ControllerBase
     [HttpPost("me/cover")]
     [RequestSizeLimit(10 * 1024 * 1024)]
     [EnableRateLimiting(RateLimitConstants.UploadPolicy)]
+    [Consumes("multipart/form-data")]
     public async Task<IActionResult> UploadCover(IFormFile? file)
     {
         if (CurrentUserId is not { } userId)
