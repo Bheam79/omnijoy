@@ -155,6 +155,12 @@ test.describe('POST /api/users/me/avatar — negative', () => {
     request,
     baseURL,
   }) => {
+    // 11 MB upload through the Playwright → Vite dev proxy → Kestrel chain is
+    // sub-100 ms in isolation but can block for >30 s when this test runs late
+    // in the 441-test suite (worker process accumulates GC pressure / socket
+    // state from prior requests). Give it 90 s of headroom so the backend has
+    // time to respond with the expected 400/413 even under suite load.
+    test.setTimeout(90_000)
     const { token } = getSharedTokenFor(SEED.user1)
     // 11 MB random bytes — exceeds the [RequestSizeLimit(10 * 1024 * 1024)] on the endpoint
     const bigBuffer = Buffer.alloc(11 * 1024 * 1024, 0xab)
