@@ -28,6 +28,13 @@ export default defineConfig({
         changeOrigin: true,
         ws: true,
       },
+      // Proxy share pages (OG/crawler HTML) to the .NET backend during dev.
+      // ShareController lives at /share/* outside /api — without this proxy
+      // Vite serves the SPA shell and crawler tests see no og: meta tags.
+      '/share': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
     },
   },
   build: {
