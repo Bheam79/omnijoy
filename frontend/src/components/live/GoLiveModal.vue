@@ -14,7 +14,6 @@ const title   = ref('')
 const privacy = ref<'Everyone' | 'Friends'>('Friends')
 const loading = ref(false)
 const error   = ref<string | null>(null)
-const started = ref<StartStreamResponse | null>(null)
 
 async function submit() {
   if (!title.value.trim()) {
@@ -30,17 +29,14 @@ async function submit() {
       title: title.value.trim(),
       privacy: privacy.value,
     })
-    started.value = response
+    // Emit immediately — parent closes modal and navigates to the stream view,
+    // where LiveHostPanel auto-starts the camera.
     emit('started', response)
   } catch (e: unknown) {
     error.value = extractError(e)
   } finally {
     loading.value = false
   }
-}
-
-function copyToClipboard(text: string) {
-  navigator.clipboard.writeText(text).catch(() => {})
 }
 
 function extractError(e: unknown): string {
@@ -79,71 +75,7 @@ function extractError(e: unknown): string {
 
       <!-- Body -->
       <div class="p-6">
-        <!-- After stream is created -->
-        <template v-if="started">
-          <div class="mb-4 p-3 bg-green-950 border border-green-800 rounded-xl text-sm text-green-400 font-medium">
-            Your stream is live! Use the info below in OBS or your streaming software.
-          </div>
-
-          <div class="space-y-4">
-            <!-- Ingest URL -->
-            <div>
-              <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                RTMP Ingest URL
-              </label>
-              <div class="flex items-center gap-2">
-                <input
-                  :value="started.ingestUrl"
-                  readonly
-                  class="flex-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-sm font-mono text-slate-300 truncate"
-                />
-                <button
-                  class="shrink-0 px-3 py-2 bg-slate-700 hover:bg-slate-700 text-slate-300 text-sm rounded-lg transition"
-                  @click="copyToClipboard(started.ingestUrl)"
-                >
-                  Copy
-                </button>
-              </div>
-            </div>
-
-            <!-- Stream Key -->
-            <div>
-              <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                Stream Key (keep this secret!)
-              </label>
-              <div class="flex items-center gap-2">
-                <input
-                  :value="started.streamKey"
-                  readonly
-                  type="password"
-                  class="flex-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-sm font-mono text-slate-300"
-                />
-                <button
-                  class="shrink-0 px-3 py-2 bg-slate-700 hover:bg-slate-700 text-slate-300 text-sm rounded-lg transition"
-                  @click="copyToClipboard(started.streamKey)"
-                >
-                  Copy
-                </button>
-              </div>
-              <p class="mt-1 text-xs text-slate-500">
-                In OBS: Settings → Stream → Service: Custom → paste the URL and key above.
-              </p>
-            </div>
-          </div>
-
-          <div class="mt-6 flex justify-end gap-3">
-            <button
-              class="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-700 rounded-xl transition"
-              @click="emit('close')"
-            >
-              Close
-            </button>
-          </div>
-        </template>
-
-        <!-- Setup form -->
-        <template v-else>
-          <div class="space-y-4">
+        <div class="space-y-4">
             <!-- Title -->
             <div>
               <label class="block text-sm font-medium text-slate-300 mb-1">
@@ -204,7 +136,6 @@ function extractError(e: unknown): string {
               {{ loading ? 'Starting…' : 'Start streaming' }}
             </button>
           </div>
-        </template>
       </div>
     </div>
   </div>

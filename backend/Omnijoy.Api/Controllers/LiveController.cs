@@ -279,6 +279,7 @@ public class LiveController : ControllerBase
         }, cts.Token);
 
         var buffer = new byte[65536]; // 64 KB per receive call
+        bool unexpectedTermination = false;
         try
         {
             while (ws.State == WebSocketState.Open && !cts.IsCancellationRequested)
@@ -309,6 +310,9 @@ public class LiveController : ControllerBase
         catch (OperationCanceledException) { /* normal shutdown */ }
         catch (Exception ex)
         {
+            // FFmpeg exited abnormally (e.g. RTMP target unreachable) or the
+            // stdin write failed because the process already closed.
+            unexpectedTermination = true;
             logger.LogWarning(ex, "WebSocket ingest stream ended unexpectedly");
         }
         finally
@@ -321,6 +325,11 @@ public class LiveController : ControllerBase
             try { await ffmpeg.WaitForExitAsync(CancellationToken.None); }
             catch { /* ignore */ }
 
+            // An FFmpeg process that exits with a non-zero code (e.g. could not
+            // connect to the RTMP server) is also an unexpected termination even
+            // if the exception path was not triggered.
+            bool ffmpegFailed = ffmpeg.HasExited && ffmpeg.ExitCode != 0;
+
             logger.LogInformation("FFmpeg ingest stopped for {RtmpUrl} (exit={ExitCode})",
                 rtmpUrl, ffmpeg.HasExited ? ffmpeg.ExitCode : -1);
 
@@ -328,8 +337,16 @@ public class LiveController : ControllerBase
             {
                 try
                 {
-                    await ws.CloseAsync(WebSocketCloseStatus.NormalClosure,
-                        "Stream ended", CancellationToken.None);
+                    // Signal InternalServerError (1011) when the termination was
+                    // unexpected so the browser can surface a meaningful error to
+                    // the host instead of silently showing "stopped".
+                    var closeStatus = (unexpectedTermination || ffmpegFailed)
+                        ? WebSocketCloseStatus.InternalServerError
+                        : WebSocketCloseStatus.NormalClosure;
+                    var closeDescription = (unexpectedTermination || ffmpegFailed)
+                        ? "Streaming process terminated unexpectedly"
+                        : "Stream ended";
+                    await ws.CloseAsync(closeStatus, closeDescription, CancellationToken.None);
                 }
                 catch { /* ignore */ }
             }

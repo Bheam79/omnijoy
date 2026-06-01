@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{
@@ -78,15 +78,23 @@ async function startStreaming() {
       mediaRecorder.start(1000) // 1-second chunks
     }
 
-    ws.onclose = (_e: CloseEvent) => {
+    ws.onclose = (e: CloseEvent) => {
       if (status.value === 'live' || status.value === 'connecting') {
         stopStreaming()
+        // code 1000 = normal closure (user clicked "Stop stream").
+        // Any other code means the server closed the connection unexpectedly
+        // (e.g. FFmpeg failed to connect to the RTMP server).
+        if (e.code !== 1000) {
+          setError('Connection to the streaming server was lost. Please try again.')
+        }
       }
     }
 
     ws.onerror = () => {
-      stopStreaming()
-      setError('Connection to streaming server lost. Please try again.')
+      // A network-level error — onclose will also fire, so we just mark the
+      // state here and let onclose do the cleanup + setError.
+      // Nothing to do; if status is still live/connecting when onclose fires,
+      // it will call setError with the non-1000 close code path.
     }
 
   } catch (e: unknown) {
@@ -145,7 +153,14 @@ function getBestMimeType(): string {
   return 'video/webm'
 }
 
-// ── Cleanup on unmount ────────────────────────────────────────────────────────
+// ── Auto-start + cleanup ──────────────────────────────────────────────────────
+
+// Start camera and begin broadcasting as soon as the panel is shown.
+// This means clicking "Start streaming" in the Go Live modal is the single
+// action that starts the whole flow — no separate "Start camera" click needed.
+onMounted(() => {
+  startStreaming()
+})
 
 onUnmounted(() => {
   stopStreaming()
@@ -178,10 +193,10 @@ onUnmounted(() => {
           Requesting camera &amp; microphone access…
         </p>
         <p v-else-if="status === 'stopped'" class="text-sm text-slate-500">
-          Streaming stopped
+          Broadcasting stopped
         </p>
         <p v-else class="text-sm text-slate-500">
-          Your camera preview will appear here
+          Starting camera…
         </p>
       </div>
 
@@ -218,9 +233,9 @@ onUnmounted(() => {
 
     <!-- Controls row -->
     <div class="flex items-center gap-3 flex-wrap">
-      <!-- Start button (idle / stopped / error) -->
+      <!-- Restart / retry button (stopped or error) -->
       <button
-        v-if="status === 'idle' || status === 'stopped' || status === 'error'"
+        v-if="status === 'stopped' || status === 'error'"
         class="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition"
         @click="startStreaming"
       >
@@ -229,7 +244,7 @@ onUnmounted(() => {
                 d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.124a1 1 0 01-1.447.894L15 14
                    M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
         </svg>
-        {{ status === 'error' ? 'Retry camera' : 'Start camera' }}
+        {{ status === 'error' ? 'Try again' : 'Restart broadcasting' }}
       </button>
 
       <!-- Stop button (live) -->
@@ -243,7 +258,7 @@ onUnmounted(() => {
                 d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z
                    M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
         </svg>
-        Stop camera
+        Stop stream
       </button>
 
       <!-- Status labels -->
@@ -259,8 +274,8 @@ onUnmounted(() => {
 
     <!-- Hint text -->
     <p class="text-xs text-slate-500">
-      This panel shows your local camera. Your viewers watch via the HLS player below.
-      There is a short delay (a few seconds) between what you see here and what viewers receive.
+      Your camera started automatically. Viewers watch via the HLS player below —
+      expect a short delay (a few seconds) between what you see and what they receive.
     </p>
   </div>
 </template>
