@@ -125,7 +125,7 @@ function extractError(e: unknown): string {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString()
+  return new Date(iso).toLocaleString(undefined, { hour12: false })
 }
 </script>
 

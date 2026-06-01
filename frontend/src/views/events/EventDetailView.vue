@@ -73,6 +73,7 @@ function formatDate(iso: string) {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
   })
 }
 
@@ -570,7 +571,7 @@ onMounted(async () => {
                     {{ post.author.displayName }}
                   </RouterLink>
                   <span class="text-xs text-gray-600">
-                    {{ new Date(post.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
+                    {{ new Date(post.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) }}
                   </span>
                 </div>
                 <p class="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{{ post.content }}</p>

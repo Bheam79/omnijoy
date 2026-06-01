@@ -66,7 +66,7 @@ function formatFileSize(bytes?: number | null): string {
 }
 
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 
 function isMine(msg: Message): boolean {

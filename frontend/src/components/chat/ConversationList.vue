@@ -55,7 +55,7 @@ function formatTime(iso?: string): string {
     d.getFullYear() === now.getFullYear()
 
   return isToday
-    ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
     : d.toLocaleDateString([], { month: 'short', day: 'numeric' })
 }
 

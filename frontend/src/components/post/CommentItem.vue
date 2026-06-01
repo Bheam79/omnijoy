@@ -193,7 +193,7 @@ async function handleDelete() {
       <!-- Actions row -->
       <div class="flex items-center gap-3 mt-0.5 ml-1" v-if="!isDeleted">
         <!-- Timestamp -->
-        <span class="text-xs text-slate-500" :title="new Date(comment.createdAt).toLocaleString()">
+        <span class="text-xs text-slate-500" :title="new Date(comment.createdAt).toLocaleString(undefined, { hour12: false })">
           {{ formatRelativeTime(comment.createdAt) }}
         </span>
 

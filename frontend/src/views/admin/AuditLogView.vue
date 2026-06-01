@@ -32,7 +32,7 @@ async function changePage(delta: number) {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString()
+  return new Date(iso).toLocaleString(undefined, { hour12: false })
 }
 </script>
 

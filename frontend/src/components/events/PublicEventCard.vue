@@ -20,6 +20,7 @@ function formatDate(iso: string) {
     day:     'numeric',
     hour:    '2-digit',
     minute:  '2-digit',
+    hour12:  false,
   })
 }
 
@@ -34,6 +35,7 @@ function formatShortTime(iso: string) {
   return new Date(iso).toLocaleTimeString(undefined, {
     hour:   '2-digit',
     minute: '2-digit',
+    hour12: false,
   })
 }
 
