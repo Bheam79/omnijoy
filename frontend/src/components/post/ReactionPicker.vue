@@ -96,7 +96,7 @@ function onButtonClick() {
   }
 }
 
-// ── Emoji picker item click ────────────────────────────────────────────────────
+// ── Emoji picker item interaction ─────────────────────────────────────────────
 
 function onPickReaction(type: ReactionType) {
   pickerVisible.value = false
@@ -106,6 +106,38 @@ function onPickReaction(type: ReactionType) {
   } else {
     emit('react', type)
   }
+}
+
+/**
+ * Tracks whether the last selection was already committed via mouseup.
+ * Used to suppress the subsequent click event that follows a normal
+ * mouse click (mousedown → mouseup → click) so we don't double-emit.
+ */
+let pickedViaMouseUp = false
+
+/**
+ * mouseup handler — fires when the user releases the mouse button over a
+ * reaction emoji, including the hold-and-release flow where mousedown started
+ * on the Like button (which would produce no click event on the emoji).
+ * Also handles a normal mouse click — the follow-up click event is suppressed
+ * by the pickedViaMouseUp flag.
+ */
+function onPickReactionMouseUp(type: ReactionType) {
+  pickedViaMouseUp = true
+  onPickReaction(type)
+}
+
+/**
+ * click handler — handles keyboard-initiated activation (Enter / Space).
+ * Mouse-driven clicks are already handled by onPickReactionMouseUp, so we
+ * skip them here (pickedViaMouseUp flag) to avoid double-emitting.
+ */
+function onPickReactionClick(type: ReactionType) {
+  if (pickedViaMouseUp) {
+    pickedViaMouseUp = false
+    return
+  }
+  onPickReaction(type)
 }
 
 // ── Active reaction display ───────────────────────────────────────────────────
@@ -179,7 +211,8 @@ onBeforeUnmount(cancelTimers)
           :class="{ 'scale-125': currentReaction === type }"
           :aria-label="REACTION_LABELS[type]"
           :data-testid="`pick-${type.toLowerCase()}`"
-          @click="onPickReaction(type)"
+          @mouseup="onPickReactionMouseUp(type)"
+          @click="onPickReactionClick(type)"
         >
           {{ REACTION_EMOJIS[type] }}
         </button>

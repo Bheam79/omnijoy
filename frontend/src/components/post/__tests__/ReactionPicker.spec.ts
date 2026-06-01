@@ -157,6 +157,58 @@ describe('ReactionPicker', () => {
     expect(wrapper.emitted('remove')).toBeFalsy()
   })
 
+  // ── mouseup selects reaction (hold-and-release flow) ─────────────────────
+
+  it('emits "react" when mouseup fires on an emoji (hold-and-release from Like button)', async () => {
+    const wrapper = mountPicker()
+
+    // Open picker via hover
+    await wrapper.find('[data-testid="reaction-button"]').trigger('mouseenter')
+    vi.advanceTimersByTime(500)
+    await flushPromises()
+
+    // User released the mouse over the Haha emoji (no prior mousedown on it)
+    const hahaBtn = wrapper.find('[data-testid="pick-haha"]')
+    expect(hahaBtn.exists()).toBe(true)
+    await hahaBtn.trigger('mouseup')
+
+    expect(wrapper.emitted('react')).toHaveLength(1)
+    expect(wrapper.emitted('react')![0]).toEqual(['Haha'])
+  })
+
+  it('does not double-emit when mouseup is followed by a click (normal mouse click)', async () => {
+    const wrapper = mountPicker()
+
+    // Open picker via hover
+    await wrapper.find('[data-testid="reaction-button"]').trigger('mouseenter')
+    vi.advanceTimersByTime(500)
+    await flushPromises()
+
+    const wowBtn = wrapper.find('[data-testid="pick-wow"]')
+    // In a real browser a click is preceded by mouseup; simulate that sequence.
+    await wowBtn.trigger('mouseup')   // sets pickedViaMouseUp flag
+    await wowBtn.trigger('click')     // suppressed by pickedViaMouseUp
+
+    // Should only emit once
+    expect(wrapper.emitted('react')).toHaveLength(1)
+    expect(wrapper.emitted('react')![0]).toEqual(['Wow'])
+  })
+
+  it('emits "react" via click alone (keyboard activation) when mouseup has not fired', async () => {
+    const wrapper = mountPicker()
+
+    // Open picker via hover
+    await wrapper.find('[data-testid="reaction-button"]').trigger('mouseenter')
+    vi.advanceTimersByTime(500)
+    await flushPromises()
+
+    // Keyboard-activated click: no preceding mouseup, so pickedViaMouseUp is false
+    await wrapper.find('[data-testid="pick-angry"]').trigger('click')
+
+    expect(wrapper.emitted('react')).toHaveLength(1)
+    expect(wrapper.emitted('react')![0]).toEqual(['Angry'])
+  })
+
   // ── All reaction types present in picker ──────────────────────────────────
 
   it('shows all six reaction types in picker popup', async () => {
