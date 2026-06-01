@@ -295,7 +295,7 @@ watch(() => route.query, () => {
     <!-- Loading -->
     <div v-if="loading" class="animate-pulse">
       <div class="h-48 bg-slate-700"/>
-      <div class="max-w-2xl mx-auto px-4 -mt-16 pb-6">
+      <div class="max-w-3xl mx-auto px-4 -mt-16 pb-6">
         <div class="flex items-end gap-4 mb-4">
           <div class="w-24 h-24 rounded-2xl bg-slate-600 border-4 border-slate-700"/>
           <div class="pb-2 space-y-2">
@@ -307,7 +307,7 @@ watch(() => route.query, () => {
     </div>
 
     <!-- Error -->
-    <div v-else-if="error" class="max-w-2xl mx-auto px-4 py-16 text-center">
+    <div v-else-if="error" class="max-w-3xl mx-auto px-4 py-16 text-center">
       <p class="text-red-400">{{ error }}</p>
       <RouterLink to="/company" class="text-indigo-400 hover:underline text-sm mt-2 inline-block">← Back to Pages</RouterLink>
     </div>
@@ -319,7 +319,7 @@ watch(() => route.query, () => {
         <img v-if="page.coverUrl" :src="page.coverUrl" :alt="page.name" class="w-full h-full object-cover"/>
       </div>
 
-      <div class="max-w-2xl mx-auto px-4">
+      <div class="max-w-3xl mx-auto px-4">
         <!-- Logo + info header -->
         <div class="flex items-end justify-between -mt-12 mb-4">
           <div class="flex items-end gap-4">

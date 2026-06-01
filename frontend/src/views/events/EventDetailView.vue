@@ -184,11 +184,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <!-- Page wrapper — wider when owner sidebar is shown -->
-  <div
-    class="mx-auto px-4 py-6"
-    :class="isOwner ? 'max-w-5xl' : 'max-w-2xl'"
-  >
+  <!-- Page wrapper — fixed width -->
+  <div class="max-w-3xl mx-auto px-4 py-6">
     <!-- Back link -->
     <RouterLink
       to="/events"

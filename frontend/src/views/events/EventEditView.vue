@@ -123,7 +123,7 @@ onMounted(fetchEvent)
 </script>
 
 <template>
-  <div class="max-w-2xl mx-auto px-4 py-6">
+  <div class="max-w-3xl mx-auto px-4 py-6">
     <!-- Back link -->
     <RouterLink
       :to="`/events/${route.params.id}`"

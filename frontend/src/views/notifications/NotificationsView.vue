@@ -212,7 +212,7 @@ const hasUnread = computed(() => items.value.some((n) => !n.isRead))
 </script>
 
 <template>
-  <div class="max-w-2xl mx-auto space-y-4">
+  <div class="max-w-3xl mx-auto space-y-4">
     <!-- Page header -->
     <div class="flex items-center justify-between">
       <h1 class="text-2xl font-bold text-slate-100">Notifications</h1>

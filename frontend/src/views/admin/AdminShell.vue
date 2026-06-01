@@ -31,6 +31,7 @@ function isActive(item: NavItem): boolean {
 </script>
 
 <template>
+  <div class="max-w-3xl mx-auto px-4 py-6">
   <div class="flex gap-6">
     <!-- Admin-section sidebar -->
     <aside class="w-56 shrink-0 hidden md:block">
@@ -59,5 +60,6 @@ function isActive(item: NavItem): boolean {
     <div class="flex-1 min-w-0">
       <RouterView />
     </div>
+  </div>
   </div>
 </template>

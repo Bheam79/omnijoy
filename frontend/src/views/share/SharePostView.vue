@@ -47,7 +47,7 @@ function formatDate(iso: string) {
 
 <template>
   <main class="min-h-screen bg-slate-700 py-8 px-4">
-    <div class="max-w-xl mx-auto">
+    <div class="max-w-3xl mx-auto">
       <!-- Brand header -->
       <header class="flex items-center justify-between mb-6">
         <RouterLink to="/" class="text-2xl font-extrabold text-blue-400">Omnijoy</RouterLink>
