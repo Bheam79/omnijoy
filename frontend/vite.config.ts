@@ -17,6 +17,13 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      // Live stream WebSocket ingest — must be listed before the generic /api
+      // entry so Vite matches the more specific path first and enables ws: true.
+      '/api/live': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        ws: true,
+      },
       // Proxy API calls to the .NET backend during dev
       '/api': {
         target: 'http://localhost:5000',
