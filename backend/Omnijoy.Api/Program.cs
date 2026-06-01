@@ -301,8 +301,32 @@ app.UseWebSockets(new WebSocketOptions
 // A single SPA page load can pull in 10+ assets — keeping those out of the
 // limiter bucket leaves headroom for the actual API traffic the bucket is
 // meant to police.
+//
+// Cache-Control strategy:
+//   index.html     → no-cache, no-store (contains the Vite chunk manifest;
+//                    stale copies cause "Failed to fetch dynamically imported
+//                    module" errors after a redeploy — see OMNIJOY-174/175).
+//   /assets/* etc. → immutable, 1 year (content-hashed filenames; safe forever).
+var spaStaticFileOptions = new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        if (ctx.File.Name.Equals("index.html", StringComparison.OrdinalIgnoreCase))
+        {
+            ctx.Context.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+            ctx.Context.Response.Headers["Pragma"]        = "no-cache";
+            ctx.Context.Response.Headers["Expires"]       = "0";
+        }
+        else
+        {
+            // Content-hashed filenames — safe to cache indefinitely.
+            ctx.Context.Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
+        }
+    },
+};
+
 app.UseDefaultFiles();
-app.UseStaticFiles();
+app.UseStaticFiles(spaStaticFileOptions);
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -323,6 +347,21 @@ app.MapHub<LiveHub>("/hubs/live");
 // endpoint, which returns index.html. DisableRateLimiting keeps SPA route
 // navigations out of the global limiter bucket for the same reason static
 // assets are: serving the HTML shell is not API traffic.
-app.MapFallbackToFile("index.html").DisableRateLimiting();
+//
+// MapFallbackToFile uses a different internal code path than UseStaticFiles
+// so OnPrepareResponse does not fire for it. We use MapFallback with an
+// inline handler that stamps the same no-cache headers before serving the file.
+app.MapFallback(async ctx =>
+{
+    ctx.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+    ctx.Response.Headers["Pragma"]        = "no-cache";
+    ctx.Response.Headers["Expires"]       = "0";
+    ctx.Response.ContentType              = "text/html; charset=utf-8";
+
+    var env  = ctx.RequestServices.GetRequiredService<IWebHostEnvironment>();
+    var file = env.WebRootFileProvider.GetFileInfo("index.html");
+    if (file.Exists)
+        await ctx.Response.SendFileAsync(file);
+}).DisableRateLimiting();
 
 app.Run();
