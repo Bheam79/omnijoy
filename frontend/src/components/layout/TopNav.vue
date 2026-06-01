@@ -93,8 +93,11 @@ async function logout() {
       </svg>
     </button>
 
-    <!-- Logo -->
-    <RouterLink to="/wall" class="shrink-0 flex items-center gap-1.5">
+    <!-- Logo — navigates to company home when acting as a company -->
+    <RouterLink
+      :to="companyMode.isActive ? `/company/${companyMode.activeCompany!.id}` : '/wall'"
+      class="shrink-0 flex items-center gap-1.5"
+    >
       <img src="/logo.png" alt="Omnijoy" class="h-8 w-8 rounded-lg" />
       <span class="hidden sm:block text-lg font-bold text-slate-100 tracking-tight">Omnijoy</span>
     </RouterLink>
