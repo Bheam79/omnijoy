@@ -6,6 +6,7 @@ import Hls from 'hls.js'
 import { useAuthStore } from '@/stores/auth'
 import { useLiveStore } from '@/stores/live'
 import { liveService, type LiveStreamDto } from '@/services/liveService'
+import LiveHostPanel from '@/components/live/LiveHostPanel.vue'
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
@@ -305,36 +306,67 @@ function extractError(e: unknown): string {
 
       <!-- Main content: player + chat -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <!-- Video player -->
-        <div class="lg:col-span-2">
-          <div class="relative bg-black rounded-2xl overflow-hidden aspect-video">
-            <!-- Live video -->
-            <video
-              v-if="stream.status === 'Live'"
-              ref="videoEl"
-              class="w-full h-full object-contain"
-              playsinline
-              controls
-            />
+        <!-- Video player / host panel -->
+        <div class="lg:col-span-2 flex flex-col gap-4">
+          <!-- ── HOST VIEW: camera capture + broadcast panel ── -->
+          <template v-if="isHost && stream.status === 'Live'">
+            <LiveHostPanel :stream-id="streamId" />
 
-            <!-- Stream ended overlay -->
-            <div
-              v-else
-              class="absolute inset-0 flex flex-col items-center justify-center text-white"
-            >
-              <svg class="w-16 h-16 text-gray-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
-                      d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.124a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
-              </svg>
-              <p class="text-lg font-semibold text-slate-600">Stream has ended</p>
-              <button
-                class="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition"
-                @click="$router.push('/live')"
+            <!-- Viewer preview (collapsible) — lets the host check HLS latency -->
+            <details class="group">
+              <summary
+                class="cursor-pointer list-none flex items-center gap-2 text-xs text-slate-500 hover:text-slate-300 transition select-none"
               >
-                Browse live streams
-              </button>
+                <svg
+                  class="w-3.5 h-3.5 transition-transform group-open:rotate-90"
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                Preview what viewers see (HLS, ~5 s delay)
+              </summary>
+              <div class="mt-2 relative bg-black rounded-2xl overflow-hidden aspect-video">
+                <video
+                  ref="videoEl"
+                  class="w-full h-full object-contain"
+                  playsinline
+                  controls
+                />
+              </div>
+            </details>
+          </template>
+
+          <!-- ── VIEWER VIEW: standard HLS player ── -->
+          <template v-else>
+            <div class="relative bg-black rounded-2xl overflow-hidden aspect-video">
+              <!-- Live video -->
+              <video
+                v-if="stream.status === 'Live'"
+                ref="videoEl"
+                class="w-full h-full object-contain"
+                playsinline
+                controls
+              />
+
+              <!-- Stream ended overlay -->
+              <div
+                v-else
+                class="absolute inset-0 flex flex-col items-center justify-center text-white"
+              >
+                <svg class="w-16 h-16 text-gray-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+                        d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.124a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
+                </svg>
+                <p class="text-lg font-semibold text-slate-600">Stream has ended</p>
+                <button
+                  class="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition"
+                  @click="$router.push('/live')"
+                >
+                  Browse live streams
+                </button>
+              </div>
             </div>
-          </div>
+          </template>
         </div>
 
         <!-- Chat sidebar -->

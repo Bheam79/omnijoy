@@ -134,6 +134,24 @@ public class LiveStreamService : ILiveStreamService
             .FirstOrDefaultAsync();
     }
 
+    // ── Stream key for browser ingest (host only, must be live) ──────────────
+
+    public async Task<string> GetHostStreamKeyAsync(Guid streamId, Guid userId)
+    {
+        var stream = await _db.LiveStreams
+            .AsNoTracking()
+            .FirstOrDefaultAsync(ls => ls.Id == streamId)
+            ?? throw new KeyNotFoundException($"Live stream {streamId} not found.");
+
+        if (stream.HostUserId != userId)
+            throw new UnauthorizedAccessException("Only the host can ingest to this stream.");
+
+        if (stream.Status != LiveStreamStatus.Live)
+            throw new InvalidOperationException("Stream is not currently live.");
+
+        return stream.StreamKey;
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     public async Task<List<Guid>> GetFriendIdsAsync(Guid userId)

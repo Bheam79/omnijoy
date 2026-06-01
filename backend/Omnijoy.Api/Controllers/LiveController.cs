@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Net.WebSockets;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -150,6 +152,187 @@ public class LiveController : ControllerBase
         catch (UnauthorizedAccessException ex)
         {
             return StatusCode(403, new { error = ex.Message });
+        }
+    }
+
+    // ── GET /api/live/{id}/ingest (WebSocket) ────────────────────────────────
+
+    /// <summary>
+    /// WebSocket endpoint for browser-based live stream ingestion.
+    /// The browser sends binary WebM chunks (from MediaRecorder); this handler
+    /// pipes them to an FFmpeg process that re-muxes to RTMP and pushes to MediaMTX,
+    /// which then outputs the HLS stream that viewers watch.
+    ///
+    /// Authentication: pass the JWT as the <c>access_token</c> query parameter
+    /// (browsers cannot set custom headers on WebSocket connections).
+    /// </summary>
+    [HttpGet("{id:guid}/ingest")]
+    public async Task IngestStream(Guid id, CancellationToken cancellationToken)
+    {
+        if (CurrentUserId is not { } userId)
+        {
+            HttpContext.Response.StatusCode = 401;
+            return;
+        }
+
+        if (!HttpContext.WebSockets.IsWebSocketRequest)
+        {
+            HttpContext.Response.StatusCode = 426; // Upgrade Required
+            await HttpContext.Response.WriteAsJsonAsync(new { error = "WebSocket connection required." });
+            return;
+        }
+
+        string streamKey;
+        try
+        {
+            streamKey = await _live.GetHostStreamKeyAsync(id, userId);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            HttpContext.Response.StatusCode = 404;
+            await HttpContext.Response.WriteAsJsonAsync(new { error = ex.Message });
+            return;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            HttpContext.Response.StatusCode = 403;
+            await HttpContext.Response.WriteAsJsonAsync(new { error = ex.Message });
+            return;
+        }
+        catch (InvalidOperationException ex)
+        {
+            HttpContext.Response.StatusCode = 409;
+            await HttpContext.Response.WriteAsJsonAsync(new { error = ex.Message });
+            return;
+        }
+
+        var ws = await HttpContext.WebSockets.AcceptWebSocketAsync();
+
+        var rtmpHost = _config["Live:RtmpHost"] ?? "localhost";
+        var rtmpPort = _config["Live:RtmpPort"] ?? "1935";
+        var rtmpUrl  = $"rtmp://{rtmpHost}:{rtmpPort}/live/{streamKey}";
+
+        var logger = HttpContext.RequestServices
+            .GetRequiredService<ILogger<LiveController>>();
+
+        await StreamToRtmpAsync(ws, rtmpUrl, logger, cancellationToken);
+    }
+
+    private static async Task StreamToRtmpAsync(
+        WebSocket ws,
+        string rtmpUrl,
+        ILogger logger,
+        CancellationToken cancellationToken)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        // FFmpeg: read webm from stdin, transcode to H.264/AAC, push to RTMP.
+        // -fflags +genpts regenerates timestamps to smooth any gaps between chunks.
+        // -preset veryfast / -tune zerolatency minimize encoding latency.
+        var ffmpegArgs =
+            "-loglevel warning " +
+            "-f webm -i pipe:0 " +
+            "-c:v libx264 -preset veryfast -tune zerolatency " +
+            "-b:v 2000k -maxrate 2500k -bufsize 5000k -pix_fmt yuv420p " +
+            "-c:a aac -b:a 128k -ar 44100 " +
+            "-fflags +genpts " +
+            "-f flv " +
+            $"\"{rtmpUrl}\"";
+
+        using var ffmpeg = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName               = "ffmpeg",
+                Arguments              = ffmpegArgs,
+                RedirectStandardInput  = true,
+                RedirectStandardError  = true,
+                UseShellExecute        = false,
+                CreateNoWindow         = true,
+            },
+            EnableRaisingEvents = true,
+        };
+
+        try
+        {
+            ffmpeg.Start();
+            logger.LogInformation("FFmpeg ingest started for RTMP target {RtmpUrl}", rtmpUrl);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to start FFmpeg for RTMP ingest");
+            await ws.CloseAsync(WebSocketCloseStatus.InternalServerError,
+                "Failed to start streaming process", CancellationToken.None);
+            return;
+        }
+
+        // Drain FFmpeg stderr to prevent the process from blocking.
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                string? line;
+                while ((line = await ffmpeg.StandardError.ReadLineAsync(cts.Token)) is not null)
+                    logger.LogDebug("ffmpeg: {Line}", line);
+            }
+            catch { /* ignore */ }
+        }, cts.Token);
+
+        var buffer = new byte[65536]; // 64 KB per receive call
+        try
+        {
+            while (ws.State == WebSocketState.Open && !cts.IsCancellationRequested)
+            {
+                WebSocketReceiveResult result;
+                try
+                {
+                    result = await ws.ReceiveAsync(
+                        new ArraySegment<byte>(buffer), cts.Token);
+                }
+                catch (WebSocketException)
+                {
+                    break; // client disconnected
+                }
+
+                if (result.MessageType == WebSocketMessageType.Close)
+                    break;
+
+                if (result.Count > 0)
+                {
+                    await ffmpeg.StandardInput.BaseStream
+                        .WriteAsync(buffer.AsMemory(0, result.Count), cts.Token);
+                    // Flush so FFmpeg receives the data promptly.
+                    await ffmpeg.StandardInput.BaseStream.FlushAsync(cts.Token);
+                }
+            }
+        }
+        catch (OperationCanceledException) { /* normal shutdown */ }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "WebSocket ingest stream ended unexpectedly");
+        }
+        finally
+        {
+            await cts.CancelAsync();
+
+            try { ffmpeg.StandardInput.Close(); }
+            catch { /* ignore */ }
+
+            try { await ffmpeg.WaitForExitAsync(CancellationToken.None); }
+            catch { /* ignore */ }
+
+            logger.LogInformation("FFmpeg ingest stopped for {RtmpUrl} (exit={ExitCode})",
+                rtmpUrl, ffmpeg.HasExited ? ffmpeg.ExitCode : -1);
+
+            if (ws.State == WebSocketState.Open)
+            {
+                try
+                {
+                    await ws.CloseAsync(WebSocketCloseStatus.NormalClosure,
+                        "Stream ended", CancellationToken.None);
+                }
+                catch { /* ignore */ }
+            }
         }
     }
 

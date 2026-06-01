@@ -59,12 +59,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
         options.Events = new JwtBearerEvents
         {
-            // Support JWT in SignalR query string
+            // Support JWT in query string for:
+            //   • SignalR hubs  (/hubs/*)
+            //   • Browser-based live stream WebSocket ingest (/api/live/*/ingest)
+            // Browsers cannot set custom headers on WebSocket connections, so the
+            // JWT must be passed as ?access_token=... in the query string.
             OnMessageReceived = context =>
             {
                 var accessToken = context.Request.Query["access_token"];
                 var path = context.HttpContext.Request.Path;
-                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    (path.StartsWithSegments("/hubs") ||
+                     (path.StartsWithSegments("/api/live") &&
+                      path.Value?.EndsWith("/ingest", StringComparison.OrdinalIgnoreCase) == true)))
                     context.Token = accessToken;
                 return Task.CompletedTask;
             },
@@ -266,6 +273,14 @@ if (app.Environment.IsDevelopment())
 app.UseExceptionHandler();
 
 app.UseCors();
+
+// WebSockets — must be registered before UseAuthentication so that WebSocket
+// upgrade requests are handled, and before UseStaticFiles so that the
+// /api/live/{id}/ingest endpoint is reachable as a WebSocket.
+app.UseWebSockets(new WebSocketOptions
+{
+    KeepAliveInterval = TimeSpan.FromSeconds(30),
+});
 
 // ── Static files (Vue SPA served from wwwroot) ────────────────────────────────
 // Registered BEFORE UseAuthentication / UseAuthorization / UseRateLimiter so

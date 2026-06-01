@@ -47,4 +47,13 @@ public interface ILiveStreamService
     /// Used internally by the HLS proxy endpoint.
     /// </summary>
     Task<string?> GetStreamKeyAsync(Guid streamId);
+
+    /// <summary>
+    /// Returns the stream key for a live stream owned by <paramref name="userId"/>.
+    /// Throws <see cref="KeyNotFoundException"/> if the stream does not exist.
+    /// Throws <see cref="UnauthorizedAccessException"/> if the caller is not the host.
+    /// Throws <see cref="InvalidOperationException"/> if the stream is not currently live.
+    /// Used by the browser-based WebSocket ingest endpoint.
+    /// </summary>
+    Task<string> GetHostStreamKeyAsync(Guid streamId, Guid userId);
 }
