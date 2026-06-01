@@ -317,8 +317,9 @@ watch(() => route.query, () => {
   <div>
     <!-- Loading -->
     <div v-if="loading" class="animate-pulse">
-      <div class="h-48 bg-slate-700"/>
-      <div class="max-w-3xl mx-auto px-4 -mt-16 pb-6">
+      <!-- Skeleton cover — full-bleed (cancels AppShell's px-4/py-6 wrapper) -->
+      <div class="-mx-4 -mt-6 h-48 bg-slate-700"/>
+      <div class="-mt-16 pb-6">
         <div class="flex items-end gap-4 mb-4">
           <div class="w-24 h-24 rounded-2xl bg-slate-600 border-4 border-slate-700"/>
           <div class="pb-2 space-y-2">
@@ -330,19 +331,20 @@ watch(() => route.query, () => {
     </div>
 
     <!-- Error -->
-    <div v-else-if="error" class="max-w-3xl mx-auto px-4 py-16 text-center">
+    <div v-else-if="error" class="py-16 text-center">
       <p class="text-red-400">{{ error }}</p>
       <RouterLink to="/company" class="text-indigo-400 hover:underline text-sm mt-2 inline-block">← Back to Pages</RouterLink>
     </div>
 
     <!-- Page content -->
     <template v-else-if="page">
-      <!-- Cover -->
-      <div class="relative h-48 bg-gradient-to-br from-indigo-500 to-purple-600 overflow-hidden">
+      <!-- Cover — full-bleed: -mx-4/-mt-6 cancel AppShell's px-4/py-6 wrapper
+           so the gradient spans the entire main column edge-to-edge. -->
+      <div class="relative -mx-4 -mt-6 h-48 bg-gradient-to-br from-indigo-500 to-purple-600 overflow-hidden">
         <img v-if="page.coverUrl" :src="page.coverUrl" :alt="page.name" class="w-full h-full object-cover"/>
       </div>
 
-      <div class="max-w-3xl mx-auto px-4">
+      <div>
         <!-- Logo + info header -->
         <div class="flex items-end justify-between -mt-12 mb-4">
           <div class="flex items-end gap-4">
