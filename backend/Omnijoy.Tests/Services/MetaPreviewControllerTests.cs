@@ -8,6 +8,7 @@ using Moq;
 using Moq.Protected;
 using Omnijoy.Api.Controllers;
 using Omnijoy.Core.DTOs.Chat;
+using Omnijoy.Core.Interfaces;
 
 namespace Omnijoy.Tests.Services;
 
@@ -21,7 +22,25 @@ public class MetaPreviewControllerTests : IDisposable
 
     public void Dispose() => _cache.Dispose();
 
-    private MetaPreviewController Build(HttpResponseMessage? response = null, bool throwOnFetch = false)
+    /// <summary>
+    /// No-op resolver that returns an empty array — used for tests whose URLs
+    /// are already IP literals (the controller skips DNS for those) or whose
+    /// URLs use public hostnames we don't want to actually resolve.
+    /// </summary>
+    private static readonly IHostResolver NoOpResolver = CreateNoOpResolver();
+
+    private static IHostResolver CreateNoOpResolver()
+    {
+        var mock = new Mock<IHostResolver>();
+        mock.Setup(r => r.GetHostAddressesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<IPAddress>());
+        return mock.Object;
+    }
+
+    private MetaPreviewController Build(
+        HttpResponseMessage? response = null,
+        bool throwOnFetch = false,
+        IHostResolver? resolver = null)
     {
         var handler = new Mock<HttpMessageHandler>();
 
@@ -48,7 +67,7 @@ public class MetaPreviewControllerTests : IDisposable
         factory.Setup(f => f.CreateClient(It.IsAny<string>()))
                .Returns(new HttpClient(handler.Object));
 
-        var controller = new MetaPreviewController(factory.Object, _cache);
+        var controller = new MetaPreviewController(factory.Object, _cache, resolver ?? NoOpResolver);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
         return controller;
     }

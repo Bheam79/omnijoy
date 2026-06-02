@@ -169,6 +169,18 @@ builder.Services.AddProblemDetails();
 // ── HTTP Client (for OG meta fetching & OAuth) ───────────────────────────────
 builder.Services.AddHttpClient();
 
+// Named client used by MetaPreviewController.  Timeout and User-Agent are
+// configured here so the controller body stays lean and the settings are
+// consistent across test and production.
+builder.Services.AddHttpClient("MetaPreview", c =>
+{
+    c.Timeout = TimeSpan.FromSeconds(8);
+    c.DefaultRequestHeaders.UserAgent.ParseAdd("OmnijoyBot/1.0 (+https://omnijoy.local)");
+});
+
+// DNS resolver — mockable in unit tests via IHostResolver
+builder.Services.AddSingleton<Omnijoy.Core.Interfaces.IHostResolver, Omnijoy.Api.Services.DnsHostResolver>();
+
 // ── Google Places API proxy ───────────────────────────────────────────────────
 // Named client used by PlacesProxyService. The API key is read from
 // configuration (Google:PlacesApiKey / env var Google__PlacesApiKey).
