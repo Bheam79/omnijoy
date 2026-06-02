@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
@@ -22,25 +23,39 @@ public class MetaPreviewControllerTests : IDisposable
 
     public void Dispose() => _cache.Dispose();
 
-    /// <summary>
-    /// No-op resolver that returns an empty array — used for tests whose URLs
-    /// are already IP literals (the controller skips DNS for those) or whose
-    /// URLs use public hostnames we don't want to actually resolve.
-    /// </summary>
-    private static readonly IHostResolver NoOpResolver = CreateNoOpResolver();
+    // ── Builder helpers ──────────────────────────────────────────────────────
 
-    private static IHostResolver CreateNoOpResolver()
+    /// <summary>
+    /// Creates a no-op resolver mock that returns an empty IP array for any host
+    /// (used for tests whose URLs are IP literals — the controller short-circuits
+    /// before calling the resolver — and for hostname tests that don't need DNS
+    /// interception).
+    /// </summary>
+    private static Mock<IHostResolver> CreateNoOpResolverMock()
     {
         var mock = new Mock<IHostResolver>();
         mock.Setup(r => r.GetHostAddressesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<IPAddress>());
-        return mock.Object;
+        return mock;
+    }
+
+    /// <summary>
+    /// Returns a resolver mock that resolves any host to 93.184.216.34
+    /// (example.com's real IP — not in any reserved range), so the SSRF check
+    /// passes and the test reaches the HTTP-fetch stage.
+    /// </summary>
+    private static Mock<IHostResolver> StubPublicResolver()
+    {
+        var mock = new Mock<IHostResolver>();
+        mock.Setup(r => r.GetHostAddressesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { IPAddress.Parse("93.184.216.34") });
+        return mock;
     }
 
     private MetaPreviewController Build(
         HttpResponseMessage? response = null,
         bool throwOnFetch = false,
-        IHostResolver? resolver = null)
+        Mock<IHostResolver>? resolver = null)
     {
         var handler = new Mock<HttpMessageHandler>();
 
@@ -67,7 +82,8 @@ public class MetaPreviewControllerTests : IDisposable
         factory.Setup(f => f.CreateClient(It.IsAny<string>()))
                .Returns(new HttpClient(handler.Object));
 
-        var controller = new MetaPreviewController(factory.Object, _cache, resolver ?? NoOpResolver);
+        var resolverInstance = (resolver ?? CreateNoOpResolverMock()).Object;
+        var controller = new MetaPreviewController(factory.Object, _cache, resolverInstance);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
         return controller;
     }
@@ -158,6 +174,126 @@ public class MetaPreviewControllerTests : IDisposable
         var result = await controller.GetPreview("http://10.0.0.1/secret");
 
         result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    // ── SSRF — new blocked IPv4 ranges ────────────────────────────────────────
+
+    [Theory]
+    [InlineData("http://169.254.169.254/latest/meta-data/")]  // AWS instance metadata
+    [InlineData("http://169.254.0.1/")]                       // APIPA generic
+    [InlineData("http://100.64.0.1/")]                        // RFC 6598 CGN
+    [InlineData("http://100.127.255.255/")]                   // RFC 6598 top of range
+    public async Task GetPreview_ReturnsBadRequest_WhenUrlPointsToNewReservedRange(string url)
+    {
+        var controller = Build();
+
+        var result = await controller.GetPreview(url);
+
+        result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    // ── SSRF — IPv6 blocked ranges ────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("http://[::1]/admin")]                        // IPv6 loopback
+    [InlineData("http://[fc00::1]/internal")]                 // IPv6 ULA fc00::/7
+    [InlineData("http://[fdff:ffff:ffff:ffff::1]/x")]        // IPv6 ULA top of fd00::/8
+    [InlineData("http://[fe80::1]/link-local")]               // IPv6 link-local
+    public async Task GetPreview_ReturnsBadRequest_WhenUrlPointsToReservedIpv6(string url)
+    {
+        var controller = Build();
+
+        var result = await controller.GetPreview(url);
+
+        result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    // ── DNS rebinding ─────────────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("127.0.0.1")]
+    [InlineData("10.0.0.5")]
+    [InlineData("192.168.1.1")]
+    [InlineData("169.254.169.254")]
+    [InlineData("100.64.0.1")]
+    public async Task GetPreview_ReturnsBadRequest_WhenHostnameResolvesToPrivateIp(string resolvedIp)
+    {
+        // Arrange: a public-looking hostname that resolves to an internal IP
+        var resolver = new Mock<IHostResolver>();
+        resolver
+            .Setup(r => r.GetHostAddressesAsync("evil-rebind.example.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { IPAddress.Parse(resolvedIp) });
+
+        var controller = Build(resolver: resolver);
+
+        // Act
+        var result = await controller.GetPreview("http://evil-rebind.example.com/secret");
+
+        // Assert
+        result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    // ── DNS resolution failure ────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetPreview_ReturnsBadRequest_WhenDnsResolutionFails()
+    {
+        var resolver = new Mock<IHostResolver>();
+        resolver
+            .Setup(r => r.GetHostAddressesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new SocketException());
+
+        var controller = Build(resolver: resolver);
+
+        var result = await controller.GetPreview("http://nonexistent.invalid/");
+
+        result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    // ── Named HttpClient ──────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetPreview_UsesNamedMetaPreviewHttpClient()
+    {
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(HtmlResponse("<html><head><title>T</title></head></html>"));
+
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient("MetaPreview")).Returns(new HttpClient(handler.Object));
+
+        var resolver = StubPublicResolver();
+        var ctrl = new MetaPreviewController(factory.Object, _cache, resolver.Object);
+        ctrl.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
+
+        await ctrl.GetPreview("https://example.com/verify-client-name");
+
+        factory.Verify(f => f.CreateClient("MetaPreview"), Times.Once);
+    }
+
+    // ── 128 KB truncation guard ───────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetPreview_TruncatesAt128KB_AndStillParsesTagsInFirstBlock()
+    {
+        // Build an HTML string with og:title in the first 128 KB and junk after
+        var sb = new StringBuilder();
+        sb.Append("""<html><head><meta property="og:title" content="Truncated Title" /></head><body>""");
+        sb.Append(new string('x', 200 * 1024)); // 200 KB of junk
+        sb.Append("</body></html>");
+
+        var controller = Build(HtmlResponse(sb.ToString()));
+
+        var result = await controller.GetPreview("https://example.com/huge-page");
+
+        result.Should().BeOfType<OkObjectResult>();
+        var dto = (OgPreviewDto)((OkObjectResult)result).Value!;
+        // og:title appears before the 128 KB boundary so it must be parsed
+        dto.Title.Should().Be("Truncated Title");
     }
 
     // ── Cache hit ────────────────────────────────────────────────────────────
