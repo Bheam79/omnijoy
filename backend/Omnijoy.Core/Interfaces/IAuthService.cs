@@ -17,4 +17,18 @@ public interface IAuthService
     /// remainder of its lifetime.
     /// </summary>
     Task LogoutAsync(string refreshToken, string? accessToken = null);
+
+    /// <summary>
+    /// Step 1 of password reset: generates a one-time code and sends it to the
+    /// user's email address. Always returns successfully — unknown emails are
+    /// silently ignored to prevent enumeration.
+    /// </summary>
+    Task RequestPasswordResetAsync(PasswordResetRequestDto request);
+
+    /// <summary>
+    /// Step 2 of password reset: verifies the OTP code, updates the password,
+    /// revokes all refresh tokens, and pushes a security-event notification.
+    /// Does NOT issue new tokens — the user must log in again.
+    /// </summary>
+    Task ConfirmPasswordResetAsync(PasswordResetConfirmDto request);
 }

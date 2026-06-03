@@ -163,4 +163,35 @@ public class AuthController : ControllerBase
         await _auth.LogoutAsync(request.RefreshToken, request.AccessToken);
         return Ok(new { message = "Logged out successfully." });
     }
+
+    // POST /api/auth/password/forgot
+    [HttpPost("password/forgot")]
+    public async Task<IActionResult> PasswordForgot([FromBody] PasswordResetRequestDto request)
+    {
+        try { await _auth.RequestPasswordResetAsync(request); }
+        catch (Exception ex) when (
+            ex is System.Net.Mail.SmtpException ||
+            ex.InnerException is System.Net.Mail.SmtpException)
+        {
+            _logger.LogError(ex, "Failed to send password-reset email; continuing silently.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while sending password-reset email; continuing silently.");
+        }
+        return Ok(new { message = "If your email is registered, you will receive a reset code shortly." });
+    }
+
+    // POST /api/auth/password/reset
+    [HttpPost("password/reset")]
+    public async Task<IActionResult> PasswordReset([FromBody] PasswordResetConfirmDto request)
+    {
+        try
+        {
+            await _auth.ConfirmPasswordResetAsync(request);
+            return Ok(new { message = "Password reset successfully. Please log in with your new password." });
+        }
+        catch (ArgumentException ex)           { return BadRequest(new { error = ex.Message }); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(new { error = ex.Message }); }
+    }
 }

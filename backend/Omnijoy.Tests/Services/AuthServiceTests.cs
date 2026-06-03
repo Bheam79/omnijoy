@@ -18,6 +18,7 @@ public class AuthServiceTests : IDisposable
     private readonly Mock<IEmailService> _emailMock;
     private readonly Mock<IHttpClientFactory> _httpFactoryMock;
     private readonly Mock<ITokenBlacklist> _blacklistMock;
+    private readonly Mock<INotificationService> _notificationsMock;
     private readonly IConfiguration _config;
     private readonly AuthService _sut;
 
@@ -37,6 +38,8 @@ public class AuthServiceTests : IDisposable
         _emailMock = new Mock<IEmailService>();
         _emailMock.Setup(e => e.SendOtpEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(Task.CompletedTask);
+        _emailMock.Setup(e => e.SendPasswordResetEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
 
         _httpFactoryMock = new Mock<IHttpClientFactory>();
 
@@ -48,6 +51,12 @@ public class AuthServiceTests : IDisposable
             .Setup(b => b.IsBlacklistedAsync(It.IsAny<string>()))
             .ReturnsAsync(false);
 
+        _notificationsMock = new Mock<INotificationService>();
+        _notificationsMock
+            .Setup(n => n.CreateAsync(It.IsAny<Guid>(), It.IsAny<NotificationType>(), It.IsAny<string?>(), It.IsAny<Guid?>()))
+            .ReturnsAsync(new Omnijoy.Core.DTOs.Notifications.NotificationDto(
+                Guid.NewGuid(), "PasswordReset", null, false, DateTime.UtcNow, null, null, null));
+
         _config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -55,7 +64,7 @@ public class AuthServiceTests : IDisposable
             })
             .Build();
 
-        _sut = new AuthService(_db, _tokensMock.Object, _emailMock.Object, _config, _httpFactoryMock.Object, _blacklistMock.Object);
+        _sut = new AuthService(_db, _tokensMock.Object, _emailMock.Object, _config, _httpFactoryMock.Object, _blacklistMock.Object, _notificationsMock.Object);
     }
 
     public void Dispose() => _db.Dispose();

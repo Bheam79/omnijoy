@@ -8,4 +8,6 @@ public interface IEmailService
         string toEmail,
         string inviterDisplayName,
         string inviteUrl);
+
+    Task SendPasswordResetEmailAsync(string toEmail, string displayName, string resetCode);
 }

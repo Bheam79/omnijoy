@@ -22,4 +22,5 @@ public enum NotificationType
     MentionInPost = 17,
     MentionInComment = 18,
     MessageReceived = 19,
+    PasswordReset = 20,
 }

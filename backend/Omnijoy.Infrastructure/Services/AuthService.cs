@@ -21,8 +21,10 @@ public class AuthService : IAuthService
     private readonly IConfiguration _config;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ITokenBlacklist _blacklist;
+    private readonly INotificationService _notifications;
 
     private const int OtpExpiryMinutes = 10;
+    private const int PasswordResetExpiryMinutes = 15;
 
     public AuthService(
         OmnijoyDbContext db,
@@ -30,7 +32,8 @@ public class AuthService : IAuthService
         IEmailService email,
         IConfiguration config,
         IHttpClientFactory httpClientFactory,
-        ITokenBlacklist blacklist)
+        ITokenBlacklist blacklist,
+        INotificationService notifications)
     {
         _db = db;
         _tokens = tokens;
@@ -38,6 +41,7 @@ public class AuthService : IAuthService
         _config = config;
         _httpClientFactory = httpClientFactory;
         _blacklist = blacklist;
+        _notifications = notifications;
     }
 
     // ── Register ─────────────────────────────────────────────────────────────
@@ -307,6 +311,110 @@ public class AuthService : IAuthService
                 // Invalid / malformed token — nothing to blacklist.
             }
         }
+    }
+
+    // ── Password reset: request code ─────────────────────────────────────────
+
+    public async Task RequestPasswordResetAsync(PasswordResetRequestDto request)
+    {
+        var email = request.Email.ToLowerInvariant().Trim();
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+        // Always return successfully — do not reveal whether the email exists.
+        // Perform a dummy BCrypt hash when no user is found so that the response
+        // time is indistinguishable from the happy path (email enumeration via timing).
+        if (user is null)
+        {
+            BCrypt.Net.BCrypt.HashPassword("timing-pad-dummy-value");
+            return;
+        }
+
+        var code = RandomNumberGenerator.GetInt32(100_000, 1_000_000).ToString("D6");
+        var codeHash = HashCode(code);
+        var now = DateTime.UtcNow;
+
+        _db.OtpCodes.Add(new OtpCode
+        {
+            Id = Guid.NewGuid(),
+            Email = email,
+            CodeHash = codeHash,
+            ExpiresAt = now.AddMinutes(PasswordResetExpiryMinutes),
+            CreatedAt = now,
+            IsUsed = false,
+            Purpose = OtpPurpose.PasswordReset,
+            AttemptCount = 0,
+        });
+        await _db.SaveChangesAsync();
+
+        await _email.SendPasswordResetEmailAsync(email, user.DisplayName, code);
+    }
+
+    // ── Password reset: confirm + set new password ────────────────────────────
+
+    public async Task ConfirmPasswordResetAsync(PasswordResetConfirmDto request)
+    {
+        if (string.IsNullOrWhiteSpace(request.NewPassword))
+            throw new ArgumentException("New password is required.");
+
+        if (request.NewPassword.Length < 8)
+            throw new ArgumentException("Password must be at least 8 characters.");
+
+        var email = request.Email.ToLowerInvariant().Trim();
+        var codeHash = HashCode(request.Code.Trim());
+        var now = DateTime.UtcNow;
+
+        var otpRecord = await _db.OtpCodes
+            .Where(o => o.Email == email
+                     && o.Purpose == OtpPurpose.PasswordReset
+                     && !o.IsUsed
+                     && o.ExpiresAt > now)
+            .OrderByDescending(o => o.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (otpRecord is null)
+            throw new UnauthorizedAccessException("Invalid or expired reset code.");
+
+        if (otpRecord.AttemptCount >= 5)
+        {
+            otpRecord.IsUsed = true;
+            await _db.SaveChangesAsync();
+            throw new UnauthorizedAccessException("Too many attempts. Request a new code.");
+        }
+
+        if (otpRecord.CodeHash != codeHash)
+        {
+            otpRecord.AttemptCount++;
+            await _db.SaveChangesAsync();
+            throw new UnauthorizedAccessException("Invalid or expired reset code.");
+        }
+
+        // Code matched — load the user
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+        if (user is null || user.DeletionScheduledAt is not null)
+            throw new UnauthorizedAccessException("Invalid or expired reset code.");
+
+        // Update password
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        user.UpdatedAt = now;
+
+        // Mark the OTP as used
+        otpRecord.IsUsed = true;
+
+        // Revoke ALL active refresh tokens for this user
+        var activeTokens = await _db.RefreshTokens
+            .Where(t => t.UserId == user.Id && !t.IsRevoked)
+            .ToListAsync();
+        foreach (var t in activeTokens)
+            t.IsRevoked = true;
+
+        await _db.SaveChangesAsync();
+
+        // Push a security-event notification (persisted)
+        await _notifications.CreateAsync(
+            recipientUserId: user.Id,
+            type: NotificationType.PasswordReset,
+            referenceId: null,
+            actorUserId: null);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
