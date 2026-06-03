@@ -63,7 +63,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
 # FFmpeg is required for async video thumbnail extraction (ThumbnailGeneratorService).
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
+# wget is used by the docker-compose healthcheck to poll /api/health/ready.
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg wget \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /var/omnijoy/media

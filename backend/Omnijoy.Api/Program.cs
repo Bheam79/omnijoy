@@ -1,6 +1,12 @@
+using Amazon.Runtime;
+using Amazon.S3;
+using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
+using Omnijoy.Api.HealthChecks;
 using Omnijoy.Api.Hubs;
 using Omnijoy.Api.RateLimiting;
 using Omnijoy.Core.Interfaces;
@@ -215,6 +221,34 @@ if (storageType.Equals("s3", StringComparison.OrdinalIgnoreCase))
     // when it does fail, the log line carries the real MinIO error code
     // (e.g. SignatureDoesNotMatch) rather than the SDK's opaque "Access Denied".
     builder.Services.AddHostedService<S3StorageStartupProbe>();
+
+    // Standalone IAmazonS3 used by MinioHealthCheck. S3MediaStorageService
+    // builds its own client internally (it owns checksum quirks and per-request
+    // config), so the health check gets a separate, isolated client wired from
+    // the same Storage:S3:* configuration values. Keeping them separate means a
+    // future change to the storage service's client construction can't silently
+    // change probe behavior.
+    builder.Services.AddSingleton<IAmazonS3>(sp =>
+    {
+        var cfg        = sp.GetRequiredService<IConfiguration>();
+        var serviceUrl = cfg["Storage:S3:ServiceUrl"]
+            ?? throw new InvalidOperationException("Storage:S3:ServiceUrl must be configured.");
+        var accessKey  = cfg["Storage:S3:AccessKey"]
+            ?? throw new InvalidOperationException("Storage:S3:AccessKey must be configured.");
+        var secretKey  = cfg["Storage:S3:SecretKey"]
+            ?? throw new InvalidOperationException("Storage:S3:SecretKey must be configured.");
+
+        var s3Config = new AmazonS3Config
+        {
+            ServiceURL     = serviceUrl,
+            ForcePathStyle = true,
+            // Same checksum opt-out as S3MediaStorageService — MinIO rejects
+            // the default CRC32 checksum headers added by AWSSDK 3.7.412+.
+            RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED,
+            ResponseChecksumValidation = ResponseChecksumValidation.WHEN_REQUIRED,
+        };
+        return new AmazonS3Client(accessKey, secretKey, s3Config);
+    });
 }
 else
 {
@@ -252,6 +286,25 @@ builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<ISlugService, SlugService>();
 builder.Services.AddScoped<IModerationLogService, ModerationLogService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
+
+// ── Health checks ─────────────────────────────────────────────────────────────
+// Liveness:  GET /api/health/live  — always 200 if the process is up
+//                                    (orchestrator restart trigger).
+// Readiness: GET /api/health/ready — runs DB + Redis + MinIO probes. Returns
+//                                    503 when any tagged "ready" probe is
+//                                    degraded; the JSON body reports the
+//                                    per-component status (UIResponseWriter).
+//
+// Only probes tagged "ready" run on the readiness endpoint; the liveness
+// endpoint uses Predicate = _ => false to skip all probes.
+var hcBuilder = builder.Services.AddHealthChecks()
+    .AddMySql(connectionString, name: "mariadb", tags: ["ready"]);
+
+if (redisEnabled)
+    hcBuilder.AddRedis(redisConnectionString!, name: "redis", tags: ["ready"]);
+
+if (storageType.Equals("s3", StringComparison.OrdinalIgnoreCase))
+    hcBuilder.AddCheck<MinioHealthCheck>("minio", tags: ["ready"]);
 
 var app = builder.Build();
 
@@ -346,6 +399,27 @@ app.UseRateLimiter();
 
 // ── API Controllers ───────────────────────────────────────────────────────────
 app.MapControllers();
+
+// ── Health endpoints ──────────────────────────────────────────────────────────
+// /api/health/live  → 200 as long as the process is up. Container orchestrators
+//                     (k8s livenessProbe, compose healthcheck) use this to
+//                     decide whether to restart the container.
+// /api/health/ready → runs DB + Redis + MinIO probes (the ones tagged "ready").
+//                     Returns 503 + per-component JSON body when degraded so
+//                     load balancers can drain traffic from this instance
+//                     while leaving the process alive.
+// Both endpoints disable rate limiting — orchestrators must not be throttled.
+app.MapHealthChecks("/api/health/live", new HealthCheckOptions
+{
+    Predicate         = _ => false,
+    ResultStatusCodes = { [HealthStatus.Healthy] = StatusCodes.Status200OK },
+}).DisableRateLimiting();
+
+app.MapHealthChecks("/api/health/ready", new HealthCheckOptions
+{
+    Predicate      = hc => hc.Tags.Contains("ready"),
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse,
+}).DisableRateLimiting();
 
 // ── SignalR Hubs ──────────────────────────────────────────────────────────────
 app.MapHub<NotificationHub>("/hubs/notifications");

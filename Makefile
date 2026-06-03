@@ -230,7 +230,23 @@ switch:
 	else \
 	  NEW_SLOT=blue; NEW_PORT=$(BLUE_PORT); OLD_SLOT=green; \
 	fi; \
-	echo ">> Activating $$NEW_SLOT (port $$NEW_PORT)..."; \
+	echo ">> Probing $$NEW_SLOT readiness at http://localhost:$$NEW_PORT/api/health/ready ..."; \
+	HC_TRIES=20; HC_DELAY=2; HC_OK=0; \
+	for i in $$(seq 1 $$HC_TRIES); do \
+	  CODE=$$(curl -fsS -o /dev/null -w "%{http_code}" \
+	    --max-time 5 "http://localhost:$$NEW_PORT/api/health/ready" 2>/dev/null || echo 000); \
+	  if [ "$$CODE" = "200" ]; then HC_OK=1; break; fi; \
+	  echo "   attempt $$i/$$HC_TRIES → $$CODE, retrying in $${HC_DELAY}s ..."; \
+	  sleep $$HC_DELAY; \
+	done; \
+	if [ $$HC_OK -ne 1 ]; then \
+	  echo ""; \
+	  echo "  ERROR: $$NEW_SLOT failed readiness check on port $$NEW_PORT."; \
+	  echo "  Refusing to switch nginx — $$OLD_SLOT remains active."; \
+	  echo "  Tail the slot logs:  $(DOCKER) logs $(PREFIX)_$$NEW_SLOT"; \
+	  exit 1; \
+	fi; \
+	echo ">> $$NEW_SLOT readiness OK. Activating..."; \
 	$(MAKE) _nginx-point PORT=$$NEW_PORT; \
 	echo $$NEW_SLOT > $(ACTIVE_FILE); \
 	echo ">> Active slot: $$NEW_SLOT. Previous: $$OLD_SLOT is still running for rollback."

@@ -144,6 +144,16 @@ services:
     networks:
       - omnijoy_net
     # No ports: section — backend only reachable via nginx inside the network.
+    # Compose healthcheck: hits the readiness endpoint, which runs the
+    # DB + Redis + MinIO probes. wget is part of busybox in the aspnet image's
+    # base (debian-slim ships it). start_period is generous because EF Core
+    # migrations run before the host starts listening (see Program.cs).
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/api/health/ready"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     depends_on:
       mysql:
         condition: service_healthy

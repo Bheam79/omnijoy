@@ -476,9 +476,38 @@ the SPA as static files in production.
 `make test-e2e-prod` requires `docker/.env` to exist and `make prod-up` to have been run.
 It reads `PUBLIC_PORT` from `.env` and sets `BASE_URL` accordingly (default: `http://localhost:80`).
 
-`e2e/tests/api/health.api.spec.ts` is the first spec to run and hits `GET /api/health`.
-If the stack is not up at all this single test fails loudly rather than producing hundreds
-of cascading assertion errors.
+`e2e/tests/api/health.api.spec.ts` is the first spec to run and hits
+`GET /api/health/ready` (the readiness probe, which exercises DB + Redis +
+MinIO via `Microsoft.AspNetCore.Diagnostics.HealthChecks`).
+If the stack is not up at all this single test fails loudly rather than
+producing hundreds of cascading assertion errors.
+
+### Health endpoints
+
+`/api/health/live` — always 200 if the process is up (no probes). Used by
+container orchestrators / compose healthchecks to decide whether to *restart*
+the container.
+
+`/api/health/ready` — runs probes tagged `ready`: MariaDB (`AddMySql`),
+Redis (`AddRedis`, registered only when Redis is configured), MinIO
+(`MinioHealthCheck`, registered only when `Storage:Type == "s3"`). Returns
+**503** when any probe is degraded, with a per-component JSON body
+(`UIResponseWriter.WriteHealthCheckUIResponse` — payload shape:
+`{ status, totalDuration, entries: { "<name>": { status, description, … } } }`).
+Used by load balancers to *drain traffic* from a degraded instance while
+leaving the process alive.
+
+The `MinioHealthCheck` (`Omnijoy.Api/HealthChecks/MinioHealthCheck.cs`)
+calls `GetBucketLocationAsync` (a cheap metadata call) and caches the
+result for 10 seconds in `IMemoryCache` to avoid hammering S3 when the
+readiness endpoint is polled aggressively. The liveness/readiness mapping
+lives in `Program.cs` and both endpoints are `DisableRateLimiting()` so
+orchestrator polls don't get throttled.
+
+The legacy `make switch` target curls `/api/health/ready` on the inactive
+slot before pointing nginx at it; if the new slot doesn't become ready
+within ~40s (20 attempts × 2s delay) it refuses to switch and leaves the
+old slot active.
 
 ### E2E — 5xx guard
 
