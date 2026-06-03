@@ -155,6 +155,7 @@ public class AuthService : IAuthService
             ExpiresAt = now.AddMinutes(OtpExpiryMinutes),
             CreatedAt = now,
             IsUsed = false,
+            Purpose = OtpPurpose.Login,
         });
         await _db.SaveChangesAsync();
 
@@ -170,7 +171,10 @@ public class AuthService : IAuthService
         var now = DateTime.UtcNow;
 
         var otpRecord = await _db.OtpCodes
-            .Where(o => o.Email == email && !o.IsUsed && o.ExpiresAt > now)
+            .Where(o => o.Email == email
+                     && o.Purpose == OtpPurpose.Login
+                     && !o.IsUsed
+                     && o.ExpiresAt > now)
             .OrderByDescending(o => o.CreatedAt)
             .FirstOrDefaultAsync();
 

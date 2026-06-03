@@ -50,6 +50,22 @@ public record ChangeEmailRequest(string NewEmail, string CurrentPassword);
 
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword, string ConfirmNewPassword);
 
+// ── Password reset ─────────────────────────────────────────────────────────────
+
+/// <summary>Step 1 of the password-reset flow: request a one-time code by email.</summary>
+public class PasswordResetRequestDto
+{
+    public string Email { get; set; } = string.Empty;
+}
+
+/// <summary>Step 2 of the password-reset flow: verify the code and set the new password.</summary>
+public class PasswordResetConfirmDto
+{
+    public string Email { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+}
+
 /// <summary>
 /// Body for POST /api/account/delete. The user must re-enter their email
 /// address as a typing-confirmation step.
