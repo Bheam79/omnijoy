@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -380,5 +382,359 @@ public class AuthServiceTests : IDisposable
     {
         await _sut.Invoking(s => s.LogoutAsync("unknown-token"))
             .Should().NotThrowAsync();
+    }
+
+    // ── Helpers for password-reset tests ──────────────────────────────────────
+
+    /// <summary>
+    /// Replicates the private HashCode helper in AuthService so tests can
+    /// pre-seed OtpCode rows with a known, submittable plain-text code.
+    /// </summary>
+    private static string ComputeCodeHash(string code)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(code));
+        return Convert.ToBase64String(bytes);
+    }
+
+    /// <summary>
+    /// Seeds a PasswordReset (or other-purpose) OtpCode row with a fixed
+    /// known code ("654321") so tests can submit it without cracking the hash.
+    /// </summary>
+    private async Task<(OtpCode otp, string plainCode)> SeedPasswordResetOtpAsync(
+        string email,
+        int attemptCount = 0,
+        bool isUsed = false,
+        DateTime? expiresAt = null,
+        OtpPurpose purpose = OtpPurpose.PasswordReset)
+    {
+        const string code = "654321";
+        var otp = new OtpCode
+        {
+            Id           = Guid.NewGuid(),
+            Email        = email,
+            CodeHash     = ComputeCodeHash(code),
+            ExpiresAt    = expiresAt ?? DateTime.UtcNow.AddMinutes(15),
+            CreatedAt    = DateTime.UtcNow,
+            IsUsed       = isUsed,
+            Purpose      = purpose,
+            AttemptCount = attemptCount,
+        };
+        _db.OtpCodes.Add(otp);
+        await _db.SaveChangesAsync();
+        return (otp, code);
+    }
+
+    // ── RequestPasswordResetAsync ─────────────────────────────────────────────
+
+    [Fact]
+    public async Task RequestPasswordReset_KnownEmail_PersistsPasswordResetOtpAndSendsEmail()
+    {
+        var user = await RegisterPasswordUserAsync("reset@example.com");
+
+        await _sut.RequestPasswordResetAsync(new PasswordResetRequestDto { Email = "reset@example.com" });
+
+        var otpRecord = await _db.OtpCodes.FirstAsync(o => o.Purpose == OtpPurpose.PasswordReset);
+        otpRecord.Email.Should().Be("reset@example.com");
+        otpRecord.IsUsed.Should().BeFalse();
+        otpRecord.AttemptCount.Should().Be(0);
+        otpRecord.ExpiresAt.Should().BeCloseTo(DateTime.UtcNow.AddMinutes(15), TimeSpan.FromMinutes(1));
+
+        _emailMock.Verify(e => e.SendPasswordResetEmailAsync(
+            "reset@example.com",
+            user.DisplayName,
+            It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RequestPasswordReset_UnknownEmail_ReturnsSilentlyWithoutInsertingRow()
+    {
+        await _sut.Invoking(s => s.RequestPasswordResetAsync(
+                new PasswordResetRequestDto { Email = "ghost@example.com" }))
+            .Should().NotThrowAsync();
+
+        (await _db.OtpCodes.CountAsync()).Should().Be(0);
+        _emailMock.Verify(e => e.SendPasswordResetEmailAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RequestPasswordReset_DoesNotAffectExistingLoginOtps()
+    {
+        await RegisterPasswordUserAsync("reset2@example.com");
+
+        // Pre-seed a Login-purpose OTP
+        _db.OtpCodes.Add(new OtpCode
+        {
+            Id           = Guid.NewGuid(),
+            Email        = "reset2@example.com",
+            CodeHash     = "some-login-hash",
+            ExpiresAt    = DateTime.UtcNow.AddMinutes(10),
+            CreatedAt    = DateTime.UtcNow,
+            IsUsed       = false,
+            Purpose      = OtpPurpose.Login,
+            AttemptCount = 0,
+        });
+        await _db.SaveChangesAsync();
+
+        await _sut.RequestPasswordResetAsync(new PasswordResetRequestDto { Email = "reset2@example.com" });
+
+        // The Login OTP must be completely untouched
+        var loginOtp = await _db.OtpCodes.FirstAsync(o => o.Purpose == OtpPurpose.Login);
+        loginOtp.IsUsed.Should().BeFalse();
+        loginOtp.CodeHash.Should().Be("some-login-hash");
+        loginOtp.AttemptCount.Should().Be(0);
+    }
+
+    // ── ConfirmPasswordResetAsync ─────────────────────────────────────────────
+
+    [Fact]
+    public async Task ConfirmPasswordReset_HappyPath_RotatesHashAndRevokesAllRefreshTokens()
+    {
+        var user = await RegisterPasswordUserAsync("confirm@example.com", "OldPassword123!");
+        var oldHash = user.PasswordHash;
+
+        // Seed two additional active refresh tokens (Register already created one)
+        _db.RefreshTokens.Add(new RefreshToken
+        {
+            Id        = Guid.NewGuid(),
+            UserId    = user.Id,
+            User      = user,
+            TokenHash = "manual-token-hash-1",
+            ExpiresAt = DateTime.UtcNow.AddDays(30),
+            CreatedAt = DateTime.UtcNow,
+            IsRevoked = false,
+        });
+        _db.RefreshTokens.Add(new RefreshToken
+        {
+            Id        = Guid.NewGuid(),
+            UserId    = user.Id,
+            User      = user,
+            TokenHash = "manual-token-hash-2",
+            ExpiresAt = DateTime.UtcNow.AddDays(30),
+            CreatedAt = DateTime.UtcNow,
+            IsRevoked = false,
+        });
+        await _db.SaveChangesAsync();
+
+        var (otp, code) = await SeedPasswordResetOtpAsync("confirm@example.com");
+
+        await _sut.ConfirmPasswordResetAsync(new PasswordResetConfirmDto
+        {
+            Email       = "confirm@example.com",
+            Code        = code,
+            NewPassword = "NewPassword123!",
+        });
+
+        // Password hash rotated
+        var updatedUser = await _db.Users.FirstAsync(u => u.Email == "confirm@example.com");
+        BCrypt.Net.BCrypt.Verify("NewPassword123!", updatedUser.PasswordHash).Should().BeTrue();
+        BCrypt.Net.BCrypt.Verify("OldPassword123!", updatedUser.PasswordHash).Should().BeFalse();
+
+        // All refresh tokens for this user are now revoked
+        var tokens = await _db.RefreshTokens
+            .Where(t => t.UserId == user.Id)
+            .ToListAsync();
+        tokens.Should().AllSatisfy(t => t.IsRevoked.Should().BeTrue());
+
+        // OTP marked used
+        var otpRow = await _db.OtpCodes.FirstAsync(o => o.Id == otp.Id);
+        otpRow.IsUsed.Should().BeTrue();
+
+        // Security notification pushed (persisted)
+        _notificationsMock.Verify(n => n.CreateAsync(
+            user.Id, NotificationType.PasswordReset, null, null), Times.Once);
+    }
+
+    [Fact]
+    public async Task ConfirmPasswordReset_WrongCode_IncrementsAttemptCountAndThrowsUnauthorized()
+    {
+        await RegisterPasswordUserAsync("attempt@example.com");
+        var (otp, _) = await SeedPasswordResetOtpAsync("attempt@example.com");
+
+        await _sut.Invoking(s => s.ConfirmPasswordResetAsync(new PasswordResetConfirmDto
+            {
+                Email       = "attempt@example.com",
+                Code        = "000000", // deliberately wrong
+                NewPassword = "NewPassword123!",
+            }))
+            .Should().ThrowAsync<UnauthorizedAccessException>();
+
+        var otpRow = await _db.OtpCodes.FirstAsync(o => o.Id == otp.Id);
+        otpRow.AttemptCount.Should().Be(1);
+        otpRow.IsUsed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ConfirmPasswordReset_ExpiredCode_Throws()
+    {
+        var user = await RegisterPasswordUserAsync("expired@example.com");
+        var originalHash = user.PasswordHash;
+
+        var (_, code) = await SeedPasswordResetOtpAsync(
+            "expired@example.com",
+            expiresAt: DateTime.UtcNow.AddMinutes(-5)); // already expired
+
+        await _sut.Invoking(s => s.ConfirmPasswordResetAsync(new PasswordResetConfirmDto
+            {
+                Email       = "expired@example.com",
+                Code        = code,
+                NewPassword = "NewPassword123!",
+            }))
+            .Should().ThrowAsync<UnauthorizedAccessException>();
+
+        // Password hash must not have changed
+        var reloaded = await _db.Users.FirstAsync(u => u.Email == "expired@example.com");
+        reloaded.PasswordHash.Should().Be(originalHash);
+    }
+
+    [Fact]
+    public async Task ConfirmPasswordReset_UnknownEmail_ThrowsSameMessageAsWrongCode()
+    {
+        // Seed a user + valid OTP so the wrong-code path produces its error message
+        await RegisterPasswordUserAsync("known@example.com");
+        await SeedPasswordResetOtpAsync("known@example.com");
+
+        // Wrong code for a known user
+        string? wrongCodeMsg = null;
+        try
+        {
+            await _sut.ConfirmPasswordResetAsync(new PasswordResetConfirmDto
+            {
+                Email = "known@example.com", Code = "000000", NewPassword = "NewPassword123!",
+            });
+        }
+        catch (UnauthorizedAccessException ex) { wrongCodeMsg = ex.Message; }
+
+        // Valid-format code for a completely unknown email (no OTP row at all)
+        string? unknownEmailMsg = null;
+        try
+        {
+            await _sut.ConfirmPasswordResetAsync(new PasswordResetConfirmDto
+            {
+                Email = "nobody@example.com", Code = "111111", NewPassword = "NewPassword123!",
+            });
+        }
+        catch (UnauthorizedAccessException ex) { unknownEmailMsg = ex.Message; }
+
+        wrongCodeMsg.Should().NotBeNull();
+        unknownEmailMsg.Should().NotBeNull();
+        // The error message must be byte-identical — no enumeration via error text
+        wrongCodeMsg.Should().Be(unknownEmailMsg);
+    }
+
+    [Fact]
+    public async Task ConfirmPasswordReset_TooManyAttempts_LocksOutAndMarksUsed()
+    {
+        await RegisterPasswordUserAsync("lockout@example.com");
+        var (otp, code) = await SeedPasswordResetOtpAsync("lockout@example.com", attemptCount: 5);
+
+        await _sut.Invoking(s => s.ConfirmPasswordResetAsync(new PasswordResetConfirmDto
+            {
+                Email       = "lockout@example.com",
+                Code        = code,
+                NewPassword = "NewPassword123!",
+            }))
+            .Should().ThrowAsync<UnauthorizedAccessException>()
+            .WithMessage("*Too many attempts*");
+
+        // Row must be locked so a fresh request is required
+        var otpRow = await _db.OtpCodes.FirstAsync(o => o.Id == otp.Id);
+        otpRow.IsUsed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ConfirmPasswordReset_PasswordTooShort_ThrowsArgumentException()
+    {
+        var user = await RegisterPasswordUserAsync("short@example.com");
+        var originalHash = user.PasswordHash;
+        var (otp, code) = await SeedPasswordResetOtpAsync("short@example.com");
+
+        await _sut.Invoking(s => s.ConfirmPasswordResetAsync(new PasswordResetConfirmDto
+            {
+                Email       = "short@example.com",
+                Code        = code,
+                NewPassword = "abc", // < 8 chars
+            }))
+            .Should().ThrowAsync<ArgumentException>();
+
+        // OTP NOT marked used — user can retry with a compliant password
+        var otpRow = await _db.OtpCodes.FirstAsync(o => o.Id == otp.Id);
+        otpRow.IsUsed.Should().BeFalse();
+
+        // Hash must not have rotated
+        var reloaded = await _db.Users.FirstAsync(u => u.Email == "short@example.com");
+        reloaded.PasswordHash.Should().Be(originalHash);
+    }
+
+    [Fact]
+    public async Task ConfirmPasswordReset_EmptyPassword_ThrowsArgumentException()
+    {
+        await RegisterPasswordUserAsync("empty@example.com");
+        var (_, code) = await SeedPasswordResetOtpAsync("empty@example.com");
+
+        await _sut.Invoking(s => s.ConfirmPasswordResetAsync(new PasswordResetConfirmDto
+            {
+                Email       = "empty@example.com",
+                Code        = code,
+                NewPassword = "",
+            }))
+            .Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
+    public async Task ConfirmPasswordReset_DoesNotAcceptLoginPurposeOtp()
+    {
+        // Seed an OTP that is valid in all respects EXCEPT its Purpose is Login
+        await RegisterPasswordUserAsync("loginpurpose@example.com");
+        var (_, code) = await SeedPasswordResetOtpAsync(
+            "loginpurpose@example.com",
+            purpose: OtpPurpose.Login);
+
+        // ConfirmPasswordResetAsync must reject it
+        await _sut.Invoking(s => s.ConfirmPasswordResetAsync(new PasswordResetConfirmDto
+            {
+                Email       = "loginpurpose@example.com",
+                Code        = code,
+                NewPassword = "NewPassword123!",
+            }))
+            .Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
+    public async Task ConfirmPasswordReset_AlreadyUsedCode_Throws()
+    {
+        await RegisterPasswordUserAsync("usedcode@example.com");
+        var (_, code) = await SeedPasswordResetOtpAsync("usedcode@example.com", isUsed: true);
+
+        await _sut.Invoking(s => s.ConfirmPasswordResetAsync(new PasswordResetConfirmDto
+            {
+                Email       = "usedcode@example.com",
+                Code        = code,
+                NewPassword = "NewPassword123!",
+            }))
+            .Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
+    public async Task ConfirmPasswordReset_DeletedAccount_Throws()
+    {
+        var user = await RegisterPasswordUserAsync("deleted@example.com");
+        user.DeletionScheduledAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        var originalHash = user.PasswordHash;
+
+        var (_, code) = await SeedPasswordResetOtpAsync("deleted@example.com");
+
+        await _sut.Invoking(s => s.ConfirmPasswordResetAsync(new PasswordResetConfirmDto
+            {
+                Email       = "deleted@example.com",
+                Code        = code,
+                NewPassword = "NewPassword123!",
+            }))
+            .Should().ThrowAsync<UnauthorizedAccessException>();
+
+        // Hash must not have rotated
+        var reloaded = await _db.Users.FirstAsync(u => u.Email == "deleted@example.com");
+        reloaded.PasswordHash.Should().Be(originalHash);
     }
 }

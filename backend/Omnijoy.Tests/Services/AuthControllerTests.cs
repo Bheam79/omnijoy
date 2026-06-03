@@ -285,4 +285,94 @@ public class AuthControllerTests
         result.Should().BeOfType<OkObjectResult>();
         auth.Verify(a => a.LogoutAsync("refresh-token", "access-token"), Times.Once);
     }
+
+    // ── PasswordForgot ────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task PasswordForgot_ReturnsOk_WithGenericMessage()
+    {
+        var auth    = new Mock<IAuthService>();
+        var request = new PasswordResetRequestDto { Email = "user@example.com" };
+        auth.Setup(a => a.RequestPasswordResetAsync(It.IsAny<PasswordResetRequestDto>()))
+            .Returns(Task.CompletedTask);
+        var controller = Build(auth);
+
+        var result = await controller.PasswordForgot(request);
+
+        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
+        var json = System.Text.Json.JsonSerializer.Serialize(ok.Value);
+        json.Should().Contain("registered");
+    }
+
+    [Fact]
+    public async Task PasswordForgot_ReturnsOk_EvenWhenSmtpThrows()
+    {
+        var auth    = new Mock<IAuthService>();
+        var request = new PasswordResetRequestDto { Email = "user@example.com" };
+        auth.Setup(a => a.RequestPasswordResetAsync(It.IsAny<PasswordResetRequestDto>()))
+            .ThrowsAsync(new System.Net.Mail.SmtpException("smtp unreachable"));
+        var controller = Build(auth);
+
+        var result = await controller.PasswordForgot(request);
+
+        result.Should().BeOfType<OkObjectResult>();
+    }
+
+    [Fact]
+    public async Task PasswordForgot_ReturnsOk_EvenWhenUnexpectedThrows()
+    {
+        var auth    = new Mock<IAuthService>();
+        var request = new PasswordResetRequestDto { Email = "user@example.com" };
+        auth.Setup(a => a.RequestPasswordResetAsync(It.IsAny<PasswordResetRequestDto>()))
+            .ThrowsAsync(new Exception("something unexpected"));
+        var controller = Build(auth);
+
+        var result = await controller.PasswordForgot(request);
+
+        result.Should().BeOfType<OkObjectResult>();
+    }
+
+    // ── PasswordReset ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task PasswordReset_ReturnsOk_OnSuccess()
+    {
+        var auth    = new Mock<IAuthService>();
+        var request = new PasswordResetConfirmDto { Email = "user@example.com", Code = "123456", NewPassword = "NewPass1!" };
+        auth.Setup(a => a.ConfirmPasswordResetAsync(It.IsAny<PasswordResetConfirmDto>()))
+            .Returns(Task.CompletedTask);
+        var controller = Build(auth);
+
+        var result = await controller.PasswordReset(request);
+
+        result.Should().BeOfType<OkObjectResult>();
+    }
+
+    [Fact]
+    public async Task PasswordReset_Returns400_OnArgumentException()
+    {
+        var auth    = new Mock<IAuthService>();
+        var request = new PasswordResetConfirmDto { Email = "user@example.com", Code = "123456", NewPassword = "bad" };
+        auth.Setup(a => a.ConfirmPasswordResetAsync(It.IsAny<PasswordResetConfirmDto>()))
+            .ThrowsAsync(new ArgumentException("Password must be at least 8 characters."));
+        var controller = Build(auth);
+
+        var result = await controller.PasswordReset(request);
+
+        result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    [Fact]
+    public async Task PasswordReset_Returns401_OnUnauthorized()
+    {
+        var auth    = new Mock<IAuthService>();
+        var request = new PasswordResetConfirmDto { Email = "user@example.com", Code = "000000", NewPassword = "NewPass1!" };
+        auth.Setup(a => a.ConfirmPasswordResetAsync(It.IsAny<PasswordResetConfirmDto>()))
+            .ThrowsAsync(new UnauthorizedAccessException("Invalid or expired reset code."));
+        var controller = Build(auth);
+
+        var result = await controller.PasswordReset(request);
+
+        result.Should().BeOfType<UnauthorizedObjectResult>();
+    }
 }
