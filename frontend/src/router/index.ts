@@ -29,6 +29,12 @@ const router = createRouter({
       component: () => import('@/views/auth/RegisterView.vue'),
       meta: { guest: true },
     },
+    {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: () => import('@/views/auth/ForgotPasswordView.vue'),
+      meta: { guest: true },
+    },
     // Static info pages — public (no auth gate), shown to guests and signed-in
     // users alike. The path segments `privacy`, `terms`, and `about` are
     // already in backend SlugValidator.ReservedSlugs.

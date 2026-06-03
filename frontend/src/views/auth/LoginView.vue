@@ -251,7 +251,14 @@ onMounted(() => {
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-slate-300 mb-1">Password</label>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-sm font-medium text-slate-300">Password</label>
+                <RouterLink
+                  :to="{ name: 'forgot-password' }"
+                  data-testid="forgot-password-link"
+                  class="text-xs text-indigo-400 hover:underline"
+                >Forgot password?</RouterLink>
+              </div>
               <input
                 v-model="pwPassword"
                 data-testid="pw-password-input"

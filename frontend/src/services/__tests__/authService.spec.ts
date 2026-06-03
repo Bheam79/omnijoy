@@ -354,4 +354,46 @@ describe('authService', () => {
     expect(user.locationCity).toBeNull()
     expect(user.locationCountry).toBeNull()
   })
+
+  // ── requestPasswordReset ──────────────────────────────────────────────────
+
+  it('requestPasswordReset → POSTs /api/auth/password/forgot with email', async () => {
+    mockPost.mockResolvedValue({ data: {} })
+
+    await authService.requestPasswordReset('alice@example.com')
+
+    expect(mockPost).toHaveBeenCalledWith('/api/auth/password/forgot', {
+      email: 'alice@example.com',
+    })
+  })
+
+  it('requestPasswordReset → resolves without a return value', async () => {
+    mockPost.mockResolvedValue({ data: {} })
+
+    const result = await authService.requestPasswordReset('alice@example.com')
+
+    expect(result).toBeUndefined()
+  })
+
+  // ── confirmPasswordReset ──────────────────────────────────────────────────
+
+  it('confirmPasswordReset → POSTs /api/auth/password/reset with email, code, and newPassword', async () => {
+    mockPost.mockResolvedValue({ data: {} })
+
+    await authService.confirmPasswordReset('alice@example.com', '654321', 'NewPass123!')
+
+    expect(mockPost).toHaveBeenCalledWith('/api/auth/password/reset', {
+      email:       'alice@example.com',
+      code:        '654321',
+      newPassword: 'NewPass123!',
+    })
+  })
+
+  it('confirmPasswordReset → resolves without a return value', async () => {
+    mockPost.mockResolvedValue({ data: {} })
+
+    const result = await authService.confirmPasswordReset('a@b.com', '123456', 'pw12345!')
+
+    expect(result).toBeUndefined()
+  })
 })

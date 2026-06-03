@@ -87,4 +87,12 @@ export const authService = {
       // Best-effort — clear client-side tokens regardless
     })
   },
+
+  async requestPasswordReset(email: string): Promise<void> {
+    await authAxios.post('/api/auth/password/forgot', { email })
+  },
+
+  async confirmPasswordReset(email: string, code: string, newPassword: string): Promise<void> {
+    await authAxios.post('/api/auth/password/reset', { email, code, newPassword })
+  },
 }

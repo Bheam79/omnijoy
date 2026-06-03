@@ -52,6 +52,13 @@ describe('router route registration order', () => {
     expect(resolved.name).not.toBe('slug-resolver')
   })
 
+  it('resolves /forgot-password to the forgot-password route, NOT the slug resolver', async () => {
+    const router = await importRouter()
+    const resolved = router.resolve('/forgot-password')
+    expect(resolved.name).toBe('forgot-password')
+    expect(resolved.name).not.toBe('slug-resolver')
+  })
+
   it('resolves /wall to the wall route, NOT the slug resolver', async () => {
     const router = await importRouter()
     const resolved = router.resolve('/wall')
