@@ -83,16 +83,40 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             },
 
             // Reject tokens whose JTI appears in the blacklist (post-logout)
+            // or whose issued-at predates the user's token-invalidation cutoff
+            // (set during a password reset to invalidate all outstanding JWTs).
             OnTokenValidated = async context =>
             {
+                var principal = context.Principal;
+
+                // ── 1. Blacklist check (post-logout JTI) ──────────────────────
                 var blacklist = context.HttpContext.RequestServices
                     .GetService<ITokenBlacklist>();
-                if (blacklist is null) return;
+                if (blacklist is not null)
+                {
+                    var jti = principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+                    if (!string.IsNullOrEmpty(jti) && await blacklist.IsBlacklistedAsync(jti))
+                    {
+                        context.Fail("Token has been revoked.");
+                        return;
+                    }
+                }
 
-                var jti = context.Principal?
-                    .FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
-                if (!string.IsNullOrEmpty(jti) && await blacklist.IsBlacklistedAsync(jti))
-                    context.Fail("Token has been revoked.");
+                // ── 2. Token-invalidation cutoff check (post-password-reset) ──
+                var subClaim = principal?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+                var iatClaim = principal?.FindFirst(JwtRegisteredClaimNames.Iat)?.Value;
+
+                if (!string.IsNullOrEmpty(subClaim) && Guid.TryParse(subClaim, out var tokenUserId)
+                    && long.TryParse(iatClaim, out var issuedAtUnix))
+                {
+                    var db = context.HttpContext.RequestServices
+                        .GetService<OmnijoyDbContext>();
+                    if (db is not null
+                        && await TokenCutoffChecker.IsTokenStaleAsync(db, tokenUserId, issuedAtUnix))
+                    {
+                        context.Fail("Token has been invalidated.");
+                    }
+                }
             }
         };
     });

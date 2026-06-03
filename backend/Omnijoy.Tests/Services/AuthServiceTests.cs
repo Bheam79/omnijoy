@@ -536,6 +536,10 @@ public class AuthServiceTests : IDisposable
             .ToListAsync();
         tokens.Should().AllSatisfy(t => t.IsRevoked.Should().BeTrue());
 
+        // TokenInvalidationCutoffUtc must be set so outstanding JWTs are rejected
+        updatedUser.TokenInvalidationCutoffUtc.Should().NotBeNull();
+        updatedUser.TokenInvalidationCutoffUtc!.Value.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+
         // OTP marked used
         var otpRow = await _db.OtpCodes.FirstAsync(o => o.Id == otp.Id);
         otpRow.IsUsed.Should().BeTrue();
@@ -543,6 +547,32 @@ public class AuthServiceTests : IDisposable
         // Security notification pushed (persisted)
         _notificationsMock.Verify(n => n.CreateAsync(
             user.Id, NotificationType.PasswordReset, null, null), Times.Once);
+    }
+
+    [Fact]
+    public async Task ConfirmPasswordReset_SetsTokenInvalidationCutoff_ToApproximatelyNow()
+    {
+        // Arrange
+        var user = await RegisterPasswordUserAsync("cutoff@example.com", "OldPassword!");
+        user.TokenInvalidationCutoffUtc.Should().BeNull("cutoff is null before any reset");
+
+        var before = DateTime.UtcNow;
+        var (_, code) = await SeedPasswordResetOtpAsync("cutoff@example.com");
+
+        // Act
+        await _sut.ConfirmPasswordResetAsync(new PasswordResetConfirmDto
+        {
+            Email       = "cutoff@example.com",
+            Code        = code,
+            NewPassword = "NewPassword123!",
+        });
+
+        // Assert
+        var after = DateTime.UtcNow;
+        var reloaded = await _db.Users.FirstAsync(u => u.Email == "cutoff@example.com");
+        reloaded.TokenInvalidationCutoffUtc.Should().NotBeNull();
+        reloaded.TokenInvalidationCutoffUtc!.Value.Should().BeOnOrAfter(before);
+        reloaded.TokenInvalidationCutoffUtc!.Value.Should().BeOnOrBefore(after.AddSeconds(1));
     }
 
     [Fact]

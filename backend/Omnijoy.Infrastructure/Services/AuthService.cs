@@ -407,6 +407,10 @@ public class AuthService : IAuthService
         foreach (var t in activeTokens)
             t.IsRevoked = true;
 
+        // Advance the token-invalidation cutoff so any still-valid JWTs that
+        // were issued BEFORE this moment are rejected by the middleware.
+        user.TokenInvalidationCutoffUtc = now;
+
         await _db.SaveChangesAsync();
 
         // Push a security-event notification (persisted)

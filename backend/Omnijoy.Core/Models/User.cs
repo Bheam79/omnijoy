@@ -60,6 +60,15 @@ public class User
     /// </summary>
     public DateTime? BannedAt { get; set; }
 
+    /// <summary>
+    /// When set, any JWT whose <c>iat</c> (issued-at) claim is earlier than
+    /// this timestamp is rejected by the middleware. Stamped with
+    /// <see cref="DateTime.UtcNow"/> during a confirmed password reset to
+    /// invalidate all outstanding access tokens that pre-date the reset.
+    /// Null when the account has never triggered a token invalidation.
+    /// </summary>
+    public DateTime? TokenInvalidationCutoffUtc { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
