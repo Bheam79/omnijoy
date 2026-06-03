@@ -291,6 +291,32 @@ describe('LoginView', () => {
     expect(mockPush).toHaveBeenCalledWith('/wall')
   })
 
+  // ── ?reset=1 query — password-reset success banner ────────────────────────
+
+  it('shows success banner when route.query.reset === "1" on mount', async () => {
+    mockRoute.query = { reset: '1' }
+    const wrapper = mountView()
+    await flushPromises()
+
+    const banner = wrapper.find('[data-testid="login-success-banner"]')
+    expect(banner.exists()).toBe(true)
+    expect(banner.text()).toContain('Password reset successfully')
+  })
+
+  it('does NOT show the success banner when reset query param is absent', async () => {
+    // mockRoute.query is reset to {} in beforeEach
+    const wrapper = mountView()
+    await flushPromises()
+    expect(wrapper.find('[data-testid="login-success-banner"]').exists()).toBe(false)
+  })
+
+  it('does NOT show the success banner when reset query param is not "1"', async () => {
+    mockRoute.query = { reset: '0' }
+    const wrapper = mountView()
+    await flushPromises()
+    expect(wrapper.find('[data-testid="login-success-banner"]').exists()).toBe(false)
+  })
+
   it('shows error banner when verifyOtp rejects', async () => {
     mockAuth.requestOtp.mockResolvedValue(undefined)
     mockAuth.verifyOtp.mockRejectedValue(new Error('expired'))

@@ -168,6 +168,12 @@ async function loginWithFacebook() {
 
 // ── Load SDKs on mount ────────────────────────────────────────────────────────
 onMounted(() => {
+  // Show a success banner when redirected here after a successful password reset
+  // (ForgotPasswordView pushes { name: 'login', query: { reset: '1' } } on success).
+  if (route.query.reset === '1') {
+    successMsg.value = 'Password reset successfully — please log in.'
+  }
+
   if (googleClientId) {
     const script = document.createElement('script')
     script.src = 'https://accounts.google.com/gsi/client'
