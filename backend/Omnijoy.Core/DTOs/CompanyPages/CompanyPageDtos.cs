@@ -75,11 +75,4 @@ public record PageImageUploadItem(Stream Content, string FileName, string Conten
 
 // ── Lists ─────────────────────────────────────────────────────────────────────
 
-public record CompanyPagesPageResult(
-    CompanyPageDto[] Items,
-    int Page,
-    int PageSize,
-    bool HasMore
-);
-
 public record AdminsResult(CompanyPageAdminDto[] Admins);

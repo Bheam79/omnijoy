@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Omnijoy.Core.DTOs;
 using Omnijoy.Core.DTOs.Friends;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models;
@@ -209,7 +210,7 @@ public class FriendService : IFriendService
 
     // ── Get friends (paginated) ────────────────────────────────────────────────
 
-    public async Task<FriendsPageResult> GetFriendsAsync(Guid userId, int page, int pageSize)
+    public async Task<PagedResult<FriendDto>> GetFriendsAsync(Guid userId, int page, int pageSize)
     {
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 100) pageSize = 20;
@@ -241,12 +242,12 @@ public class FriendService : IFriendService
             ));
         }
 
-        return new FriendsPageResult(items.ToArray(), page, pageSize, (page * pageSize) < total);
+        return new PagedResult<FriendDto>(items.ToArray(), page, pageSize, (page * pageSize) < total);
     }
 
     // ── View another user's friends (with privacy enforcement) ────────────────
 
-    public async Task<FriendsPageResult> GetUserFriendsAsync(
+    public async Task<PagedResult<FriendDto>> GetUserFriendsAsync(
         Guid targetUserId, Guid? viewerId, int page, int pageSize)
     {
         if (page < 1) page = 1;
@@ -290,7 +291,7 @@ public class FriendService : IFriendService
             ));
         }
 
-        return new FriendsPageResult(items.ToArray(), page, pageSize, (page * pageSize) < total);
+        return new PagedResult<FriendDto>(items.ToArray(), page, pageSize, (page * pageSize) < total);
     }
 
     // ── Pending incoming requests ─────────────────────────────────────────────

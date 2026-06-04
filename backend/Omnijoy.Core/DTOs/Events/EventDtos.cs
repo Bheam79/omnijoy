@@ -94,13 +94,6 @@ public record UpdateEventRequest(
 
 public record CreateEventPostRequest(string Content);
 
-public record EventPostsPageResult(
-    Omnijoy.Core.DTOs.Posts.PostDto[] Items,
-    int Page,
-    int PageSize,
-    bool HasMore
-);
-
 // ── RSVP ──────────────────────────────────────────────────────────────────────
 
 public record RsvpRequest(
@@ -114,15 +107,6 @@ public record EventAttendeesResult(
     EventAttendeeDto[] Going,
     EventAttendeeDto[] Maybe,
     EventAttendeeDto[] NotGoing
-);
-
-// ── Paginated list ─────────────────────────────────────────────────────────────
-
-public record EventsPageResult(
-    EventDto[] Items,
-    int Page,
-    int PageSize,
-    bool HasMore
 );
 
 // ── Cover image upload helper ─────────────────────────────────────────────────

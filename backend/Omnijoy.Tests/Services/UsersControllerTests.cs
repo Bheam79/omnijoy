@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Omnijoy.Api.Controllers;
+using Omnijoy.Core.DTOs;
 using Omnijoy.Core.DTOs.Friends;
 using Omnijoy.Core.DTOs.Notifications;
 using Omnijoy.Core.DTOs.Users;
@@ -145,7 +146,7 @@ public class UsersControllerTests
         var targetId = Guid.NewGuid();
         var (users, friends, presence, slugs) = Mocks();
         friends.Setup(f => f.GetUserFriendsAsync(targetId, null, 1, 20))
-               .ReturnsAsync(new FriendsPageResult(Array.Empty<FriendDto>(), 1, 20, false));
+               .ReturnsAsync(new PagedResult<FriendDto>(Array.Empty<FriendDto>(), 1, 20, false));
         var controller = Build(users, friends, presence, slugs, null);
 
         var result = await controller.GetUserFriends(targetId);

@@ -16,13 +16,6 @@ public record FriendDto(
     FamilyRelationDto? FamilyRelation
 );
 
-public record FriendsPageResult(
-    FriendDto[] Items,
-    int Page,
-    int PageSize,
-    bool HasMore
-);
-
 // ── Requests ──────────────────────────────────────────────────────────────────
 
 public record FriendRequestDto(

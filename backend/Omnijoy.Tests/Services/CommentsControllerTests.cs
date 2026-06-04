@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.SignalR;
 using Moq;
 using Omnijoy.Api.Controllers;
 using Omnijoy.Api.Hubs;
+using Omnijoy.Core.DTOs;
 using Omnijoy.Core.DTOs.Comments;
 using Omnijoy.Core.Interfaces;
 
@@ -127,7 +128,7 @@ public class CommentsControllerTests
     {
         var postId   = Guid.NewGuid();
         var (controller, comments, _) = Build(null); // anonymous
-        var pageResult = new CommentsPageResult(Array.Empty<CommentDto>(), 1, 20, false);
+        var pageResult = new PagedResult<CommentDto>(Array.Empty<CommentDto>(), 1, 20, false);
         comments.Setup(c => c.GetCommentsAsync(postId, 1, 20)).ReturnsAsync(pageResult);
 
         var result = await controller.GetComments(postId);

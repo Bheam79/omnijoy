@@ -1,3 +1,4 @@
+using Omnijoy.Core.DTOs;
 using Omnijoy.Core.DTOs.Posts;
 
 namespace Omnijoy.Core.Interfaces;
@@ -20,7 +21,7 @@ public interface IPostService
     /// Returns a paginated, privacy-filtered feed for the given user:
     /// own posts + accepted friends' posts visible to this user.
     /// </summary>
-    Task<FeedPageResult> GetFeedAsync(Guid userId, int page, int pageSize);
+    Task<PagedResult<FeedItemDto>> GetFeedAsync(Guid userId, int page, int pageSize);
 
     /// <summary>
     /// Returns a single post, respecting privacy rules.

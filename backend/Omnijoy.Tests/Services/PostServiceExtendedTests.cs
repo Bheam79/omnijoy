@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Moq;
+using Omnijoy.Core.DTOs;
 using Omnijoy.Core.DTOs.Posts;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models;
@@ -56,10 +57,10 @@ public class PostServiceExtendedTests : IDisposable
         // Default: no cached feed (cache miss → go to DB)
         _feedCacheMock
             .Setup(c => c.GetUserFeedPage1Async(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((FeedPageResult?)null);
+            .ReturnsAsync((PagedResult<FeedItemDto>?)null);
 
         _feedCacheMock
-            .Setup(c => c.SetUserFeedPage1Async(It.IsAny<Guid>(), It.IsAny<FeedPageResult>(), It.IsAny<CancellationToken>()))
+            .Setup(c => c.SetUserFeedPage1Async(It.IsAny<Guid>(), It.IsAny<PagedResult<FeedItemDto>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var privacy = new PrivacyService(_db);
@@ -262,7 +263,7 @@ public class PostServiceExtendedTests : IDisposable
     public async Task GetFeed_CacheHit_ReturnsCachedResult()
     {
         var userId = Guid.NewGuid();
-        var cachedResult = new FeedPageResult(
+        var cachedResult = new PagedResult<FeedItemDto>(
             Items: [],
             Page: 1,
             PageSize: 20,
@@ -285,7 +286,7 @@ public class PostServiceExtendedTests : IDisposable
         var result = await _sut.GetFeedAsync(user.Id, 1, 20);
 
         _feedCacheMock.Verify(
-            c => c.SetUserFeedPage1Async(user.Id, It.IsAny<FeedPageResult>(), It.IsAny<CancellationToken>()),
+            c => c.SetUserFeedPage1Async(user.Id, It.IsAny<PagedResult<FeedItemDto>>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 

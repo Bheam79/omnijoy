@@ -26,12 +26,3 @@ public record CreateCommentRequest(
 );
 
 public record UpdateCommentRequest(string Content);
-
-// ── Pagination ────────────────────────────────────────────────────────────────
-
-public record CommentsPageResult(
-    CommentDto[] Items,
-    int Page,
-    int PageSize,
-    bool HasMore
-);

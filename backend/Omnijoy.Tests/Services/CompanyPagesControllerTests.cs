@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Omnijoy.Api.Controllers;
+using Omnijoy.Core.DTOs;
 using Omnijoy.Core.DTOs.CompanyPages;
 using Omnijoy.Core.DTOs.Users;
 using Omnijoy.Core.Interfaces;
@@ -53,7 +54,7 @@ public class CompanyPagesControllerTests
         var pages  = new Mock<ICompanyPageService>();
         var slugs  = new Mock<ISlugService>();
         pages.Setup(p => p.GetPagesAsync(userId, false, 1, 20))
-             .ReturnsAsync(new CompanyPagesPageResult(Array.Empty<CompanyPageDto>(), 1, 20, false));
+             .ReturnsAsync(new PagedResult<CompanyPageDto>(Array.Empty<CompanyPageDto>(), 1, 20, false));
         var controller = Build(pages, slugs, userId);
 
         var result = await controller.GetPages();

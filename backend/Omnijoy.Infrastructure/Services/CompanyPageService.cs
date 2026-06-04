@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Omnijoy.Core.DTOs;
 using Omnijoy.Core.DTOs.CompanyPages;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models;
@@ -83,7 +84,7 @@ public class CompanyPageService : ICompanyPageService
 
     // ── List ──────────────────────────────────────────────────────────────────
 
-    public async Task<CompanyPagesPageResult> GetPagesAsync(
+    public async Task<PagedResult<CompanyPageDto>> GetPagesAsync(
         Guid requesterId,
         bool mineOnly,
         int page,
@@ -114,7 +115,7 @@ public class CompanyPageService : ICompanyPageService
 
         var dtos = items.Select(cp => MapToDto(cp, requesterId)).ToArray();
 
-        return new CompanyPagesPageResult(dtos, page, pageSize, (page * pageSize) < total);
+        return new PagedResult<CompanyPageDto>(dtos, page, pageSize, (page * pageSize) < total);
     }
 
     // ── Get single ────────────────────────────────────────────────────────────

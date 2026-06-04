@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Omnijoy.Core.DTOs;
 using Omnijoy.Core.DTOs.Events;
 using Omnijoy.Core.DTOs.Posts;
 using Omnijoy.Core.Interfaces;
@@ -98,7 +99,7 @@ public class EventService : IEventService
 
     // ── List ──────────────────────────────────────────────────────────────────
 
-    public async Task<EventsPageResult> GetEventsAsync(
+    public async Task<PagedResult<EventDto>> GetEventsAsync(
         Guid userId,
         string? filter,
         int page,
@@ -136,7 +137,7 @@ public class EventService : IEventService
                 .ToDictionaryAsync(a => a.EventId, a => a.RSVP.ToString());
 
             var dtos2 = items2.Select(e => MapToDto(e, myRsvps2.GetValueOrDefault(e.Id))).ToArray();
-            return new EventsPageResult(
+            return new PagedResult<EventDto>(
                 Items:    dtos2,
                 Page:     page,
                 PageSize: pageSize,
@@ -189,7 +190,7 @@ public class EventService : IEventService
 
         var dtos = items.Select(e => MapToDto(e, myRsvps.GetValueOrDefault(e.Id))).ToArray();
 
-        return new EventsPageResult(
+        return new PagedResult<EventDto>(
             Items:    dtos,
             Page:     page,
             PageSize: pageSize,
@@ -199,7 +200,7 @@ public class EventService : IEventService
 
     // ── Public list (unauthenticated) ─────────────────────────────────────────
 
-    public async Task<EventsPageResult> GetPublicEventsAsync(
+    public async Task<PagedResult<EventDto>> GetPublicEventsAsync(
         string? location,
         int page,
         int pageSize)
@@ -236,7 +237,7 @@ public class EventService : IEventService
         // No RSVP overlay — caller is unauthenticated.
         var dtos = items.Select(e => MapToDto(e, myRsvp: null)).ToArray();
 
-        return new EventsPageResult(
+        return new PagedResult<EventDto>(
             Items:    dtos,
             Page:     page,
             PageSize: pageSize,
@@ -453,7 +454,7 @@ public class EventService : IEventService
 
     // ── Event posts ───────────────────────────────────────────────────────────
 
-    public async Task<EventPostsPageResult> GetEventPostsAsync(
+    public async Task<PagedResult<PostDto>> GetEventPostsAsync(
         Guid eventId,
         Guid? requesterId,
         int page,
@@ -483,7 +484,7 @@ public class EventService : IEventService
             .ToListAsync();
 
         var items = posts.Select(MapPostToDto).ToArray();
-        return new EventPostsPageResult(items, page, pageSize, (page * pageSize) < total);
+        return new PagedResult<PostDto>(items, page, pageSize, (page * pageSize) < total);
     }
 
     public async Task<PostDto> CreateEventPostAsync(

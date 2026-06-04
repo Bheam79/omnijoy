@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Omnijoy.Core.DTOs;
 using Omnijoy.Core.DTOs.Comments;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models;
@@ -70,7 +71,7 @@ public class CommentService : ICommentService
 
     // ── Get paginated top-level comments ──────────────────────────────────────
 
-    public async Task<CommentsPageResult> GetCommentsAsync(Guid postId, int page, int pageSize)
+    public async Task<PagedResult<CommentDto>> GetCommentsAsync(Guid postId, int page, int pageSize)
     {
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 100) pageSize = 20;
@@ -105,7 +106,7 @@ public class CommentService : ICommentService
             .Select(c => MapToDto(c, replyCounts.GetValueOrDefault(c.Id, 0)))
             .ToArray();
 
-        return new CommentsPageResult(
+        return new PagedResult<CommentDto>(
             Items: dtos,
             Page: page,
             PageSize: pageSize,

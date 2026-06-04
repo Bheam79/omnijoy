@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.SignalR;
 using Moq;
 using Omnijoy.Api.Controllers;
 using Omnijoy.Api.Hubs;
+using Omnijoy.Core.DTOs;
 using Omnijoy.Core.DTOs.Events;
 using Omnijoy.Core.Interfaces;
 
@@ -68,7 +69,7 @@ public class EventsControllerTests
         var feedHub = new Mock<IHubContext<FeedHub>>();
         var notifs  = new Mock<INotificationService>();
         events.Setup(e => e.GetEventsAsync(userId, null, 1, 20))
-              .ReturnsAsync(new EventsPageResult(Array.Empty<EventDto>(), 1, 20, false));
+              .ReturnsAsync(new PagedResult<EventDto>(Array.Empty<EventDto>(), 1, 20, false));
         var controller = Build(events, feedHub, notifs, userId);
 
         var result = await controller.GetEvents();
@@ -98,7 +99,7 @@ public class EventsControllerTests
         var feedHub = new Mock<IHubContext<FeedHub>>();
         var notifs  = new Mock<INotificationService>();
         events.Setup(e => e.GetPublicEventsAsync(null, 1, 20))
-              .ReturnsAsync(new EventsPageResult(Array.Empty<EventDto>(), 1, 20, false));
+              .ReturnsAsync(new PagedResult<EventDto>(Array.Empty<EventDto>(), 1, 20, false));
         var controller = Build(events, feedHub, notifs, null);
 
         var result = await controller.GetPublicEvents();

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
+using Omnijoy.Core.DTOs;
 using Omnijoy.Core.DTOs.Posts;
 using Omnijoy.Core.Interfaces;
 
@@ -42,13 +43,13 @@ public class DistributedFeedCache : IFeedCache
 
     // ── Per-user feed page 1 ──────────────────────────────────────────────────
 
-    public async Task<FeedPageResult?> GetUserFeedPage1Async(Guid userId, CancellationToken ct = default)
+    public async Task<PagedResult<FeedItemDto>?> GetUserFeedPage1Async(Guid userId, CancellationToken ct = default)
     {
         try
         {
             var bytes = await _cache.GetAsync(UserFeedKey(userId), ct);
             if (bytes is null || bytes.Length == 0) return null;
-            return JsonSerializer.Deserialize<FeedPageResult>(bytes, JsonOptions);
+            return JsonSerializer.Deserialize<PagedResult<FeedItemDto>>(bytes, JsonOptions);
         }
         catch (Exception ex)
         {
@@ -57,7 +58,7 @@ public class DistributedFeedCache : IFeedCache
         }
     }
 
-    public async Task SetUserFeedPage1Async(Guid userId, FeedPageResult result, CancellationToken ct = default)
+    public async Task SetUserFeedPage1Async(Guid userId, PagedResult<FeedItemDto> result, CancellationToken ct = default)
     {
         try
         {

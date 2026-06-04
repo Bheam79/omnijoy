@@ -1,3 +1,4 @@
+using Omnijoy.Core.DTOs;
 using Omnijoy.Core.DTOs.CompanyPages;
 
 namespace Omnijoy.Core.Interfaces;
@@ -15,7 +16,7 @@ public interface ICompanyPageService
         PageImageUploadItem? cover);
 
     /// <summary>Returns a paginated list of company pages visible to the requester.</summary>
-    Task<CompanyPagesPageResult> GetPagesAsync(
+    Task<PagedResult<CompanyPageDto>> GetPagesAsync(
         Guid requesterId,
         bool mineOnly,
         int page,

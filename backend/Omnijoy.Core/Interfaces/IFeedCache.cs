@@ -1,3 +1,4 @@
+using Omnijoy.Core.DTOs;
 using Omnijoy.Core.DTOs.Posts;
 
 namespace Omnijoy.Core.Interfaces;
@@ -30,12 +31,12 @@ public interface IFeedCache
     /// Returns the cached page-1 feed for <paramref name="userId"/>, or null
     /// on miss / deserialization failure.
     /// </summary>
-    Task<FeedPageResult?> GetUserFeedPage1Async(Guid userId, CancellationToken ct = default);
+    Task<PagedResult<FeedItemDto>?> GetUserFeedPage1Async(Guid userId, CancellationToken ct = default);
 
     /// <summary>
     /// Stores the given feed page (page 1 only) with a 60-second TTL.
     /// </summary>
-    Task SetUserFeedPage1Async(Guid userId, FeedPageResult result, CancellationToken ct = default);
+    Task SetUserFeedPage1Async(Guid userId, PagedResult<FeedItemDto> result, CancellationToken ct = default);
 
     /// <summary>
     /// Drops the cached page-1 entry for <paramref name="userId"/>.

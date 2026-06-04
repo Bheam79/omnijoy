@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Omnijoy.Api.Controllers;
+using Omnijoy.Core.DTOs;
 using Omnijoy.Core.DTOs.Friends;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models.Enums;
@@ -35,7 +36,7 @@ public class FriendsControllerTests
         SentAt:       DateTime.UtcNow
     );
 
-    private static FriendsPageResult EmptyPage() =>
+    private static PagedResult<FriendDto> EmptyPage() =>
         new(Array.Empty<FriendDto>(), 1, 20, false);
 
     // ── SendRequest ──────────────────────────────────────────────────────────

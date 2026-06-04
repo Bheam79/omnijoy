@@ -1,3 +1,4 @@
+using Omnijoy.Core.DTOs;
 using Omnijoy.Core.DTOs.Events;
 using Omnijoy.Core.DTOs.Posts;
 
@@ -19,7 +20,7 @@ public interface IEventService
     /// <paramref name="filter"/>: "mine" | "friends" | "company" | null (default: all visible).
     /// <paramref name="companyPageId"/>: when provided, restricts results to events for that company page.
     /// </summary>
-    Task<EventsPageResult> GetEventsAsync(
+    Task<PagedResult<EventDto>> GetEventsAsync(
         Guid userId,
         string? filter,
         int page,
@@ -33,7 +34,7 @@ public interface IEventService
     /// the visitor's location.
     /// Available without authentication.
     /// </summary>
-    Task<EventsPageResult> GetPublicEventsAsync(
+    Task<PagedResult<EventDto>> GetPublicEventsAsync(
         string? location,
         int page,
         int pageSize);
@@ -74,7 +75,7 @@ public interface IEventService
     /// Returns paginated posts for a specific event wall.
     /// Enforces read access before returning.
     /// </summary>
-    Task<EventPostsPageResult> GetEventPostsAsync(Guid eventId, Guid? requesterId, int page, int pageSize);
+    Task<PagedResult<PostDto>> GetEventPostsAsync(Guid eventId, Guid? requesterId, int page, int pageSize);
 
     /// <summary>
     /// Creates a post on an event wall.

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Omnijoy.Core.DTOs;
 using Omnijoy.Core.DTOs.Posts;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models;
@@ -156,7 +157,7 @@ public class PostService : IPostService
 
     // ── Feed ──────────────────────────────────────────────────────────────────
 
-    public async Task<FeedPageResult> GetFeedAsync(Guid userId, int page, int pageSize)
+    public async Task<PagedResult<FeedItemDto>> GetFeedAsync(Guid userId, int page, int pageSize)
     {
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 50) pageSize = 20;
@@ -281,7 +282,7 @@ public class PostService : IPostService
             .OfType<FeedItemDto>()
             .ToArray();
 
-        var result = new FeedPageResult(
+        var result = new PagedResult<FeedItemDto>(
             Items: items,
             Page: page,
             PageSize: pageSize,

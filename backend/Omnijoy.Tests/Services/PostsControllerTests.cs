@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.SignalR;
 using Moq;
 using Omnijoy.Api.Controllers;
 using Omnijoy.Api.Hubs;
+using Omnijoy.Core.DTOs;
 using Omnijoy.Core.DTOs.Posts;
 using Omnijoy.Core.Interfaces;
 
@@ -75,7 +76,7 @@ public class PostsControllerTests
         var shares     = new Mock<IShareService>();
         var feedCache  = new Mock<IFeedCache>();
         posts.Setup(p => p.GetFeedAsync(userId, 1, 20)).ReturnsAsync(
-            new FeedPageResult(Array.Empty<FeedItemDto>(), 1, 20, false));
+            new PagedResult<FeedItemDto>(Array.Empty<FeedItemDto>(), 1, 20, false));
         var controller = Build(posts, reactions, feedHub, notifs, shares, feedCache, userId);
 
         var result = await controller.GetFeed();

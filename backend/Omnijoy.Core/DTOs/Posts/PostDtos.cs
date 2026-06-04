@@ -116,15 +116,6 @@ public record FeedItemDto(
     SharedPostFeedItemDto? SharedPost
 );
 
-// ── Feed pagination ───────────────────────────────────────────────────────────
-
-public record FeedPageResult(
-    FeedItemDto[] Items,
-    int Page,
-    int PageSize,
-    bool HasMore
-);
-
 // ── Share request ─────────────────────────────────────────────────────────────
 
 /// <summary>
