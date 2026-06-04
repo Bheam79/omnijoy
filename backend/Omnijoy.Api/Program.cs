@@ -296,6 +296,9 @@ builder.Services.AddScoped<IPostService, PostService>();
 // DistributedFeedCache + TrendingFeedRefreshService.
 builder.Services.AddScoped<IFeedCache, DistributedFeedCache>();
 builder.Services.AddHostedService<TrendingFeedRefreshService>();
+// GDPR hard-delete: purges users whose DeletionScheduledAt grace period has
+// elapsed (Account:DeletionGraceDays, default 30). Runs every 24h.
+builder.Services.AddHostedService<AccountDeletionPurgeService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IReactionService, ReactionService>();
 builder.Services.AddScoped<IFriendService, FriendService>();
