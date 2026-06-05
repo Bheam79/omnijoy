@@ -64,7 +64,8 @@ endif
         migrate clean status logs \
         prod-up prod-start prod-stop prod-down prod-restart \
         prod-build prod-migrate prod-logs prod-status prod-shell \
-        prod-nginx-reload prod-rotate-minio prod-install prod-uninstall _check-env
+        prod-nginx-reload prod-rotate-minio prod-install prod-uninstall \
+        prod-metrics _check-env
 
 # ── Default target ────────────────────────────────────────────────────────────
 help:
@@ -503,6 +504,20 @@ prod-install:
 	@echo ""
 	@echo "  To keep it running after logout (recommended on servers):"
 	@echo "    loginctl enable-linger $$USER"
+
+# Start a temporary Prometheus container scraping the Omnijoy backend.
+# Requires the prod stack to be running (make prod-up).
+# Prometheus UI: http://localhost:9090
+# The container is auto-removed when stopped (--rm).
+prod-metrics:
+	@echo '>> Starting Prometheus scraping Omnijoy backend...'
+	$(DOCKER) run -d --rm \
+	  --name 07ad0b82_omnijoy_prometheus \
+	  --network 07ad0b82_omnijoy_net \
+	  -p 9090:9090 \
+	  -v $(REPO_PATH)/docker/prometheus.example.yml:/etc/prometheus/prometheus.yml:ro \
+	  prom/prometheus
+	@echo '>> Prometheus running on http://localhost:9090'
 
 # Remove the systemd user service.
 prod-uninstall:

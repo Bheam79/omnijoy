@@ -417,6 +417,19 @@ plus `Strict:` and `Global:Ip|UserPermitLimit` siblings. For
 
 ---
 
+### Observability
+
+- **Liveness:** `GET /api/health/live` — always 200 if the process is up. Used by container orchestration.
+- **Readiness:** `GET /api/health/ready` — runs DB + Redis + MinIO probes; returns 503 when degraded. Used by docker compose healthcheck and load balancers.
+- **Metrics:** `GET /metrics` — Prometheus text format. Exposed on port 5000 (backend-internal only; nginx denies external access via the `location = /metrics` block in `nginx.prod.conf.template`). Scrape with `docker/prometheus.example.yml`.
+  - `http_requests_total`, `http_request_duration_seconds` (from `prometheus-net` `UseHttpMetrics`)
+  - `dotnet_gc_*` / `dotnet_threadpool_*` (from `prometheus-net` default collectors)
+  - `signalr_connections{hub=notification|chat|feed|live}` (custom gauge — `Omnijoy.Api/Metrics/SignalRMetrics.cs`)
+- **Library:** `prometheus-net.AspNetCore` 8.x (ADR: `docs/adr/002-prometheus-metrics.md`). The `/metrics` endpoint has rate limiting disabled.
+- **Run Prometheus locally:** `make prod-metrics` (requires prod stack to be up; Prometheus UI at `http://localhost:9090`).
+
+---
+
 ## Frontend structure
 
 - Framework: **Vue 3** (Composition API + `<script setup>`)

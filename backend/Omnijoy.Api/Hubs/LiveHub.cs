@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Omnijoy.Api.Metrics;
 
 namespace Omnijoy.Api.Hubs;
 
@@ -21,6 +22,8 @@ public class LiveHub : Hub
 
     public override async Task OnConnectedAsync()
     {
+        SignalRMetrics.Increment("live");
+
         var userId = Context.UserIdentifier;
         if (userId is not null)
             await Groups.AddToGroupAsync(Context.ConnectionId, $"user:{userId}");
@@ -30,6 +33,8 @@ public class LiveHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        SignalRMetrics.Decrement("live");
+
         var userId = Context.UserIdentifier;
         if (userId is not null)
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"user:{userId}");

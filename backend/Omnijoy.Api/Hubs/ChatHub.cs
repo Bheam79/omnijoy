@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Omnijoy.Api.Metrics;
 
 namespace Omnijoy.Api.Hubs;
 
@@ -21,6 +22,8 @@ public class ChatHub : Hub
 {
     public override async Task OnConnectedAsync()
     {
+        SignalRMetrics.Increment("chat");
+
         var userId = Context.UserIdentifier;
         if (userId is not null)
         {
@@ -34,6 +37,8 @@ public class ChatHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        SignalRMetrics.Decrement("chat");
+
         var userId = Context.UserIdentifier;
         if (userId is not null)
         {

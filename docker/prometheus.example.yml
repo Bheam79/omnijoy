@@ -1,0 +1,19 @@
+# Example Prometheus scrape config for the Omnijoy backend.
+# Place this in docker/ and mount into a prometheus container.
+#
+# Scrape directly from the backend container (port 5000), NOT through nginx,
+# to bypass the IP restriction on the /metrics nginx location block.
+# The backend container is reachable by name inside 07ad0b82_omnijoy_net.
+#
+# Usage:
+#   make prod-metrics          # starts a temporary Prometheus container
+#   open http://localhost:9090 # Prometheus UI
+
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: omnijoy_backend
+    static_configs:
+      - targets: ['07ad0b82_omnijoy_backend:5000']
+    metrics_path: /metrics

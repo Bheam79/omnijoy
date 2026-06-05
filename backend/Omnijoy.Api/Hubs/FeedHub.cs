@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Omnijoy.Api.Metrics;
 
 namespace Omnijoy.Api.Hubs;
 
@@ -15,6 +16,8 @@ public class FeedHub : Hub
 {
     public override async Task OnConnectedAsync()
     {
+        SignalRMetrics.Increment("feed");
+
         var userId = Context.UserIdentifier;
         if (userId is not null)
             await Groups.AddToGroupAsync(Context.ConnectionId, $"user:{userId}");
@@ -24,6 +27,8 @@ public class FeedHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        SignalRMetrics.Decrement("feed");
+
         var userId = Context.UserIdentifier;
         if (userId is not null)
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"user:{userId}");

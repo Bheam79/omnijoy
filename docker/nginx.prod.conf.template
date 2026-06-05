@@ -99,6 +99,23 @@ http {
             proxy_send_timeout 86400s;
         }
 
+        # ── Prometheus metrics ───────────────────────────────────────────────
+        # Internal network only — deny all external traffic.
+        # Prometheus should scrape directly from the backend container
+        # (port 5000) to bypass this block entirely; this restriction is a
+        # defence-in-depth measure in case the port is ever exposed.
+        location = /metrics {
+            allow  172.0.0.0/8;   # Docker bridge networks (172.16.x.x / 172.17.x.x …)
+            allow  10.0.0.0/8;    # Alternative Docker custom networks
+            allow  127.0.0.1;
+            deny   all;
+
+            proxy_pass         http://backend;
+            proxy_http_version 1.1;
+            proxy_set_header   Host $host;
+            proxy_read_timeout 10s;
+        }
+
         # ── REST API ─────────────────────────────────────────────────────────
         location /api/ {
             proxy_pass         http://backend;

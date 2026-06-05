@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Omnijoy.Api.Metrics;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models.Enums;
 using Omnijoy.Infrastructure.Data;
@@ -37,6 +38,8 @@ public class NotificationHub : Hub
 
     public override async Task OnConnectedAsync()
     {
+        SignalRMetrics.Increment("notification");
+
         if (Guid.TryParse(Context.UserIdentifier, out var userId))
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, $"user:{userId}");
@@ -51,6 +54,8 @@ public class NotificationHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        SignalRMetrics.Decrement("notification");
+
         if (Guid.TryParse(Context.UserIdentifier, out var userId))
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"user:{userId}");

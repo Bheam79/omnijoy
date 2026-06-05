@@ -12,6 +12,7 @@ using Omnijoy.Api.RateLimiting;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Infrastructure.Data;
 using Omnijoy.Infrastructure.Services;
+using Prometheus;
 using System.Text;
 using System.IdentityModel.Tokens.Jwt;
 
@@ -186,6 +187,15 @@ builder.Services.AddCors(options =>
 // ── Controllers & OpenAPI ─────────────────────────────────────────────────────
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+
+// ── Prometheus HTTP metrics ───────────────────────────────────────────────────
+// UseHttpMetrics() instruments every request with method / route / status /
+// duration labels (registered in the middleware pipeline below, after
+// UseRateLimiter() so that 429s are counted).  MapMetrics("/metrics") exposes
+// the scrape endpoint with rate limiting disabled — the Prometheus scraper
+// runs every 15 s and must never be throttled.  Access restriction is
+// enforced at the nginx layer (172.x.x.x / 10.x.x.x / 127.0.0.1 only).
+// No additional service registration required for prometheus-net 8.x.
 
 // ── Global exception handling ────────────────────────────────────────────────
 // Catches every uncaught exception that escapes a controller and produces a
@@ -423,6 +433,14 @@ app.UseStaticFiles(spaStaticFileOptions);
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
+
+// ── Prometheus metrics ────────────────────────────────────────────────────────
+// UseHttpMetrics must come after UseRateLimiter so that throttled requests
+// (429) are counted in the http_requests_total series.
+// MapMetrics disables rate limiting — the Prometheus scraper must not be
+// throttled. Network-level access restriction lives in nginx.prod.conf.template.
+app.UseHttpMetrics();
+app.MapMetrics("/metrics").DisableRateLimiting();
 
 // ── API Controllers ───────────────────────────────────────────────────────────
 app.MapControllers();
