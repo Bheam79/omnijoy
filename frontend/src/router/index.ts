@@ -35,6 +35,14 @@ const router = createRouter({
       component: () => import('@/views/auth/ForgotPasswordView.vue'),
       meta: { guest: true },
     },
+    // Email-verification landing page reached from the welcome email link.
+    // Token is the credential — no auth gate either way (lets guests, who
+    // could land here mid-registration, finish verifying without logging in).
+    {
+      path: '/verify-email',
+      name: 'verify-email',
+      component: () => import('@/views/auth/VerifyEmailView.vue'),
+    },
     // Static info pages — public (no auth gate), shown to guests and signed-in
     // users alike. The path segments `privacy`, `terms`, and `about` are
     // already in backend SlugValidator.ReservedSlugs.

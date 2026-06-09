@@ -78,4 +78,13 @@ export const accountService = {
   async deleteAccount(confirmEmail: string): Promise<void> {
     await api.post('/api/account/delete', { confirmEmail })
   },
+
+  /**
+   * Rotates the verification token and resends the verification email
+   * to the authenticated user's address. Backend returns 400 if the
+   * account is already verified or doesn't use password auth.
+   */
+  async resendEmailVerification(): Promise<void> {
+    await api.post('/api/auth/resend-verification')
+  },
 }

@@ -7,6 +7,33 @@ import { accountService } from '@/services/accountService'
 const auth = useAuthStore()
 const router = useRouter()
 
+// ── Email-verification banner ────────────────────────────────────────────────
+//
+// Only password users land here unverified — OTP and OAuth users are marked
+// verified at sign-up. We check the explicit boolean (not the
+// `isEmailVerified !== false` helper) so the banner stays hidden for legacy
+// payloads that pre-date the rollout and don't carry the flag.
+const showVerifyBanner = computed(() => auth.user?.isEmailVerified === false)
+
+const resendSending = ref(false)
+const resendError   = ref<string | null>(null)
+const resendSuccess = ref<string | null>(null)
+
+async function resendVerification() {
+  resendError.value = null
+  resendSuccess.value = null
+  resendSending.value = true
+  try {
+    await accountService.resendEmailVerification()
+    resendSuccess.value = 'Verification email sent. Check your inbox.'
+  } catch (e: unknown) {
+    const ax = e as { response?: { data?: { error?: string } } }
+    resendError.value = ax.response?.data?.error ?? 'Failed to send verification email.'
+  } finally {
+    resendSending.value = false
+  }
+}
+
 // ── Change email form ─────────────────────────────────────────────────────────
 
 const emailForm = ref({
@@ -199,6 +226,63 @@ async function confirmDelete() {
 
     <h1 class="text-2xl font-bold text-slate-100 mb-2">Account</h1>
     <p class="text-sm text-gray-500 mb-6">Manage your email address and password.</p>
+
+    <!-- ── Email-verification banner ─────────────────────────────────────────── -->
+    <section
+      v-if="showVerifyBanner"
+      data-testid="email-verification-banner"
+      class="mb-5 rounded-xl border border-amber-700 bg-amber-950/40 px-5 py-4"
+    >
+      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div class="flex items-start gap-3">
+          <svg
+            class="h-5 w-5 text-amber-400 mt-0.5 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4a2 2 0 00-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"
+            />
+          </svg>
+          <div>
+            <p class="text-sm font-medium text-amber-200">
+              Your email address is not yet verified.
+            </p>
+            <p class="text-xs text-amber-300/80 mt-0.5">
+              Check your inbox for a verification link.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          data-testid="resend-verification-btn"
+          :disabled="resendSending"
+          class="self-start sm:self-auto whitespace-nowrap px-4 py-2 text-sm rounded-lg border border-amber-500 text-amber-200 hover:bg-amber-900/40 disabled:opacity-60 transition-colors"
+          @click="resendVerification"
+        >
+          <span v-if="resendSending">Sending…</span>
+          <span v-else>Resend email</span>
+        </button>
+      </div>
+      <p
+        v-if="resendSuccess"
+        data-testid="resend-verification-success"
+        class="mt-3 rounded-lg bg-green-950 border border-green-800 px-3 py-2 text-sm text-green-400"
+      >
+        {{ resendSuccess }}
+      </p>
+      <p
+        v-if="resendError"
+        data-testid="resend-verification-error"
+        class="mt-3 rounded-lg bg-red-950 border border-red-800 px-3 py-2 text-sm text-red-400"
+      >
+        {{ resendError }}
+      </p>
+    </section>
 
     <!-- ── Change email ──────────────────────────────────────────────────────── -->
     <section class="bg-slate-800 rounded-xl border border-slate-700 px-5 py-5 mb-5">

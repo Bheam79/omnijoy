@@ -21,6 +21,13 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!accessToken.value && !!user.value)
 
+  /**
+   * True when the current user has confirmed their email. Default to true
+   * for guests and for legacy payloads that pre-date the flag, so the
+   * verification banner only appears for accounts we *know* are unverified.
+   */
+  const isEmailVerified = computed(() => user.value?.isEmailVerified !== false)
+
   function setTokens(access: string, refresh: string) {
     accessToken.value = access
     refreshToken.value = refresh
@@ -143,6 +150,7 @@ export const useAuthStore = defineStore('auth', () => {
     loading,
     error,
     isAuthenticated,
+    isEmailVerified,
     setTokens,
     setUser,
     clearError,

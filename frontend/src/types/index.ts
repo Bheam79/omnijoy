@@ -22,6 +22,12 @@ export interface User {
   locationName?: string | null
   locationCity?: string | null
   locationCountry?: string | null
+  /**
+   * True once the user has confirmed their email address via the verification
+   * link. OTP and OAuth users are auto-verified at sign-up; password users
+   * start as false until they click the link in the welcome email.
+   */
+  isEmailVerified?: boolean
 }
 
 export interface AuthTokens {

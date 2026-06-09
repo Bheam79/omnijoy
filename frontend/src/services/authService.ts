@@ -44,6 +44,9 @@ function toUser(raw: Record<string, unknown>): User {
     locationName: (raw.locationName as string) || null,
     locationCity: (raw.locationCity as string) || null,
     locationCountry: (raw.locationCountry as string) || null,
+    // Older payloads (before email-verification rollout) omit the flag —
+    // default to true there so we don't nag pre-existing accounts.
+    isEmailVerified: (raw.isEmailVerified as boolean | undefined) ?? true,
   }
 }
 
@@ -94,5 +97,14 @@ export const authService = {
 
   async confirmPasswordReset(email: string, code: string, newPassword: string): Promise<void> {
     await authAxios.post('/api/auth/password/reset', { email, code, newPassword })
+  },
+
+  /**
+   * Confirms ownership of the email address using the one-time token from
+   * the verification link. The token IS the credential — no Bearer required.
+   * Throws on HTTP 400 (invalid or already-used token).
+   */
+  async verifyEmail(token: string): Promise<void> {
+    await authAxios.post('/api/auth/verify-email', null, { params: { token } })
   },
 }

@@ -54,7 +54,7 @@ public static class SlugValidator
             "profile", "company", "companies", "user", "users",
             // Settings / auth
             "settings", "login", "register", "signup", "logout", "signin", "signout",
-            "forgot-password",
+            "forgot-password", "verify-email",
             // Social surfaces
             "feed", "messenger", "chat", "conversations", "notifications", "search",
             "friends", "friend", "events", "event", "live", "wall", "share",
