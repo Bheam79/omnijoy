@@ -92,7 +92,9 @@ public record UserDto(
     /// <summary>Human-readable location label, e.g. "Oslo, Norway".</summary>
     string? LocationName = null,
     string? LocationCity = null,
-    string? LocationCountry = null
+    string? LocationCountry = null,
+    /// <summary>True once the user has confirmed their email address.</summary>
+    bool IsEmailVerified = false
 );
 
 public record AuthResponse(

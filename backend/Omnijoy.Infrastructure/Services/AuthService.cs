@@ -528,7 +528,8 @@ public class AuthService : IAuthService
         Role: u.Role.ToString(),
         LocationName: u.LocationName,
         LocationCity: u.LocationCity,
-        LocationCountry: u.LocationCountry
+        LocationCountry: u.LocationCountry,
+        IsEmailVerified: u.IsEmailVerified
     );
 
     private static string HashCode(string code)

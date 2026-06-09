@@ -297,7 +297,8 @@ public class UserService : IUserService
         Role: u.Role.ToString(),
         LocationName: u.LocationName,
         LocationCity: u.LocationCity,
-        LocationCountry: u.LocationCountry
+        LocationCountry: u.LocationCountry,
+        IsEmailVerified: u.IsEmailVerified
     );
 
     private static PrivacySettingsDto MapPrivacyDto(UserPrivacySettings s) => new(

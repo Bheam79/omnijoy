@@ -69,6 +69,20 @@ public class User
     /// </summary>
     public DateTime? TokenInvalidationCutoffUtc { get; set; }
 
+    /// <summary>
+    /// True once the user has confirmed their email address via the
+    /// verification link sent at registration. Defaults to false for newly
+    /// created accounts.
+    /// </summary>
+    public bool IsEmailVerified { get; set; } = false;
+
+    /// <summary>
+    /// One-time token emailed to the user to confirm ownership of their
+    /// email address. Cleared once the address is verified. Null when no
+    /// verification is currently outstanding.
+    /// </summary>
+    public string? EmailVerificationToken { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
