@@ -1,12 +1,15 @@
 using System.Security.Claims;
 using FluentAssertions;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Omnijoy.Api.Controllers;
 using Omnijoy.Core.DTOs.Auth;
 using Omnijoy.Core.Interfaces;
+using Omnijoy.Infrastructure.Data;
 
 namespace Omnijoy.Tests.Services;
 
@@ -15,8 +18,16 @@ public class AuthControllerTests
 {
     private static AuthController Build(Mock<IAuthService> auth, Guid? userId = null)
     {
-        var logger     = new Mock<ILogger<AuthController>>();
-        var controller = new AuthController(auth.Object, logger.Object);
+        var logger = new Mock<ILogger<AuthController>>();
+        var env    = new Mock<IWebHostEnvironment>();
+        env.SetupGet(e => e.EnvironmentName).Returns("Development");
+
+        var dbOptions = new DbContextOptionsBuilder<OmnijoyDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        var db = new OmnijoyDbContext(dbOptions);
+
+        var controller = new AuthController(auth.Object, logger.Object, env.Object, db);
         var http       = new DefaultHttpContext();
         if (userId is { } id)
         {

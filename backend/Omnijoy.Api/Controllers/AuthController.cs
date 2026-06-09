@@ -2,9 +2,11 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Omnijoy.Api.RateLimiting;
 using Omnijoy.Core.DTOs.Auth;
 using Omnijoy.Core.Interfaces;
+using Omnijoy.Infrastructure.Data;
 
 namespace Omnijoy.Api.Controllers;
 
@@ -20,11 +22,19 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthService _auth;
     private readonly ILogger<AuthController> _logger;
+    private readonly IWebHostEnvironment _env;
+    private readonly OmnijoyDbContext _db;
 
-    public AuthController(IAuthService auth, ILogger<AuthController> logger)
+    public AuthController(
+        IAuthService auth,
+        ILogger<AuthController> logger,
+        IWebHostEnvironment env,
+        OmnijoyDbContext db)
     {
         _auth   = auth;
         _logger = logger;
+        _env    = env;
+        _db     = db;
     }
 
     // POST /api/auth/register
@@ -255,5 +265,39 @@ public class AuthController : ControllerBase
         }
 
         return Ok(new { message = "Verification email sent." });
+    }
+
+    // POST /api/auth/test/get-verification-token?email=…
+    //
+    // Test-only helper for the E2E suite. The verification token is sent to
+    // the user via email; the E2E stack has no test inbox, so this endpoint
+    // lets the spec retrieve the token directly from the DB.
+    //
+    // SECURITY: returns 404 outside of the Development environment, so the
+    // route literally does not exist in Staging / Production.
+    [HttpPost("test/get-verification-token")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetVerificationToken([FromQuery] string email)
+    {
+        if (!_env.IsDevelopment())
+            return NotFound();
+
+        if (string.IsNullOrWhiteSpace(email))
+            return BadRequest(new { error = "email query parameter is required." });
+
+        var normalized = email.ToLowerInvariant().Trim();
+        var user = await _db.Users
+            .Where(u => u.Email == normalized)
+            .Select(u => new { u.EmailVerificationToken, u.IsEmailVerified })
+            .FirstOrDefaultAsync();
+
+        if (user is null)
+            return NotFound(new { error = "User not found." });
+
+        return Ok(new
+        {
+            token           = user.EmailVerificationToken,
+            isEmailVerified = user.IsEmailVerified,
+        });
     }
 }
