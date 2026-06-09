@@ -3,6 +3,7 @@ using System.Text;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Omnijoy.Core.DTOs.Auth;
 using Omnijoy.Core.Interfaces;
@@ -66,7 +67,7 @@ public class AuthServiceTests : IDisposable
             })
             .Build();
 
-        _sut = new AuthService(_db, _tokensMock.Object, _emailMock.Object, _config, _httpFactoryMock.Object, _blacklistMock.Object, _notificationsMock.Object);
+        _sut = new AuthService(_db, _tokensMock.Object, _emailMock.Object, _config, _httpFactoryMock.Object, _blacklistMock.Object, _notificationsMock.Object, NullLogger<AuthService>.Instance);
     }
 
     public void Dispose() => _db.Dispose();

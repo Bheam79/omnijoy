@@ -31,4 +31,20 @@ public interface IAuthService
     /// Does NOT issue new tokens — the user must log in again.
     /// </summary>
     Task ConfirmPasswordResetAsync(PasswordResetConfirmDto request);
+
+    /// <summary>
+    /// Verifies a password-method user's email using the token from the link
+    /// emailed at registration. Marks the account verified and clears the token.
+    /// Throws <see cref="UnauthorizedAccessException"/> for invalid or
+    /// already-used tokens.
+    /// </summary>
+    Task VerifyEmailAsync(string token);
+
+    /// <summary>
+    /// Regenerates the verification token and resends the verification email
+    /// for the authenticated user. Throws <see cref="InvalidOperationException"/>
+    /// if the email is already verified or the user does not have a password
+    /// auth provider (OTP / OAuth users are verified at sign-up).
+    /// </summary>
+    Task ResendVerificationEmailAsync(Guid userId);
 }

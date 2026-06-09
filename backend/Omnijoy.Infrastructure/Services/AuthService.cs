@@ -5,6 +5,7 @@ using System.Text;
 using Google.Apis.Auth;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Omnijoy.Core.DTOs.Auth;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models;
@@ -22,9 +23,11 @@ public class AuthService : IAuthService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ITokenBlacklist _blacklist;
     private readonly INotificationService _notifications;
+    private readonly ILogger<AuthService> _logger;
 
     private const int OtpExpiryMinutes = 10;
     private const int PasswordResetExpiryMinutes = 15;
+    private const string DefaultBaseUrl = "https://omnijoy.app";
 
     public AuthService(
         OmnijoyDbContext db,
@@ -33,7 +36,8 @@ public class AuthService : IAuthService
         IConfiguration config,
         IHttpClientFactory httpClientFactory,
         ITokenBlacklist blacklist,
-        INotificationService notifications)
+        INotificationService notifications,
+        ILogger<AuthService> logger)
     {
         _db = db;
         _tokens = tokens;
@@ -42,6 +46,7 @@ public class AuthService : IAuthService
         _httpClientFactory = httpClientFactory;
         _blacklist = blacklist;
         _notifications = notifications;
+        _logger = logger;
     }
 
     // ── Register ─────────────────────────────────────────────────────────────
@@ -82,7 +87,22 @@ public class AuthService : IAuthService
         };
 
         if (authMethod == "password")
+        {
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            // Password users must prove they own the address before access is
+            // considered fully trusted. Generate a one-time verification token
+            // now; the email gets sent after SaveChanges.
+            user.IsEmailVerified = false;
+            user.EmailVerificationToken = GenerateVerificationToken();
+        }
+        else
+        {
+            // OTP method: the registration handshake already required the user
+            // to respond to a 6-digit code we mailed to this address, so the
+            // address is implicitly verified. No verification email needed.
+            user.IsEmailVerified = true;
+            user.EmailVerificationToken = null;
+        }
 
         // Default privacy settings
         user.PrivacySettings = new UserPrivacySettings { UserId = user.Id };
@@ -100,6 +120,25 @@ public class AuthService : IAuthService
         });
 
         await _db.SaveChangesAsync();
+
+        if (authMethod == "password" && user.EmailVerificationToken is not null)
+        {
+            // Best-effort send: SMTP problems must not block registration.
+            // Same pattern as RequestOtpAsync — log loudly, swallow the error,
+            // let the user request a resend if the message never arrives.
+            try
+            {
+                var verificationUrl = BuildVerificationUrl(user.EmailVerificationToken);
+                await _email.SendEmailVerificationAsync(
+                    user.Email, user.DisplayName, verificationUrl);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Failed to send email-verification message to {Email} during register; continuing silently.",
+                    user.Email);
+            }
+        }
 
         return await IssueTokensAsync(user);
     }
@@ -421,6 +460,89 @@ public class AuthService : IAuthService
             actorUserId: null);
     }
 
+    // ── Email verification ────────────────────────────────────────────────────
+
+    public async Task VerifyEmailAsync(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("Invalid or expired verification link.");
+
+        // We deliberately filter on !IsEmailVerified here as well — once a token
+        // has been consumed it should never re-verify the same account, even if
+        // a stale link is retried from an email.
+        var user = await _db.Users
+            .FirstOrDefaultAsync(u =>
+                u.EmailVerificationToken == token && !u.IsEmailVerified);
+
+        if (user is null)
+            throw new UnauthorizedAccessException("Invalid or expired verification link.");
+
+        user.IsEmailVerified = true;
+        user.EmailVerificationToken = null;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task ResendVerificationEmailAsync(Guid userId)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId)
+            ?? throw new InvalidOperationException("User not found.");
+
+        if (user.IsEmailVerified)
+            throw new InvalidOperationException("Email is already verified.");
+
+        // Resend only makes sense for users that registered via the password
+        // flow — OTP/OAuth accounts had their email proven at sign-up and
+        // don't carry verification tokens.
+        var hasPasswordProvider = await _db.AuthProviders
+            .AnyAsync(p => p.UserId == userId && p.Provider == AuthProviderType.Password);
+
+        if (!hasPasswordProvider)
+            throw new InvalidOperationException(
+                "This account does not use email verification.");
+
+        var now = DateTime.UtcNow;
+        var token = GenerateVerificationToken();
+        user.EmailVerificationToken = token;
+        user.UpdatedAt = now;
+
+        await _db.SaveChangesAsync();
+
+        try
+        {
+            var verificationUrl = BuildVerificationUrl(token);
+            await _email.SendEmailVerificationAsync(
+                user.Email, user.DisplayName, verificationUrl);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Failed to send resend-verification email to {Email}; token persisted, user can retry.",
+                user.Email);
+        }
+    }
+
+    private static string GenerateVerificationToken()
+    {
+        // 32 random bytes → 256 bits of entropy. Convert to URL-safe base64 so
+        // the token is safe to embed in the query string without further encoding.
+        var raw = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        return raw
+            .Replace('+', '-')
+            .Replace('/', '_')
+            .TrimEnd('=');
+    }
+
+    private string BuildVerificationUrl(string token)
+    {
+        var baseUrl = _config["App:BaseUrl"];
+        if (string.IsNullOrWhiteSpace(baseUrl))
+            baseUrl = DefaultBaseUrl;
+        baseUrl = baseUrl.TrimEnd('/');
+        return $"{baseUrl}/verify-email?token={Uri.EscapeDataString(token)}";
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private async Task<AuthResponse> IssueTokensAsync(User user)
@@ -493,6 +615,8 @@ public class AuthService : IAuthService
                 AvatarUrl = avatarUrl,
                 CreatedAt = now,
                 UpdatedAt = now,
+                // The OAuth provider already vouched for the address.
+                IsEmailVerified = true,
                 PrivacySettings = new UserPrivacySettings(),
                 NotificationPreferences = new NotificationPreferences()
             };
