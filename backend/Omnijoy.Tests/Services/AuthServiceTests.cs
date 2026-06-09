@@ -43,6 +43,8 @@ public class AuthServiceTests : IDisposable
             .Returns(Task.CompletedTask);
         _emailMock.Setup(e => e.SendPasswordResetEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(Task.CompletedTask);
+        _emailMock.Setup(e => e.SendEmailVerificationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
 
         _httpFactoryMock = new Mock<IHttpClientFactory>();
 
@@ -767,5 +769,130 @@ public class AuthServiceTests : IDisposable
         // Hash must not have rotated
         var reloaded = await _db.Users.FirstAsync(u => u.Email == "deleted@example.com");
         reloaded.PasswordHash.Should().Be(originalHash);
+    }
+
+    // ── Email verification ────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task RegisterAsync_PasswordMethod_SetsEmailVerificationTokenAndIsNotVerified()
+    {
+        await _sut.RegisterAsync(new RegisterRequest(
+            Email: "verify-me@example.com",
+            DisplayName: "Verify Me",
+            AuthMethod: "password",
+            Password: "P@ssw0rd!",
+            LocationCountry: "Norway"));
+
+        var user = await _db.Users.FirstAsync(u => u.Email == "verify-me@example.com");
+        user.IsEmailVerified.Should().BeFalse();
+        user.EmailVerificationToken.Should().NotBeNullOrEmpty();
+
+        _emailMock.Verify(e => e.SendEmailVerificationAsync(
+            "verify-me@example.com",
+            "Verify Me",
+            It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RegisterAsync_OtpMethod_SetsIsEmailVerifiedTrue()
+    {
+        await _sut.RegisterAsync(new RegisterRequest(
+            Email: "otp-verified@example.com",
+            DisplayName: "OTP User",
+            AuthMethod: "otp",
+            Password: null,
+            LocationCountry: "Germany"));
+
+        var user = await _db.Users.FirstAsync(u => u.Email == "otp-verified@example.com");
+        user.IsEmailVerified.Should().BeTrue();
+        user.EmailVerificationToken.Should().BeNull();
+
+        // OTP registration does not trigger a verification email
+        _emailMock.Verify(e => e.SendEmailVerificationAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task VerifyEmailAsync_ValidToken_SetsIsEmailVerifiedAndClearsToken()
+    {
+        const string token = "known-verification-token";
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "verify-token@example.com",
+            DisplayName = "Token User",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            IsEmailVerified = false,
+            EmailVerificationToken = token,
+        };
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        await _sut.VerifyEmailAsync(token);
+
+        var reloaded = await _db.Users.FirstAsync(u => u.Id == user.Id);
+        reloaded.IsEmailVerified.Should().BeTrue();
+        reloaded.EmailVerificationToken.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task VerifyEmailAsync_InvalidToken_ThrowsUnauthorizedAccessException()
+    {
+        await _sut.Invoking(s => s.VerifyEmailAsync("nonexistent-token"))
+            .Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
+    public async Task VerifyEmailAsync_AlreadyVerified_ThrowsUnauthorizedAccessException()
+    {
+        const string token = "stale-token";
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "already-verified@example.com",
+            DisplayName = "Already",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            IsEmailVerified = true,
+            EmailVerificationToken = token,
+        };
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        await _sut.Invoking(s => s.VerifyEmailAsync(token))
+            .Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
+    public async Task ResendVerificationEmailAsync_UnverifiedPasswordUser_SendsEmail()
+    {
+        // RegisterPasswordUserAsync creates a password-method user with
+        // IsEmailVerified = false and a fresh verification token.
+        var user = await RegisterPasswordUserAsync("resend@example.com");
+        _emailMock.Invocations.Clear(); // ignore the send triggered by registration
+
+        await _sut.ResendVerificationEmailAsync(user.Id);
+
+        _emailMock.Verify(e => e.SendEmailVerificationAsync(
+            "resend@example.com",
+            user.DisplayName,
+            It.IsAny<string>()), Times.Once);
+
+        var reloaded = await _db.Users.FirstAsync(u => u.Id == user.Id);
+        reloaded.EmailVerificationToken.Should().NotBeNullOrEmpty();
+        reloaded.IsEmailVerified.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ResendVerificationEmailAsync_AlreadyVerified_ThrowsInvalidOperationException()
+    {
+        var user = await RegisterPasswordUserAsync("already@example.com");
+        user.IsEmailVerified = true;
+        user.EmailVerificationToken = null;
+        await _db.SaveChangesAsync();
+
+        await _sut.Invoking(s => s.ResendVerificationEmailAsync(user.Id))
+            .Should().ThrowAsync<InvalidOperationException>();
     }
 }
