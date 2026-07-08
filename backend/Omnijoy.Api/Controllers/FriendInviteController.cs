@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Omnijoy.Api.RateLimiting;
 using Omnijoy.Core.DTOs.Friends;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models.Enums;
@@ -35,6 +37,7 @@ public class FriendInviteController : ControllerBase
     // ── POST /api/friends/invite/link ─────────────────────────────────────────
     // Generates (or reuses) a shareable invite link for the current user.
 
+    [EnableRateLimiting(RateLimitConstants.InteractionPolicy)]
     [HttpPost("link")]
     [Authorize]
     public async Task<IActionResult> CreateLink()
@@ -53,6 +56,7 @@ public class FriendInviteController : ControllerBase
     // Sends a friend invitation to an email address.
     // If the user already exists, friendship is auto-accepted immediately.
 
+    [EnableRateLimiting(RateLimitConstants.InteractionPolicy)]
     [HttpPost("email")]
     [Authorize]
     public async Task<IActionResult> InviteByEmail([FromBody] FriendInviteEmailRequest request)

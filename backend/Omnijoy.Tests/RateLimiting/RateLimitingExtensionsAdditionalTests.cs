@@ -137,4 +137,80 @@ public class RateLimitingExtensionsAdditionalTests
 
         act.Should().NotThrow();
     }
+
+    // ── InteractionPolicy constants ───────────────────────────────────────────
+
+    [Fact]
+    public void Constants_InteractionPolicy_NameIsInteraction()
+    {
+        RateLimitConstants.InteractionPolicy.Should().Be("interaction");
+    }
+
+    [Fact]
+    public void Constants_InteractionLimits_AreCorrect()
+    {
+        RateLimitConstants.InteractionPermitLimit.Should().Be(60);
+        RateLimitConstants.InteractionWindow.Should().Be(TimeSpan.FromMinutes(1));
+    }
+
+    // ── ResolveLimits — Interaction overrides ─────────────────────────────────
+
+    [Fact]
+    public void ResolveLimits_NullConfiguration_UsesInteractionConstants()
+    {
+        var limits = RateLimitingExtensions.ResolveLimits(null);
+
+        limits.InteractionPermitLimit.Should().Be(RateLimitConstants.InteractionPermitLimit);
+        limits.InteractionWindow.Should().Be(RateLimitConstants.InteractionWindow);
+    }
+
+    [Fact]
+    public void ResolveLimits_InteractionPermitLimit_Override()
+    {
+        var cfg = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["RateLimiting:Interaction:PermitLimit"] = "1000",
+            })
+            .Build();
+
+        var limits = RateLimitingExtensions.ResolveLimits(cfg);
+
+        limits.InteractionPermitLimit.Should().Be(1000);
+    }
+
+    [Fact]
+    public void ResolveLimits_InteractionWindowSeconds_Override()
+    {
+        var cfg = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["RateLimiting:Interaction:WindowSeconds"] = "120",
+            })
+            .Build();
+
+        var limits = RateLimitingExtensions.ResolveLimits(cfg);
+
+        limits.InteractionWindow.Should().Be(TimeSpan.FromSeconds(120));
+    }
+
+    [Fact]
+    public void AddOmnijoyRateLimiting_WithInteractionOverride_SetsUpWithoutThrowing()
+    {
+        var cfg = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["RateLimiting:Interaction:PermitLimit"]   = "1000",
+                ["RateLimiting:Interaction:WindowSeconds"] = "60",
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddOptions();
+
+        var act = () => services.AddOmnijoyRateLimiting(null, cfg);
+
+        act.Should().NotThrow();
+    }
 }

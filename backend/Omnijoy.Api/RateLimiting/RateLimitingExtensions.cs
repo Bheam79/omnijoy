@@ -30,6 +30,10 @@ namespace Omnijoy.Api.RateLimiting;
 ///     <term><see cref="RateLimitConstants.UploadPolicy"/> ("upload")</term>
 ///     <description>20 req/hour per userId. Applied to media-upload endpoints.</description>
 ///   </item>
+///   <item>
+///     <term><see cref="RateLimitConstants.InteractionPolicy"/> ("interaction")</term>
+///     <description>60 req/min per userId (IP fallback). Applied to comment/reaction/friend-invite write endpoints.</description>
+///   </item>
 /// </list>
 ///
 /// All rejected requests receive <b>429 Too Many Requests</b> with a
@@ -38,7 +42,7 @@ namespace Omnijoy.Api.RateLimiting;
 public static class RateLimitingExtensions
 {
     /// <summary>
-    /// Registers the rate-limiting middleware and all four Omnijoy policies.
+    /// Registers the rate-limiting middleware and all five Omnijoy policies.
     /// A single <see cref="IConnectionMultiplexer"/> is created (and kept alive)
     /// when <paramref name="redisConnectionString"/> is non-empty; Redis-backed
     /// partitions store counters there so limits are shared across all instances.
@@ -129,6 +133,24 @@ public static class RateLimitingExtensions
                         muxer);
                 });
 
+            // ── Interaction: 60 req/min per userId ───────────────────────────
+            // Apply via [EnableRateLimiting(RateLimitConstants.InteractionPolicy)]
+            // on comment POST, reaction POST/DELETE, and friend-invite POST actions.
+            options.AddPolicy<string>(
+                RateLimitConstants.InteractionPolicy,
+                ctx =>
+                {
+                    var userId = ctx.User.FindFirstValue(ClaimTypes.NameIdentifier);
+                    var key = string.IsNullOrEmpty(userId)
+                        ? $"interaction:ip:{GetClientIp(ctx)}"
+                        : $"interaction:user:{userId}";
+                    return CreatePartition(
+                        key,
+                        limits.InteractionPermitLimit,
+                        limits.InteractionWindow,
+                        muxer);
+                });
+
             // ── 429 rejection handler ─────────────────────────────────────────
             options.OnRejected = OnRejectedAsync;
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -148,7 +170,9 @@ public static class RateLimitingExtensions
         int StrictPermitLimit,
         TimeSpan StrictWindow,
         int UploadPermitLimit,
-        TimeSpan UploadWindow);
+        TimeSpan UploadWindow,
+        int InteractionPermitLimit,
+        TimeSpan InteractionWindow);
 
     /// <summary>
     /// Reads <c>RateLimiting:*</c> overrides from <paramref name="configuration"/>
@@ -167,7 +191,9 @@ public static class RateLimitingExtensions
             StrictPermitLimit:     ReadInt(section,   "Strict:PermitLimit",     RateLimitConstants.StrictPermitLimit),
             StrictWindow:          ReadWindow(section, "Strict",                RateLimitConstants.StrictWindow),
             UploadPermitLimit:     ReadInt(section,   "Upload:PermitLimit",     RateLimitConstants.UploadPermitLimit),
-            UploadWindow:          ReadWindow(section, "Upload",                RateLimitConstants.UploadWindow));
+            UploadWindow:          ReadWindow(section, "Upload",                RateLimitConstants.UploadWindow),
+            InteractionPermitLimit: ReadInt(section,    "Interaction:PermitLimit",  RateLimitConstants.InteractionPermitLimit),
+            InteractionWindow:      ReadWindow(section,  "Interaction",              RateLimitConstants.InteractionWindow));
     }
 
     private static int ReadInt(IConfigurationSection? section, string key, int fallback)

@@ -14,6 +14,9 @@ public static class RateLimitConstants
     /// <summary>20 req/hour — media-upload endpoints (posts, avatar, messages).</summary>
     public const string UploadPolicy = "upload";
 
+    /// <summary>60 req/min — comment creation, reactions, friend-invite endpoints.</summary>
+    public const string InteractionPolicy = "interaction";
+
     // ── Global limiter limits ─────────────────────────────────────────────────
 
     /// <summary>200 requests per minute for unauthenticated requests (per IP).</summary>
@@ -40,4 +43,12 @@ public static class RateLimitConstants
 
     /// <summary>Window for the upload policy.</summary>
     public static readonly TimeSpan UploadWindow = TimeSpan.FromHours(1);
+
+    // ── Interaction policy limits ─────────────────────────────────────────────
+
+    /// <summary>60 requests per minute per userId on interactive write endpoints.</summary>
+    public const int InteractionPermitLimit = 60;
+
+    /// <summary>Window for the interaction policy.</summary>
+    public static readonly TimeSpan InteractionWindow = TimeSpan.FromMinutes(1);
 }

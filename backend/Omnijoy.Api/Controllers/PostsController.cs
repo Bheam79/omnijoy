@@ -303,6 +303,7 @@ public class PostsController : ControllerBase
     /// Add or change the current user's reaction to a post.
     /// Body: { "reactionType": "Like" | "Love" | "Haha" | "Wow" | "Sad" | "Angry" }
     /// </summary>
+    [EnableRateLimiting(RateLimitConstants.InteractionPolicy)]
     [HttpPost("{id:guid}/reactions")]
     public async Task<IActionResult> AddOrUpdateReaction(
         Guid id,
@@ -329,6 +330,7 @@ public class PostsController : ControllerBase
 
     // ── DELETE /api/posts/{id}/reactions ──────────────────────────────────────
 
+    [EnableRateLimiting(RateLimitConstants.InteractionPolicy)]
     [HttpDelete("{id:guid}/reactions")]
     public async Task<IActionResult> RemoveReaction(Guid id)
     {

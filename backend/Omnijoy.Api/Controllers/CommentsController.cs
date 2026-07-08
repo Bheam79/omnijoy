@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.SignalR;
 using Omnijoy.Api.Hubs;
+using Omnijoy.Api.RateLimiting;
 using Omnijoy.Core.DTOs.Comments;
 using Omnijoy.Core.Interfaces;
 
@@ -31,6 +33,7 @@ public class CommentsController : ControllerBase
     /// Body: { "content": "...", "parentCommentId": null | "&lt;guid&gt;" }
     /// Maximum depth: top-level comment + one reply level.
     /// </summary>
+    [EnableRateLimiting(RateLimitConstants.InteractionPolicy)]
     [HttpPost("api/posts/{postId:guid}/comments")]
     public async Task<IActionResult> CreateComment(
         Guid postId,

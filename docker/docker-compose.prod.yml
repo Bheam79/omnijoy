@@ -137,6 +137,8 @@ services:
       RateLimiting__Upload__WindowSeconds: ${RATELIMIT_UPLOAD_WINDOW_SECONDS:-}
       RateLimiting__Strict__PermitLimit:   ${RATELIMIT_STRICT_PERMITS:-}
       RateLimiting__Strict__WindowSeconds: ${RATELIMIT_STRICT_WINDOW_SECONDS:-}
+      RateLimiting__Interaction__PermitLimit:   ${RATELIMIT_INTERACTION_PERMITS:-}
+      RateLimiting__Interaction__WindowSeconds: ${RATELIMIT_INTERACTION_WINDOW_SECONDS:-}
       RateLimiting__Global__UserPermitLimit: ${RATELIMIT_GLOBAL_USER_PERMITS:-}
       RateLimiting__Global__IpPermitLimit:   ${RATELIMIT_GLOBAL_IP_PERMITS:-}
     volumes:
