@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Omnijoy.Core.DTOs.Friends;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models;
@@ -14,11 +15,16 @@ public class FriendInviteService : IFriendInviteService
 
     private readonly OmnijoyDbContext _db;
     private readonly IEmailService _email;
+    private readonly ILogger<FriendInviteService>? _logger;
 
-    public FriendInviteService(OmnijoyDbContext db, IEmailService email)
+    public FriendInviteService(
+        OmnijoyDbContext db,
+        IEmailService email,
+        ILogger<FriendInviteService>? logger = null)
     {
-        _db    = db;
-        _email = email;
+        _db     = db;
+        _email  = email;
+        _logger = logger;
     }
 
     // ── Create invite link ────────────────────────────────────────────────────
@@ -82,7 +88,22 @@ public class FriendInviteService : IFriendInviteService
             await _db.SaveChangesAsync();
 
             var inviteUrl = $"{baseUrl.TrimEnd('/')}/invite/{invite.Token}";
-            await _email.SendFriendInviteEmailAsync(email, inviter.DisplayName, inviteUrl);
+
+            // Best-effort send: SMTP problems must not block the invite itself —
+            // the invite row is already persisted, so the recipient can still
+            // redeem the link if they get it through another channel (or the
+            // sender re-shares it). Same pattern as AuthService's OTP/verification
+            // sends.
+            try
+            {
+                await _email.SendFriendInviteEmailAsync(email, inviter.DisplayName, inviteUrl);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex,
+                    "Failed to send friend-invite email to {Email} from inviter {InviterId}; continuing silently.",
+                    email, inviterId);
+            }
         }
 
         return new FriendInviteEmailResultDto("invited", null);
