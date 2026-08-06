@@ -489,6 +489,24 @@ the SPA as static files in production.
 `make test-e2e-prod` requires `docker/.env` to exist and `make prod-up` to have been run.
 It reads `PUBLIC_PORT` from `.env` and sets `BASE_URL` accordingly (default: `http://localhost:80`).
 
+**Running Playwright in a CB dispatch sandbox that has no `docker` CLI / socket**
+(only the `cb docker` proxy tool): `e2e/support/global-setup.ts` (admin-role
+promotion) and `e2e/support/password-reset-helpers.ts` (OTP lookup) both shell
+out to `docker exec 07ad0b82_omnijoy_mysql mariadb ...` directly, which fails
+loudly but non-fatally in that environment. This alone causes ~24 e2e failures
+(all of `admin.api.spec.ts`, the admin-only cases in `reports.api.spec.ts`,
+and `auth-password-reset.api.spec.ts`) that are **not** real regressions —
+confirmed by running the same suite with zero code changes. To stand up a dev
+stack in that kind of sandbox: `cb docker run mariadb:11 --name db -e
+MYSQL_ROOT_PASSWORD=... -e MYSQL_DATABASE=omnijoy -e MYSQL_USER=omnijoy -e
+MYSQL_PASSWORD=omnijoy_pass`, `dotnet ef database update` against it, then run
+the backend directly (`dotnet run --urls http://localhost:5000`) with
+`ConnectionStrings__DefaultConnection` pointed at the `cb docker ps` hostname
+and `Redis__ConnectionString=""` to fall back to in-memory cache — then
+`BASE_URL=http://localhost:5000 npx playwright test --project=api`. See
+OMNIJOY-250 for the tracked follow-up to make the helpers themselves
+sandbox-resilient.
+
 `e2e/tests/api/health.api.spec.ts` is the first spec to run and hits
 `GET /api/health/ready` (the readiness probe, which exercises DB + Redis +
 MinIO via `Microsoft.AspNetCore.Diagnostics.HealthChecks`).
