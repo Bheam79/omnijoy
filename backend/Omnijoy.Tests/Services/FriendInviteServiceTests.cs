@@ -154,6 +154,16 @@ public class FriendInviteServiceTests : IDisposable
             .Should().Be(2, "email invites are not reused for link invites");
     }
 
+    [Fact]
+    public async Task CreateInviteLinkAsync_ExpiresAt_IsApprox30DaysFromNow()
+    {
+        var inviter = await CreateUserAsync();
+
+        var result = await _sut.CreateInviteLinkAsync(inviter.Id, BaseUrl);
+
+        result.ExpiresAt.Should().BeCloseTo(DateTime.UtcNow.AddDays(30), TimeSpan.FromMinutes(1));
+    }
+
     // ── InviteByEmailAsync ────────────────────────────────────────────────────
 
     [Fact]
@@ -382,6 +392,24 @@ public class FriendInviteServiceTests : IDisposable
 
         (await _db.Friends.CountAsync()).Should().Be(0,
             "idempotent path should not create a duplicate friend row");
+    }
+
+    [Fact]
+    public async Task AcceptInviteAsync_ExpiredButAlreadyAccepted_IsIdempotent()
+    {
+        var inviter  = await CreateUserAsync(name: "Inviter");
+        var acceptor = await CreateUserAsync();
+        var invite   = await CreateInviteAsync(
+            inviter.Id,
+            status: FriendInviteStatus.Accepted,
+            expiresAt: DateTime.UtcNow.AddSeconds(-1));
+
+        var act = () => _sut.AcceptInviteAsync(invite.Token, acceptor.Id);
+
+        await act.Should().NotThrowAsync();
+
+        (await _db.Friends.CountAsync()).Should().Be(0,
+            "an already-accepted invite must stay idempotent even after expiring");
     }
 
     [Fact]
