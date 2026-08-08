@@ -1,6 +1,7 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Omnijoy.Api.Services;
 using Omnijoy.Core.DTOs.Chat;
 using Omnijoy.Core.Interfaces;
 using System.Text.RegularExpressions;
@@ -50,7 +51,7 @@ public class MetaPreviewController : ControllerBase
         // Otherwise resolve via DNS and check all returned addresses.
         if (IPAddress.TryParse(host, out var literalIp))
         {
-            if (IsPrivateOrReservedAddress(literalIp))
+            if (SsrfGuard.IsPrivateOrReservedAddress(literalIp))
                 return BadRequest(new { error = "URL points to a private network address." });
         }
         else
@@ -65,7 +66,7 @@ public class MetaPreviewController : ControllerBase
                 return BadRequest(new { error = "Could not resolve host." });
             }
 
-            if (addresses.Any(IsPrivateOrReservedAddress))
+            if (addresses.Any(SsrfGuard.IsPrivateOrReservedAddress))
                 return BadRequest(new { error = "URL resolves to a private network address." });
         }
 
@@ -102,65 +103,6 @@ public class MetaPreviewController : ControllerBase
             // Network errors, timeouts, etc. — return an empty preview rather than 5xx
             return Ok(EmptyPreview(url));
         }
-    }
-
-    // ── SSRF helpers ──────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Returns true if <paramref name="addr"/> falls within any private,
-    /// loopback, link-local, or reserved IP range.
-    /// </summary>
-    private static bool IsPrivateOrReservedAddress(IPAddress addr)
-    {
-        // Unwrap IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1)
-        if (addr.IsIPv4MappedToIPv6)
-            addr = addr.MapToIPv4();
-
-        if (addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-        {
-            // IPv4 checks
-            return
-                InRange(addr, IPAddress.Parse("127.0.0.0"),   8)  || // loopback
-                InRange(addr, IPAddress.Parse("169.254.0.0"), 16) || // link-local / APIPA / AWS metadata
-                InRange(addr, IPAddress.Parse("10.0.0.0"),    8)  || // RFC 1918
-                InRange(addr, IPAddress.Parse("172.16.0.0"),  12) || // RFC 1918
-                InRange(addr, IPAddress.Parse("192.168.0.0"), 16) || // RFC 1918
-                InRange(addr, IPAddress.Parse("100.64.0.0"),  10);   // RFC 6598 CGN / Tailscale
-        }
-
-        if (addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
-        {
-            // IPv6 checks
-            if (addr.Equals(IPAddress.IPv6Loopback))           // ::1
-                return true;
-            if (InRange(addr, IPAddress.Parse("fe80::"), 10))  // link-local
-                return true;
-            if (InRange(addr, IPAddress.Parse("fc00::"), 7))   // ULA (fc00::/7 covers fc00:: and fd00::)
-                return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Returns true if the high <paramref name="prefixBits"/> of
-    /// <paramref name="addr"/> match those of <paramref name="network"/>.
-    /// </summary>
-    private static bool InRange(IPAddress addr, IPAddress network, int prefixBits)
-    {
-        var a = addr.GetAddressBytes();
-        var n = network.GetAddressBytes();
-        if (a.Length != n.Length) return false;
-        int fullBytes = prefixBits / 8;
-        int rem       = prefixBits % 8;
-        for (int i = 0; i < fullBytes; i++)
-            if (a[i] != n[i]) return false;
-        if (rem > 0)
-        {
-            byte mask = (byte)(0xFF << (8 - rem));
-            if ((a[fullBytes] & mask) != (n[fullBytes] & mask)) return false;
-        }
-        return true;
     }
 
     // ── Parse helpers ─────────────────────────────────────────────────────────

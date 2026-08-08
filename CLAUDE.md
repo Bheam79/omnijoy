@@ -376,6 +376,33 @@ dotnet ef database update \
 - Race safety: pre-flight `IsSlugTakenAsync` + `SaveChanges` translates a
   unique-index violation back into a "taken" `InvalidOperationException`.
 
+### External URL fetching (SSRF guard)
+
+- `MetaPreviewController` (`GET /api/meta-preview?url=…`) fetches Open Graph /
+  Twitter Card tags from a user-supplied URL for link-preview cards — the
+  classic SSRF-prone endpoint (anyone can ask the backend to make an HTTP
+  request to an attacker-chosen host).
+- Two layers of defense, both required:
+  1. The controller pre-validates the URL's host via `IHostResolver`
+     (mockable; production impl `DnsHostResolver` → `Dns.GetHostAddressesAsync`)
+     and rejects loopback/link-local/RFC1918/CGN ranges with `SsrfGuard.IsPrivateOrReservedAddress`.
+  2. The named `"MetaPreview"` `HttpClient` (registered in `Program.cs`) uses a
+     `SocketsHttpHandler.ConnectCallback` (`SsrfSafeConnectCallback`) that
+     re-resolves and re-validates the host **at the moment the socket opens**
+     and connects directly to the validated address.
+- Layer 2 is not redundant with layer 1: the controller's DNS lookup and the
+  HTTP stack's own connection-time DNS lookup are two separate queries: an
+  attacker controlling DNS for their domain can return a public IP for the
+  first (passing the check) and a private IP for the second — classic
+  DNS-rebinding TOCTOU. `ConnectCallback` also means every redirect hop
+  (`SocketsHttpHandler.AllowAutoRedirect` is true by default) gets re-validated
+  too, since a fresh connection — and therefore a fresh callback invocation —
+  is made per hop. Don't remove `ConfigurePrimaryHttpMessageHandler` on the
+  `"MetaPreview"` client when touching this code.
+- `SsrfGuard.IsPrivateOrReservedAddress` is the single source of truth for
+  "is this address private/reserved" — both the controller and the connect
+  callback call it, so a new reserved range only needs to be added once.
+
 ### Rate limiting
 
 Implemented via `Microsoft.AspNetCore.RateLimiting` (built-in .NET 8+) with Redis-backed

@@ -209,17 +209,32 @@ builder.Services.AddProblemDetails();
 // ── HTTP Client (for OG meta fetching & OAuth) ───────────────────────────────
 builder.Services.AddHttpClient();
 
+// DNS resolver — mockable in unit tests via IHostResolver
+builder.Services.AddSingleton<Omnijoy.Core.Interfaces.IHostResolver, Omnijoy.Api.Services.DnsHostResolver>();
+
 // Named client used by MetaPreviewController.  Timeout and User-Agent are
 // configured here so the controller body stays lean and the settings are
 // consistent across test and production.
+//
+// ConfigurePrimaryHttpMessageHandler pins the socket connection to the same
+// SsrfGuard-validated address that MetaPreviewController's pre-flight check
+// resolved — see SsrfSafeConnectCallback for why the controller's own DNS
+// lookup isn't sufficient on its own (DNS-rebinding TOCTOU).
 builder.Services.AddHttpClient("MetaPreview", c =>
 {
     c.Timeout = TimeSpan.FromSeconds(8);
     c.DefaultRequestHeaders.UserAgent.ParseAdd("OmnijoyBot/1.0 (+https://omnijoy.local)");
+})
+.ConfigurePrimaryHttpMessageHandler(sp =>
+{
+    var resolver = sp.GetRequiredService<Omnijoy.Core.Interfaces.IHostResolver>();
+    var connect  = new Omnijoy.Api.Services.SsrfSafeConnectCallback(resolver);
+    return new SocketsHttpHandler
+    {
+        ConnectCallback = connect.ConnectAsync,
+        ConnectTimeout  = TimeSpan.FromSeconds(5),
+    };
 });
-
-// DNS resolver — mockable in unit tests via IHostResolver
-builder.Services.AddSingleton<Omnijoy.Core.Interfaces.IHostResolver, Omnijoy.Api.Services.DnsHostResolver>();
 
 // ── Google Places API proxy ───────────────────────────────────────────────────
 // Named client used by PlacesProxyService. The API key is read from
