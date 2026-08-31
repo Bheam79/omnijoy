@@ -33,6 +33,8 @@ const mockCommentsStore = vi.hoisted(() => ({
   createComment: vi.fn().mockResolvedValue(undefined),
   updateComment: vi.fn().mockResolvedValue(undefined),
   deleteComment: vi.fn().mockResolvedValue(undefined),
+  addOrUpdateReaction: vi.fn().mockResolvedValue(undefined),
+  removeReaction: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('@/stores/comments', () => ({
@@ -42,6 +44,8 @@ vi.mock('@/stores/comments', () => ({
     createComment: mockCommentsStore.createComment,
     updateComment: mockCommentsStore.updateComment,
     deleteComment: mockCommentsStore.deleteComment,
+    addOrUpdateReaction: mockCommentsStore.addOrUpdateReaction,
+    removeReaction: mockCommentsStore.removeReaction,
   }),
 }))
 
@@ -79,6 +83,9 @@ function makeComment(overrides: Partial<CommentDto> = {}): CommentDto {
     createdAt:       new Date(Date.now() - 60_000).toISOString(), // 1 min ago
     updatedAt:       new Date().toISOString(),
     isDeleted:       false,
+    reactionsCount:  0,
+    topReactions:    [],
+    myReaction:      null,
     ...overrides,
   }
 }
@@ -188,6 +195,59 @@ describe('CommentItem', () => {
     expect(wrapper.find('[data-testid="edit-button"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="delete-button"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="reply-button"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="comment-reaction-picker"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="comment-reaction-count"]').exists()).toBe(false)
+  })
+
+  // ── Reactions ───────────────────────────────────────────────────────────────────────────────
+
+  it('renders the hydrated top three reactions and total without fetching', () => {
+    const wrapper = mountItem(makeComment({
+      reactionsCount: 11,
+      topReactions: [
+        { reactionType: 'Love', count: 5 },
+        { reactionType: 'Like', count: 4 },
+        { reactionType: 'Haha', count: 2 },
+      ],
+    }))
+
+    expect(wrapper.find('[data-testid="comment-reaction-count"]').text()).toContain('❤️')
+    expect(wrapper.find('[data-testid="comment-reaction-count"]').text()).toContain('👍')
+    expect(wrapper.find('[data-testid="comment-reaction-count"]').text()).toContain('😂')
+    expect(wrapper.find('[data-testid="comment-reaction-count"]').text()).toContain('11')
+  })
+
+  it('quick-like and picker changes call the comment reaction store action', async () => {
+    const wrapper = mountItem(makeComment())
+    const picker = wrapper.findComponent({ name: 'ReactionPicker' })
+
+    await picker.vm.$emit('react', 'Like')
+    await picker.vm.$emit('react', 'Love')
+
+    expect(mockCommentsStore.addOrUpdateReaction).toHaveBeenNthCalledWith(1, 'post-1', 'comment-1', 'Like')
+    expect(mockCommentsStore.addOrUpdateReaction).toHaveBeenNthCalledWith(2, 'post-1', 'comment-1', 'Love')
+  })
+
+  it('removes the selected reaction through the store', async () => {
+    const wrapper = mountItem(makeComment({ myReaction: 'Love' }))
+    const picker = wrapper.findComponent({ name: 'ReactionPicker' })
+
+    await picker.vm.$emit('remove')
+
+    expect(mockCommentsStore.removeReaction).toHaveBeenCalledWith('post-1', 'comment-1')
+  })
+
+  it('opens the shared modal with a comment target', async () => {
+    const wrapper = mountItem(makeComment({
+      reactionsCount: 1,
+      topReactions: [{ reactionType: 'Like', count: 1 }],
+    }))
+
+    await wrapper.find('[data-testid="comment-reaction-count"]').trigger('click')
+    const modal = wrapper.findComponent({ name: 'ReactionsModal' })
+
+    expect(modal.props('targetKind')).toBe('comment')
+    expect(modal.props('targetId')).toBe('comment-1')
   })
 
   // ── Avatar ────────────────────────────────────────────────────────────────

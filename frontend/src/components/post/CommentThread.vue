@@ -9,11 +9,13 @@
  *   postId   – GUID of the post
  *   expanded – initial expanded state (optional, two-way via v-model)
  */
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import * as signalR from '@microsoft/signalr'
 import { useAuthStore } from '@/stores/auth'
 import { useCommentsStore } from '@/stores/comments'
 import CommentComposer from './CommentComposer.vue'
 import CommentItem from './CommentItem.vue'
+import type { CommentReactionCountsUpdatedEvent } from '@/services/reactionService'
 
 const props = defineProps<{
   postId: string
@@ -29,6 +31,7 @@ const store = useCommentsStore()
 
 const open = ref(props.expanded ?? false)
 const composerPosting = ref(false)
+let hubConnection: signalR.HubConnection | null = null
 
 const state = computed(() => store.byPost[props.postId])
 const comments = computed(() => state.value?.items ?? [])
@@ -46,7 +49,52 @@ watch(
   },
 )
 
-watch(open, (val) => emit('update:expanded', val))
+watch(open, (val) => {
+  emit('update:expanded', val)
+  if (val) connectReactionUpdates()
+  else disconnectReactionUpdates()
+})
+
+onMounted(() => {
+  if (open.value) connectReactionUpdates()
+})
+onUnmounted(disconnectReactionUpdates)
+
+// ── Real-time reaction updates ────────────────────────────────────────────────────────────
+
+async function connectReactionUpdates() {
+  if (hubConnection || !auth.accessToken) return
+
+  const connection = new signalR.HubConnectionBuilder()
+    .withUrl('/hubs/feed', { accessTokenFactory: () => auth.accessToken ?? '' })
+    .withAutomaticReconnect()
+    .configureLogging(signalR.LogLevel.Warning)
+    .build()
+
+  connection.on('CommentReactionCountsUpdated', (event: CommentReactionCountsUpdatedEvent) => {
+    if (event.postId === props.postId) store.applyReactionUpdate(event)
+  })
+  connection.onreconnected(() => connection.invoke('SubscribeToPost', props.postId))
+
+  hubConnection = connection
+  try {
+    await connection.start()
+    if (hubConnection !== connection) {
+      await connection.stop()
+      return
+    }
+    await connection.invoke('SubscribeToPost', props.postId)
+  } catch {
+    await connection.stop().catch(() => undefined)
+    if (hubConnection === connection) hubConnection = null
+  }
+}
+
+function disconnectReactionUpdates() {
+  const connection = hubConnection
+  hubConnection = null
+  connection?.stop().catch(() => undefined)
+}
 
 // ── Toggle / load on first open ───────────────────────────────────────────────
 

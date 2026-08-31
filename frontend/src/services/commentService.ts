@@ -1,5 +1,6 @@
 import api from './api'
 import type { MentionDto } from '@/types/mentions'
+import type { PostReactionsDto, ReactionCountDto, ReactionType, ReactionWhoDto } from './reactionService'
 
 export type { MentionDto } from '@/types/mentions'
 
@@ -22,6 +23,9 @@ export interface CommentDto {
   createdAt: string
   updatedAt: string
   isDeleted: boolean
+  reactionsCount: number
+  topReactions: ReactionCountDto[]
+  myReaction: ReactionType | null
 }
 
 export interface CommentsPageResult {
@@ -67,5 +71,27 @@ export const commentService = {
 
   async deleteComment(commentId: string): Promise<void> {
     await api.delete(`/api/comments/${commentId}`)
+  },
+
+  async getReactions(commentId: string): Promise<PostReactionsDto> {
+    const { data } = await api.get<PostReactionsDto>(`/api/comments/${commentId}/reactions`)
+    return data
+  },
+
+  async addOrUpdateReaction(commentId: string, reactionType: ReactionType): Promise<PostReactionsDto> {
+    const { data } = await api.post<PostReactionsDto>(`/api/comments/${commentId}/reactions`, {
+      reactionType,
+    })
+    return data
+  },
+
+  async removeReaction(commentId: string): Promise<PostReactionsDto> {
+    const { data } = await api.delete<PostReactionsDto>(`/api/comments/${commentId}/reactions`)
+    return data
+  },
+
+  async getReactionWho(commentId: string): Promise<ReactionWhoDto> {
+    const { data } = await api.get<ReactionWhoDto>(`/api/comments/${commentId}/reactions/who`)
+    return data
   },
 }

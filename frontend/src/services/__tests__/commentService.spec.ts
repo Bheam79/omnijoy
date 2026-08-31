@@ -136,4 +136,31 @@ describe('commentService', () => {
 
     expect(result).toBeUndefined()
   })
+
+  // ── reactions ─────────────────────────────────────────────────────────────
+
+  it('getReactions → GETs the comment reaction summary', async () => {
+    const payload = { counts: [], totalCount: 0, currentUserReaction: null }
+    mockApi.get.mockResolvedValue({ data: payload })
+    expect(await commentService.getReactions('c-1')).toEqual(payload)
+    expect(mockApi.get).toHaveBeenCalledWith('/api/comments/c-1/reactions')
+  })
+
+  it('addOrUpdateReaction → POSTs the typed reaction payload', async () => {
+    mockApi.post.mockResolvedValue({ data: { counts: [], totalCount: 1, currentUserReaction: 'Wow' } })
+    await commentService.addOrUpdateReaction('c-2', 'Wow')
+    expect(mockApi.post).toHaveBeenCalledWith('/api/comments/c-2/reactions', { reactionType: 'Wow' })
+  })
+
+  it('removeReaction → DELETEs the current comment reaction', async () => {
+    mockApi.delete.mockResolvedValue({ data: { counts: [], totalCount: 0, currentUserReaction: null } })
+    await commentService.removeReaction('c-3')
+    expect(mockApi.delete).toHaveBeenCalledWith('/api/comments/c-3/reactions')
+  })
+
+  it('getReactionWho → GETs the comment reactor list', async () => {
+    mockApi.get.mockResolvedValue({ data: { people: [], remaining: 0 } })
+    await commentService.getReactionWho('c-4')
+    expect(mockApi.get).toHaveBeenCalledWith('/api/comments/c-4/reactions/who')
+  })
 })

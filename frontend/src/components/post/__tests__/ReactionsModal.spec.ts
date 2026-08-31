@@ -1,7 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import type { ReactionCountDto } from '@/services/reactionService'
+import type { ReactionCountDto, ReactionTargetKind } from '@/services/reactionService'
+
+vi.mock('@/services/reactionService', async () => {
+  const actual = await vi.importActual<typeof import('@/services/reactionService')>('@/services/reactionService')
+  return {
+    ...actual,
+    reactionService: { getReactionWho: vi.fn().mockResolvedValue({ people: [], remaining: 0 }) },
+  }
+})
 
 // Import after mocks (none needed — ReactionsModal is pure props + emits)
 import ReactionsModal from '../ReactionsModal.vue'
@@ -14,9 +22,14 @@ function makeCount(reactionType: ReactionCountDto['reactionType'], count: number
 
 // ── Mount helper ──────────────────────────────────────────────────────────────
 
-function mountModal(counts: ReactionCountDto[] = [], totalCount = 0) {
+function mountModal(
+  counts: ReactionCountDto[] = [],
+  totalCount = 0,
+  targetKind: ReactionTargetKind = 'post',
+  targetId = 'post-1',
+) {
   return mount(ReactionsModal, {
-    props:  { counts, totalCount },
+    props:  { targetKind, targetId, counts, totalCount },
     global: {
       plugins: [createPinia()],
       stubs:   {
@@ -31,6 +44,7 @@ function mountModal(counts: ReactionCountDto[] = [], totalCount = 0) {
 describe('ReactionsModal', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    vi.clearAllMocks()
   })
 
   // ── Structure ─────────────────────────────────────────────────────────────
@@ -155,6 +169,26 @@ describe('ReactionsModal', () => {
     // Love row should NOT be rendered
     expect(wrapper.find('[data-testid="reaction-row-love"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="reaction-row-like"]').exists()).toBe(true)
+  })
+
+  it('fetches and renders the friends-first who list for the supplied target', async () => {
+    const { reactionService } = await import('@/services/reactionService')
+    vi.mocked(reactionService.getReactionWho).mockResolvedValue({
+      people: [
+        { id: 'friend', displayName: 'Alice', avatarUrl: null, isFriend: true, reactionType: 'Love' },
+        { id: 'other', displayName: 'Bob', avatarUrl: null, isFriend: false, reactionType: 'Like' },
+      ],
+      remaining: 2,
+    })
+
+    const wrapper = mountModal([makeCount('Love', 4)], 4, 'comment', 'comment-9')
+    await flushPromises()
+
+    expect(reactionService.getReactionWho).toHaveBeenCalledWith('comment-9', 'comment')
+    const people = wrapper.findAll('[data-testid^="reaction-person-"]')
+    expect(people[0].text()).toContain('Alice')
+    expect(people[1].text()).toContain('Bob')
+    expect(wrapper.find('[data-testid="reaction-who-list"]').text()).toContain('+2 more')
   })
 
   // ── Close button ──────────────────────────────────────────────────────────

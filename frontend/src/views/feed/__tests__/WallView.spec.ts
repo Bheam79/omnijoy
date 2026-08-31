@@ -78,6 +78,7 @@ vi.mock('@/stores/reactions', () => ({
 
 const commentsStore = vi.hoisted(() => ({
   applyNewComment: vi.fn(),
+  applyReactionUpdate: vi.fn(),
   reset:           vi.fn(),
 }))
 
@@ -180,6 +181,21 @@ describe('WallView', () => {
     await flushPromises()
 
     expect(feedStore.loadFeed).toHaveBeenCalledOnce()
+  })
+
+  it('routes CommentReactionCountsUpdated hub events to the comments store', async () => {
+    mountView()
+    await flushPromises()
+    const registration = hubConnectionMock.on.mock.calls.find(
+      ([eventName]) => eventName === 'CommentReactionCountsUpdated',
+    )
+    const event = {
+      postId: 'post-1', commentId: 'comment-2', counts: [{ reactionType: 'Like', count: 3 }], total: 3,
+    }
+
+    registration?.[1](event)
+
+    expect(commentsStore.applyReactionUpdate).toHaveBeenCalledWith(event)
   })
 
   // ── Loading skeleton ───────────────────────────────────────────────────────

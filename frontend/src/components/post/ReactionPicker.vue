@@ -29,9 +29,11 @@ import {
 const props = withDefaults(defineProps<{
   currentReaction?: ReactionType | null
   disabled?: boolean
+  compact?: boolean
 }>(), {
   currentReaction: null,
   disabled: false,
+  compact: false,
 })
 
 const emit = defineEmits<{
@@ -168,8 +170,9 @@ onBeforeUnmount(cancelTimers)
   <div class="relative" data-testid="reaction-picker">
     <!-- Main like/reaction button -->
     <button
-      class="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg transition flex-1 justify-center"
+      class="flex items-center font-medium rounded-lg transition flex-1 justify-center"
       :class="[
+        compact ? 'gap-1 px-1 py-0.5 text-xs' : 'gap-1.5 px-3 py-1.5 text-sm',
         currentReaction
           ? `${reactionColorClass} hover:bg-blue-900/40`
           : 'text-gray-500 hover:text-blue-400 hover:bg-blue-900/40',
@@ -188,7 +191,7 @@ onBeforeUnmount(cancelTimers)
       <span v-if="currentReaction" class="text-base leading-none">
         {{ REACTION_EMOJIS[currentReaction] }}
       </span>
-      <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg v-else :class="compact ? 'w-3.5 h-3.5' : 'w-5 h-5'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/>
       </svg>

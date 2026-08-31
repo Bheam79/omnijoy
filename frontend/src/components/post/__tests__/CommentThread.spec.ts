@@ -7,6 +7,30 @@ import CommentThread from '@/components/post/CommentThread.vue'
 import { useAuthStore } from '@/stores/auth'
 import type { CommentDto } from '@/services/commentService'
 
+const { threadHub, ThreadHubBuilder } = vi.hoisted(() => {
+  const hub = {
+    on: vi.fn(),
+    onreconnected: vi.fn(),
+    start: vi.fn().mockResolvedValue(undefined),
+    stop: vi.fn().mockResolvedValue(undefined),
+    invoke: vi.fn().mockResolvedValue(undefined),
+  }
+  function ThreadHubBuilder(this: unknown) {
+    return {
+      withUrl: vi.fn().mockReturnThis(),
+      withAutomaticReconnect: vi.fn().mockReturnThis(),
+      configureLogging: vi.fn().mockReturnThis(),
+      build: vi.fn().mockReturnValue(hub),
+    }
+  }
+  return { threadHub: hub, ThreadHubBuilder }
+})
+
+vi.mock('@microsoft/signalr', () => ({
+  HubConnectionBuilder: ThreadHubBuilder,
+  LogLevel: { Warning: 1 },
+}))
+
 // ── Mock commentsStore ────────────────────────────────────────────────────────
 
 // Use reactive() so that direct mutations to nested arrays are tracked by Vue
@@ -28,6 +52,7 @@ const mockStore = {
   updateComment: vi.fn().mockResolvedValue(undefined),
   deleteComment: vi.fn().mockResolvedValue(undefined),
   applyNewComment: vi.fn(),
+  applyReactionUpdate: vi.fn(),
   ensurePost: vi.fn(),
 }
 
@@ -49,6 +74,9 @@ function makeComment(overrides: Partial<CommentDto> = {}): CommentDto {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     isDeleted: false,
+    reactionsCount: 0,
+    topReactions: [],
+    myReaction: null,
     ...overrides,
   }
 }
@@ -156,6 +184,24 @@ describe('CommentThread', () => {
     await wrapper.find('[data-testid="toggle-thread"]').trigger('click')
     await flushPromises()
     expect(wrapper.text()).toContain('Hide comments')
+  })
+
+  it('subscribes the expanded thread to comment reaction hub updates', async () => {
+    setPostState('post-1', { items: [makeComment()] })
+    const wrapper = mountThread()
+    await wrapper.find('[data-testid="toggle-thread"]').trigger('click')
+    await flushPromises()
+
+    expect(threadHub.invoke).toHaveBeenCalledWith('SubscribeToPost', 'post-1')
+    const registration = threadHub.on.mock.calls.find(
+      ([eventName]) => eventName === 'CommentReactionCountsUpdated',
+    )
+    const event = {
+      postId: 'post-1', commentId: 'comment-1', counts: [{ reactionType: 'Like', count: 2 }], total: 2,
+    }
+    registration?.[1](event)
+
+    expect(mockStore.applyReactionUpdate).toHaveBeenCalledWith(event)
   })
 
   // ── Empty state ───────────────────────────────────────────────────────────

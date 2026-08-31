@@ -110,4 +110,19 @@ describe('reactionService', () => {
     mockApi.get.mockRejectedValue(new Error('server error'))
     await expect(reactionService.getReactionWho('post-5')).rejects.toThrow('server error')
   })
+
+  it('routes generic reaction methods to comment targets when requested', async () => {
+    const summary = { counts: [], totalCount: 1, currentUserReaction: 'Love' }
+    mockApi.get.mockResolvedValue({ data: { people: [], remaining: 0 } })
+    mockApi.post.mockResolvedValue({ data: summary })
+    mockApi.delete.mockResolvedValue({ data: summary })
+
+    await reactionService.addOrUpdateReaction('comment-1', 'Love', 'comment')
+    await reactionService.removeReaction('comment-1', 'comment')
+    await reactionService.getReactionWho('comment-1', 'comment')
+
+    expect(mockApi.post).toHaveBeenCalledWith('/api/comments/comment-1/reactions', { reactionType: 'Love' })
+    expect(mockApi.delete).toHaveBeenCalledWith('/api/comments/comment-1/reactions')
+    expect(mockApi.get).toHaveBeenCalledWith('/api/comments/comment-1/reactions/who')
+  })
 })

@@ -3,6 +3,7 @@ import api from './api'
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export type ReactionType = 'Like' | 'Love' | 'Haha' | 'Wow' | 'Sad' | 'Angry'
+export type ReactionTargetKind = 'post' | 'comment'
 
 export const REACTION_EMOJIS: Record<ReactionType, string> = {
   Like:  '👍',
@@ -44,6 +45,13 @@ export interface ReactionCountsUpdatedEvent {
   totalCount: number
 }
 
+export interface CommentReactionCountsUpdatedEvent {
+  commentId: string
+  postId: string
+  counts: ReactionCountDto[]
+  total: number
+}
+
 export interface ReactionWhoUserDto {
   id: string
   displayName: string
@@ -59,26 +67,35 @@ export interface ReactionWhoDto {
 
 // ── Service ───────────────────────────────────────────────────────────────────
 
+function targetPath(targetId: string, targetKind: ReactionTargetKind): string {
+  const collection = targetKind === 'post' ? 'posts' : 'comments'
+  return `/api/${collection}/${targetId}/reactions`
+}
+
 export const reactionService = {
-  async getReactions(postId: string): Promise<PostReactionsDto> {
-    const { data } = await api.get<PostReactionsDto>(`/api/posts/${postId}/reactions`)
+  async getReactions(targetId: string, targetKind: ReactionTargetKind = 'post'): Promise<PostReactionsDto> {
+    const { data } = await api.get<PostReactionsDto>(targetPath(targetId, targetKind))
     return data
   },
 
-  async addOrUpdateReaction(postId: string, reactionType: ReactionType): Promise<PostReactionsDto> {
-    const { data } = await api.post<PostReactionsDto>(`/api/posts/${postId}/reactions`, {
+  async addOrUpdateReaction(
+    targetId: string,
+    reactionType: ReactionType,
+    targetKind: ReactionTargetKind = 'post',
+  ): Promise<PostReactionsDto> {
+    const { data } = await api.post<PostReactionsDto>(targetPath(targetId, targetKind), {
       reactionType,
     })
     return data
   },
 
-  async removeReaction(postId: string): Promise<PostReactionsDto> {
-    const { data } = await api.delete<PostReactionsDto>(`/api/posts/${postId}/reactions`)
+  async removeReaction(targetId: string, targetKind: ReactionTargetKind = 'post'): Promise<PostReactionsDto> {
+    const { data } = await api.delete<PostReactionsDto>(targetPath(targetId, targetKind))
     return data
   },
 
-  async getReactionWho(postId: string): Promise<ReactionWhoDto> {
-    const { data } = await api.get<ReactionWhoDto>(`/api/posts/${postId}/reactions/who`)
+  async getReactionWho(targetId: string, targetKind: ReactionTargetKind = 'post'): Promise<ReactionWhoDto> {
+    const { data } = await api.get<ReactionWhoDto>(`${targetPath(targetId, targetKind)}/who`)
     return data
   },
 }

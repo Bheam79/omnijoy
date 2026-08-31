@@ -6,7 +6,10 @@ import { useAuthStore } from '@/stores/auth'
 import { useReactionsStore } from '@/stores/reactions'
 import { useCommentsStore } from '@/stores/comments'
 import type { PostDto, FeedItemDto } from '@/services/postService'
-import type { ReactionCountsUpdatedEvent } from '@/services/reactionService'
+import type {
+  CommentReactionCountsUpdatedEvent,
+  ReactionCountsUpdatedEvent,
+} from '@/services/reactionService'
 import type { CommentDto } from '@/services/commentService'
 import PostCard from '@/components/post/PostCard.vue'
 import SharedPostCard from '@/components/post/SharedPostCard.vue'
@@ -68,6 +71,10 @@ function connectSignalR() {
 
   hubConnection.on('ReactionCountsUpdated', (event: ReactionCountsUpdatedEvent) => {
     reactionsStore.applyUpdate(event)
+  })
+
+  hubConnection.on('CommentReactionCountsUpdated', (event: CommentReactionCountsUpdatedEvent) => {
+    commentsStore.applyReactionUpdate(event)
   })
 
   hubConnection.on('NewComment', (comment: CommentDto) => {

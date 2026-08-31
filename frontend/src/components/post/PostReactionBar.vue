@@ -57,7 +57,7 @@ async function onCountMouseEnter() {
     if (!whoData.value && !whoLoading.value) {
       whoLoading.value = true
       try {
-        whoData.value = await reactionService.getReactionWho(props.postId)
+        whoData.value = await reactionService.getReactionWho(props.postId, 'post')
       } catch {
         // silently ignore — tooltip just won't show names
       } finally {
@@ -169,6 +169,8 @@ function onRemove() {
     <!-- Reactions breakdown modal -->
     <ReactionsModal
       v-if="showModal"
+      target-kind="post"
+      :target-id="postId"
       :counts="counts"
       :total-count="totalCount"
       @close="showModal = false"

@@ -11,6 +11,8 @@ const mockCommentService = vi.hoisted(() => ({
   createComment: vi.fn(),
   updateComment: vi.fn(),
   deleteComment: vi.fn(),
+  addOrUpdateReaction: vi.fn(),
+  removeReaction: vi.fn(),
 }))
 
 vi.mock('@/services/commentService', () => ({
@@ -31,6 +33,9 @@ function makeComment(id: string, postId: string, overrides: Partial<CommentDto> 
     updatedAt:       '2024-01-01T00:00:00Z',
     isDeleted:       false,
     parentCommentId: null,
+    reactionsCount:  0,
+    topReactions:    [],
+    myReaction:      null,
     ...overrides,
   }
 }
@@ -531,6 +536,69 @@ describe('useCommentsStore', () => {
 
     // Reply was still appended (replies list grows)
     expect(store.byPost['post-1'].replies['c1']).toHaveLength(1)
+  })
+
+  // ── Comment reactions ────────────────────────────────────────────────────
+
+  it('addOrUpdateReaction reconciles the optimistic state with the API response', async () => {
+    mockCommentService.addOrUpdateReaction.mockResolvedValue({
+      counts: [{ reactionType: 'Love', count: 4 }, { reactionType: 'Like', count: 2 }],
+      totalCount: 6,
+      currentUserReaction: 'Love',
+    })
+    const store = useCommentsStore()
+    store.ensurePost('post-1').items = [makeComment('c1', 'post-1')]
+
+    await store.addOrUpdateReaction('post-1', 'c1', 'Love')
+
+    expect(mockCommentService.addOrUpdateReaction).toHaveBeenCalledWith('c1', 'Love')
+    expect(store.byPost['post-1'].items[0]).toMatchObject({ reactionsCount: 6, myReaction: 'Love' })
+    expect(store.byPost['post-1'].items[0].topReactions[0]).toEqual({ reactionType: 'Love', count: 4 })
+  })
+
+  it('removeReaction reconciles the comment with the API response', async () => {
+    mockCommentService.removeReaction.mockResolvedValue({ counts: [], totalCount: 0, currentUserReaction: null })
+    const store = useCommentsStore()
+    store.ensurePost('post-1').items = [makeComment('c1', 'post-1', {
+      reactionsCount: 1,
+      topReactions: [{ reactionType: 'Like', count: 1 }],
+      myReaction: 'Like',
+    })]
+
+    await store.removeReaction('post-1', 'c1')
+
+    expect(mockCommentService.removeReaction).toHaveBeenCalledWith('c1')
+    expect(store.byPost['post-1'].items[0]).toMatchObject({ reactionsCount: 0, topReactions: [], myReaction: null })
+  })
+
+  it('applies absolute SignalR counts by commentId without changing MyReaction', () => {
+    const store = useCommentsStore()
+    store.ensurePost('post-1').items = [makeComment('c1', 'post-1', { myReaction: 'Love' })]
+    const event = {
+      postId: 'post-1', commentId: 'c1', total: 11,
+      counts: [
+        { reactionType: 'Like' as const, count: 5 }, { reactionType: 'Love' as const, count: 3 },
+        { reactionType: 'Wow' as const, count: 2 }, { reactionType: 'Sad' as const, count: 1 },
+      ],
+    }
+
+    store.applyReactionUpdate(event)
+    store.applyReactionUpdate(event)
+
+    expect(store.byPost['post-1'].items[0].reactionsCount).toBe(11)
+    expect(store.byPost['post-1'].items[0].topReactions).toHaveLength(3)
+    expect(store.byPost['post-1'].items[0].myReaction).toBe('Love')
+  })
+
+  it('ignores SignalR reaction updates for soft-deleted comments', () => {
+    const store = useCommentsStore()
+    store.ensurePost('post-1').items = [makeComment('c1', 'post-1', { isDeleted: true })]
+
+    store.applyReactionUpdate({
+      postId: 'post-1', commentId: 'c1', counts: [{ reactionType: 'Like', count: 1 }], total: 1,
+    })
+
+    expect(store.byPost['post-1'].items[0].reactionsCount).toBe(0)
   })
 
   // ── reset ─────────────────────────────────────────────────────────────────

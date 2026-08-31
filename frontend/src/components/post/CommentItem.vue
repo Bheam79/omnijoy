@@ -17,6 +17,9 @@ import { useAuthStore } from '@/stores/auth'
 import { useCommentsStore } from '@/stores/comments'
 import CommentComposer from './CommentComposer.vue'
 import MentionText from '@/components/shared/MentionText.vue'
+import ReactionPicker from './ReactionPicker.vue'
+import ReactionsModal from './ReactionsModal.vue'
+import { REACTION_EMOJIS, type ReactionType } from '@/services/reactionService'
 
 const props = defineProps<{
   comment: CommentDto
@@ -52,6 +55,14 @@ const replyPosting = ref(false)
 const editing = ref(false)
 const editText = ref('')
 const editPosting = ref(false)
+const showReactionsModal = ref(false)
+
+const topReactionEmojis = computed(() =>
+  [...props.comment.topReactions]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 3)
+    .map(count => REACTION_EMOJIS[count.reactionType]),
+)
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -124,6 +135,14 @@ async function handleDelete() {
   if (!confirm('Delete this comment?')) return
   await store.deleteComment(props.comment.postId, props.comment.id)
 }
+
+function handleReact(reactionType: ReactionType) {
+  store.addOrUpdateReaction(props.comment.postId, props.comment.id, reactionType)
+}
+
+function handleRemoveReaction() {
+  store.removeReaction(props.comment.postId, props.comment.id)
+}
 </script>
 
 <template>
@@ -191,12 +210,32 @@ async function handleDelete() {
         </p>
       </div>
 
+      <button
+        v-if="!isDeleted && comment.reactionsCount > 0"
+        class="flex items-center gap-0.5 ml-2 mt-0.5 text-xs text-slate-500 hover:underline"
+        data-testid="comment-reaction-count"
+        aria-label="See comment reactions"
+        @click="showReactionsModal = true"
+      >
+        <span v-for="(emoji, index) in topReactionEmojis" :key="index" aria-hidden="true">{{ emoji }}</span>
+        <span class="ml-1">{{ comment.reactionsCount }}</span>
+      </button>
+
       <!-- Actions row -->
       <div class="flex items-center gap-3 mt-0.5 ml-1" v-if="!isDeleted">
         <!-- Timestamp -->
         <span class="text-xs text-slate-500" :title="new Date(comment.createdAt).toLocaleString(undefined, { hour12: false })">
           {{ formatRelativeTime(comment.createdAt) }}
         </span>
+
+        <ReactionPicker
+          :current-reaction="comment.myReaction"
+          :disabled="!auth.user"
+          compact
+          data-testid="comment-reaction-picker"
+          @react="handleReact"
+          @remove="handleRemoveReaction"
+        />
 
         <!-- Reply button (top-level only) -->
         <button
@@ -271,5 +310,13 @@ async function handleDelete() {
         />
       </div>
     </div>
+    <ReactionsModal
+      v-if="showReactionsModal && !isDeleted"
+      target-kind="comment"
+      :target-id="comment.id"
+      :counts="comment.topReactions"
+      :total-count="comment.reactionsCount"
+      @close="showReactionsModal = false"
+    />
   </div>
 </template>

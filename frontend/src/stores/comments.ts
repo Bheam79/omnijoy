@@ -13,6 +13,11 @@ import {
   type CommentDto,
   type CreateCommentPayload,
 } from '@/services/commentService'
+import type {
+  CommentReactionCountsUpdatedEvent,
+  PostReactionsDto,
+  ReactionType,
+} from '@/services/reactionService'
 
 export interface PostCommentsState {
   items: CommentDto[]
@@ -42,6 +47,27 @@ export const useCommentsStore = defineStore('comments', () => {
       }
     }
     return byPost.value[postId]
+  }
+
+  function findComment(postId: string, commentId: string): CommentDto | undefined {
+    const state = byPost.value[postId]
+    if (!state) return undefined
+
+    const topLevel = state.items.find(comment => comment.id === commentId)
+    if (topLevel) return topLevel
+
+    for (const replies of Object.values(state.replies)) {
+      const reply = replies.find(comment => comment.id === commentId)
+      if (reply) return reply
+    }
+  }
+
+  function applyReactionSummary(comment: CommentDto, dto: PostReactionsDto) {
+    comment.reactionsCount = dto.totalCount
+    comment.topReactions = [...dto.counts]
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3)
+    comment.myReaction = dto.currentUserReaction
   }
 
   // ── Load top-level comments ───────────────────────────────────────────────
@@ -149,7 +175,14 @@ export const useCommentsStore = defineStore('comments', () => {
 
     const idx = state.items.findIndex((c) => c.id === commentId)
     if (idx !== -1) {
-      state.items[idx] = { ...state.items[idx], isDeleted: true, content: '[deleted]' }
+      state.items[idx] = {
+        ...state.items[idx],
+        isDeleted: true,
+        content: '[deleted]',
+        reactionsCount: 0,
+        topReactions: [],
+        myReaction: null,
+      }
       return
     }
 
@@ -157,7 +190,14 @@ export const useCommentsStore = defineStore('comments', () => {
       const ridx = replies.findIndex((r) => r.id === commentId)
       if (ridx !== -1) {
         state.replies[parentId] = replies.map((r, i) =>
-          i === ridx ? { ...r, isDeleted: true, content: '[deleted]' } : r,
+          i === ridx ? {
+            ...r,
+            isDeleted: true,
+            content: '[deleted]',
+            reactionsCount: 0,
+            topReactions: [],
+            myReaction: null,
+          } : r,
         )
         return
       }
@@ -184,6 +224,74 @@ export const useCommentsStore = defineStore('comments', () => {
     }
   }
 
+  // ── Reactions ────────────────────────────────────────────────────────────────────────────────────
+
+  function applyReactionUpdate(event: CommentReactionCountsUpdatedEvent) {
+    const comment = findComment(event.postId, event.commentId)
+    if (!comment || comment.isDeleted) return
+
+    // Hub payloads contain absolute counts, so a local mutation response and
+    // its broadcast can arrive in either order without double-incrementing.
+    comment.reactionsCount = event.total
+    comment.topReactions = [...event.counts]
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3)
+  }
+
+  async function addOrUpdateReaction(postId: string, commentId: string, reactionType: ReactionType) {
+    const comment = findComment(postId, commentId)
+    if (!comment || comment.isDeleted) return
+    const previous = {
+      reactionsCount: comment.reactionsCount,
+      topReactions: comment.topReactions.map(count => ({ ...count })),
+      myReaction: comment.myReaction,
+    }
+
+    const counts = comment.topReactions.map(count => ({ ...count }))
+    if (comment.myReaction) {
+      const old = counts.find(count => count.reactionType === comment.myReaction)
+      if (old) old.count--
+    }
+    const selected = counts.find(count => count.reactionType === reactionType)
+    if (selected) selected.count++
+    else counts.push({ reactionType, count: 1 })
+    comment.reactionsCount += comment.myReaction ? 0 : 1
+    comment.topReactions = counts
+      .filter(count => count.count > 0)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3)
+    comment.myReaction = reactionType
+
+    try {
+      applyReactionSummary(comment, await commentService.addOrUpdateReaction(commentId, reactionType))
+    } catch {
+      Object.assign(comment, previous)
+    }
+  }
+
+  async function removeReaction(postId: string, commentId: string) {
+    const comment = findComment(postId, commentId)
+    if (!comment || comment.isDeleted || !comment.myReaction) return
+    const previous = {
+      reactionsCount: comment.reactionsCount,
+      topReactions: comment.topReactions.map(count => ({ ...count })),
+      myReaction: comment.myReaction,
+    }
+
+    const removedType = comment.myReaction
+    comment.reactionsCount = Math.max(0, comment.reactionsCount - 1)
+    comment.topReactions = comment.topReactions
+      .map(count => count.reactionType === removedType ? { ...count, count: count.count - 1 } : count)
+      .filter(count => count.count > 0)
+    comment.myReaction = null
+
+    try {
+      applyReactionSummary(comment, await commentService.removeReaction(commentId))
+    } catch {
+      Object.assign(comment, previous)
+    }
+  }
+
   function reset() {
     byPost.value = {}
   }
@@ -198,6 +306,9 @@ export const useCommentsStore = defineStore('comments', () => {
     updateComment,
     deleteComment,
     applyNewComment,
+    applyReactionUpdate,
+    addOrUpdateReaction,
+    removeReaction,
     reset,
   }
 })

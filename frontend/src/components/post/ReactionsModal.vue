@@ -1,16 +1,37 @@
 <script setup lang="ts">
-/**
- * ReactionsModal – shows the aggregated reaction breakdown for a post.
- * Since the API returns counts (not per-user), we display emoji + count per type.
- */
-import { REACTION_EMOJIS, REACTION_LABELS, type ReactionCountDto } from '@/services/reactionService'
+import { onMounted, ref } from 'vue'
+import {
+  REACTION_EMOJIS,
+  REACTION_LABELS,
+  reactionService,
+  type ReactionCountDto,
+  type ReactionTargetKind,
+  type ReactionWhoDto,
+} from '@/services/reactionService'
 
-defineProps<{
+const props = defineProps<{
+  targetKind: ReactionTargetKind
+  targetId: string
   counts: ReactionCountDto[]
   totalCount: number
 }>()
 
 const emit = defineEmits<{ close: [] }>()
+
+const who = ref<ReactionWhoDto | null>(null)
+const loading = ref(false)
+
+onMounted(async () => {
+  if (props.totalCount === 0) return
+  loading.value = true
+  try {
+    who.value = await reactionService.getReactionWho(props.targetId, props.targetKind)
+  } catch {
+    who.value = null
+  } finally {
+    loading.value = false
+  }
+})
 </script>
 
 <template>
@@ -63,6 +84,34 @@ const emit = defineEmits<{ close: [] }>()
               <span class="text-sm font-medium text-slate-300">{{ REACTION_LABELS[item.reactionType] }}</span>
             </div>
             <span class="text-sm font-semibold text-slate-400">{{ item.count }}</span>
+          </div>
+
+          <div v-if="totalCount > 0" class="border-t border-slate-700 pt-3 mt-3" data-testid="reaction-who-list">
+            <p v-if="loading" class="text-center text-sm text-slate-500 py-2">Loading…</p>
+            <template v-else-if="who && who.people.length > 0">
+              <div
+                v-for="person in who.people"
+                :key="person.id"
+                class="flex items-center gap-2 py-1.5"
+                :data-testid="`reaction-person-${person.id}`"
+              >
+                <img
+                  v-if="person.avatarUrl"
+                  :src="person.avatarUrl"
+                  :alt="person.displayName"
+                  class="w-7 h-7 rounded-full object-cover"
+                />
+                <div v-else class="w-7 h-7 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center">
+                  {{ person.displayName.charAt(0).toUpperCase() }}
+                </div>
+                <span class="flex-1 truncate text-sm text-slate-300">{{ person.displayName }}</span>
+                <span aria-hidden="true">{{ REACTION_EMOJIS[person.reactionType] }}</span>
+              </div>
+              <p v-if="who.remaining > 0" class="text-xs text-slate-500 mt-1">
+                +{{ who.remaining }} more…
+              </p>
+            </template>
+            <p v-else class="text-center text-sm text-slate-500 py-2">Unable to load reactors</p>
           </div>
         </div>
       </div>
