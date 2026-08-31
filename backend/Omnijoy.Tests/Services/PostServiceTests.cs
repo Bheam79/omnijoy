@@ -16,6 +16,7 @@ public class PostServiceTests : IDisposable
     private readonly OmnijoyDbContext _db;
     private readonly Mock<IMediaStorageService> _storageMock;
     private readonly Mock<IImageProcessingService> _imageProcessorMock;
+    private readonly Mock<INotificationService> _notificationsMock;
     private readonly PostService _sut;
 
     public PostServiceTests()
@@ -31,20 +32,30 @@ public class PostServiceTests : IDisposable
             .Setup(p => p.ProcessImageAsync(It.IsAny<Stream>(), It.IsAny<ImageFolder>()))
             .ReturnsAsync((Stream s, ImageFolder _) => s);
         var privacy = new PrivacyService(_db);
-        _sut = new PostService(_db, _storageMock.Object, privacy, null, _imageProcessorMock.Object);
+        _notificationsMock = new Mock<INotificationService>();
+        _sut = new PostService(
+            _db,
+            _storageMock.Object,
+            privacy,
+            null,
+            _imageProcessorMock.Object,
+            null,
+            new MentionResolver(_db),
+            _notificationsMock.Object);
     }
 
     public void Dispose() => _db.Dispose();
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private async Task<User> CreateUserAsync(string displayName = "Alice")
+    private async Task<User> CreateUserAsync(string displayName = "Alice", string? urlSlug = null)
     {
         var user = new User
         {
             Id = Guid.NewGuid(),
             Email = $"{Guid.NewGuid()}@test.com",
             DisplayName = displayName,
+            UrlSlug = urlSlug,
             Gender = Gender.NotDisclosed,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
@@ -62,6 +73,20 @@ public class PostServiceTests : IDisposable
             RequesterId = a,
             AddresseeId = b,
             Status = FriendStatus.Accepted,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+    }
+
+    private async Task BlockAsync(Guid blockerId, Guid blockedId)
+    {
+        _db.Friends.Add(new Friend
+        {
+            Id = Guid.NewGuid(),
+            RequesterId = blockerId,
+            AddresseeId = blockedId,
+            Status = FriendStatus.Blocked,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
         });
@@ -130,6 +155,83 @@ public class PostServiceTests : IDisposable
         await _sut.Invoking(s => s.CreatePostAsync(user.Id, request, null))
             .Should().ThrowAsync<ArgumentException>()
             .WithMessage("*Privacy*");
+    }
+
+    [Fact]
+    public async Task CreatePost_DuplicateMention_PersistsOnceAndNotifiesWithPostReference()
+    {
+        var author = await CreateUserAsync("Alice", "alice");
+        var mentioned = await CreateUserAsync("Bob", "bob-user");
+
+        var dto = await _sut.CreatePostAsync(
+            author.Id,
+            new CreatePostRequest("Hi @BOB-user and again @bob-user", "Text", "Everyone", null),
+            null);
+
+        var mention = await _db.PostMentions.SingleAsync();
+        mention.PostId.Should().Be(dto.Id);
+        mention.MentionedUserId.Should().Be(mentioned.Id);
+        mention.MatchedSlug.Should().Be("bob-user");
+        _notificationsMock.Verify(n => n.CreateAsync(
+            mentioned.Id,
+            NotificationType.MentionInPost,
+            dto.Id.ToString(),
+            author.Id), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreatePost_SelfMention_IsPersistedButNotNotified()
+    {
+        var author = await CreateUserAsync("Alice", "alice");
+
+        var dto = await _sut.CreatePostAsync(
+            author.Id,
+            new CreatePostRequest("Note to @alice", "Text", "OnlyMe", null),
+            null);
+
+        var mention = await _db.PostMentions.SingleAsync();
+        mention.PostId.Should().Be(dto.Id);
+        mention.MentionedUserId.Should().Be(author.Id);
+        _notificationsMock.Verify(n => n.CreateAsync(
+            It.IsAny<Guid>(), It.IsAny<NotificationType>(), It.IsAny<string>(), It.IsAny<Guid?>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CreatePost_BlockedMention_LeavesTextButDoesNotPersistOrNotify()
+    {
+        var author = await CreateUserAsync("Alice", "alice");
+        var blocked = await CreateUserAsync("Bob", "blocked-bob");
+        await BlockAsync(blocked.Id, author.Id);
+
+        var dto = await _sut.CreatePostAsync(
+            author.Id,
+            new CreatePostRequest("Hello @blocked-bob", "Text", "Everyone", null),
+            null);
+
+        dto.Content.Should().Be("Hello @blocked-bob");
+        (await _db.PostMentions.CountAsync()).Should().Be(0);
+        _notificationsMock.Verify(n => n.CreateAsync(
+            It.IsAny<Guid>(), It.IsAny<NotificationType>(), It.IsAny<string>(), It.IsAny<Guid?>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CreatePost_OverMentionLimit_IsRejectedAtomically()
+    {
+        var author = await CreateUserAsync();
+        var content = string.Join(' ', Enumerable.Range(0, 11).Select(i => $"@user{i}"));
+
+        await _sut.Invoking(s => s.CreatePostAsync(
+                author.Id,
+                new CreatePostRequest(content, "Text", "Everyone", null),
+                null))
+            .Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*10 distinct users*");
+
+        (await _db.Posts.CountAsync()).Should().Be(0);
+        (await _db.PostMentions.CountAsync()).Should().Be(0);
+        _notificationsMock.VerifyNoOtherCalls();
     }
 
     // ── Feed ──────────────────────────────────────────────────────────────────
@@ -337,6 +439,65 @@ public class PostServiceTests : IDisposable
 
         await _sut.Invoking(s => s.UpdatePostAsync(postId, bob.Id, new UpdatePostRequest("Hack", null)))
             .Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
+    public async Task UpdatePost_DiffsMentions_AndOnlyNotifiesNewRecipients()
+    {
+        var author = await CreateUserAsync("Alice", "alice");
+        var bob = await CreateUserAsync("Bob", "bob-user");
+        var carol = await CreateUserAsync("Carol", "carol-user");
+        var post = await _sut.CreatePostAsync(
+            author.Id,
+            new CreatePostRequest("Hi @bob-user", "Text", "Everyone", null),
+            null);
+        _notificationsMock.Invocations.Clear();
+
+        await _sut.UpdatePostAsync(
+            post.Id,
+            author.Id,
+            new UpdatePostRequest("Still @bob-user, welcome @carol-user", null));
+
+        (await _db.PostMentions.Where(m => m.PostId == post.Id).Select(m => m.MentionedUserId).ToListAsync())
+            .Should().BeEquivalentTo([bob.Id, carol.Id]);
+        _notificationsMock.Verify(n => n.CreateAsync(
+            carol.Id, NotificationType.MentionInPost, post.Id.ToString(), author.Id), Times.Once);
+        _notificationsMock.Verify(n => n.CreateAsync(
+            bob.Id, NotificationType.MentionInPost, It.IsAny<string>(), author.Id), Times.Never);
+
+        _notificationsMock.Invocations.Clear();
+        await _sut.UpdatePostAsync(
+            post.Id,
+            author.Id,
+            new UpdatePostRequest("Only unchanged @bob-user remains", null));
+
+        (await _db.PostMentions.Where(m => m.PostId == post.Id).Select(m => m.MentionedUserId).ToListAsync())
+            .Should().Equal(bob.Id);
+        _notificationsMock.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task UpdatePost_OverMentionLimit_LeavesContentAndMentionsUnchanged()
+    {
+        var author = await CreateUserAsync("Alice", "alice");
+        var bob = await CreateUserAsync("Bob", "bob-user");
+        var post = await _sut.CreatePostAsync(
+            author.Id,
+            new CreatePostRequest("Original @bob-user", "Text", "Everyone", null),
+            null);
+        _notificationsMock.Invocations.Clear();
+        var overLimit = string.Join(' ', Enumerable.Range(0, 11).Select(i => $"@user{i}"));
+
+        await _sut.Invoking(s => s.UpdatePostAsync(
+                post.Id,
+                author.Id,
+                new UpdatePostRequest(overLimit, null)))
+            .Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*10 distinct users*");
+
+        (await _db.Posts.FindAsync(post.Id))!.Content.Should().Be("Original @bob-user");
+        (await _db.PostMentions.SingleAsync(m => m.PostId == post.Id)).MentionedUserId.Should().Be(bob.Id);
+        _notificationsMock.VerifyNoOtherCalls();
     }
 
     // ── Delete ────────────────────────────────────────────────────────────────

@@ -1,6 +1,8 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Omnijoy.Core.DTOs.Comments;
+using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models;
 using Omnijoy.Core.Models.Enums;
 using Omnijoy.Infrastructure.Data;
@@ -11,6 +13,7 @@ namespace Omnijoy.Tests.Services;
 public class CommentServiceTests : IDisposable
 {
     private readonly OmnijoyDbContext _db;
+    private readonly Mock<INotificationService> _notificationsMock;
     private readonly CommentService _sut;
 
     public CommentServiceTests()
@@ -20,20 +23,26 @@ public class CommentServiceTests : IDisposable
             .Options;
 
         _db = new OmnijoyDbContext(options);
-        _sut = new CommentService(_db);
+        _notificationsMock = new Mock<INotificationService>();
+        _sut = new CommentService(
+            _db,
+            new MentionResolver(_db),
+            new PrivacyService(_db),
+            _notificationsMock.Object);
     }
 
     public void Dispose() => _db.Dispose();
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private async Task<User> CreateUserAsync(string displayName = "Alice")
+    private async Task<User> CreateUserAsync(string displayName = "Alice", string? urlSlug = null)
     {
         var user = new User
         {
             Id          = Guid.NewGuid(),
             Email       = $"{Guid.NewGuid()}@test.com",
             DisplayName = displayName,
+            UrlSlug     = urlSlug,
             Gender      = Gender.NotDisclosed,
             CreatedAt   = DateTime.UtcNow,
             UpdatedAt   = DateTime.UtcNow,
@@ -41,6 +50,20 @@ public class CommentServiceTests : IDisposable
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
         return user;
+    }
+
+    private async Task BlockAsync(Guid blockerId, Guid blockedId)
+    {
+        _db.Friends.Add(new Friend
+        {
+            Id = Guid.NewGuid(),
+            RequesterId = blockerId,
+            AddresseeId = blockedId,
+            Status = FriendStatus.Blocked,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+        await _db.SaveChangesAsync();
     }
 
     private async Task<Post> CreatePostAsync(User author)
@@ -190,6 +213,88 @@ public class CommentServiceTests : IDisposable
 
         await _sut.Invoking(s => s.CreateCommentAsync(post2.Id, user.Id, request))
             .Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task CreateComment_DuplicateMention_PersistsOnceAndNotifiesWithCommentReference()
+    {
+        var author = await CreateUserAsync("Alice", "alice");
+        var mentioned = await CreateUserAsync("Bob", "bob-user");
+        var post = await CreatePostAsync(author);
+
+        var dto = await _sut.CreateCommentAsync(
+            post.Id,
+            author.Id,
+            new CreateCommentRequest("Hi @BOB-user and @bob-user"));
+
+        var mention = await _db.CommentMentions.SingleAsync();
+        mention.CommentId.Should().Be(dto.Id);
+        mention.MentionedUserId.Should().Be(mentioned.Id);
+        mention.MatchedSlug.Should().Be("bob-user");
+        _notificationsMock.Verify(n => n.CreateAsync(
+            mentioned.Id,
+            NotificationType.MentionInComment,
+            dto.Id.ToString(),
+            author.Id), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateComment_SelfMention_IsPersistedButNotNotified()
+    {
+        var author = await CreateUserAsync("Alice", "alice");
+        var post = await CreatePostAsync(author);
+
+        var dto = await _sut.CreateCommentAsync(
+            post.Id,
+            author.Id,
+            new CreateCommentRequest("Self @alice"));
+
+        var mention = await _db.CommentMentions.SingleAsync();
+        mention.CommentId.Should().Be(dto.Id);
+        mention.MentionedUserId.Should().Be(author.Id);
+        _notificationsMock.Verify(n => n.CreateAsync(
+            It.IsAny<Guid>(), It.IsAny<NotificationType>(), It.IsAny<string>(), It.IsAny<Guid?>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateComment_BlockedMention_LeavesTextButDoesNotPersistOrNotify()
+    {
+        var author = await CreateUserAsync("Alice", "alice");
+        var blocked = await CreateUserAsync("Bob", "blocked-bob");
+        var post = await CreatePostAsync(author);
+        await BlockAsync(author.Id, blocked.Id);
+
+        var dto = await _sut.CreateCommentAsync(
+            post.Id,
+            author.Id,
+            new CreateCommentRequest("Hello @blocked-bob"));
+
+        dto.Content.Should().Be("Hello @blocked-bob");
+        (await _db.CommentMentions.CountAsync()).Should().Be(0);
+        _notificationsMock.Verify(n => n.CreateAsync(
+            It.IsAny<Guid>(), It.IsAny<NotificationType>(), It.IsAny<string>(), It.IsAny<Guid?>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateComment_OverMentionLimit_IsRejectedAtomically()
+    {
+        var author = await CreateUserAsync();
+        var post = await CreatePostAsync(author);
+        var initialCommentCount = await _db.Comments.CountAsync();
+        var content = string.Join(' ', Enumerable.Range(0, 11).Select(i => $"@user{i}"));
+
+        await _sut.Invoking(s => s.CreateCommentAsync(
+                post.Id,
+                author.Id,
+                new CreateCommentRequest(content)))
+            .Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*10 distinct users*");
+
+        (await _db.Comments.CountAsync()).Should().Be(initialCommentCount);
+        (await _db.CommentMentions.CountAsync()).Should().Be(0);
+        _notificationsMock.VerifyNoOtherCalls();
     }
 
     // ── GetCommentsAsync ──────────────────────────────────────────────────────
@@ -373,6 +478,67 @@ public class CommentServiceTests : IDisposable
 
         await _sut.Invoking(s => s.UpdateCommentAsync(Guid.NewGuid(), user.Id, new UpdateCommentRequest("x")))
             .Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public async Task UpdateComment_DiffsMentions_AndOnlyNotifiesNewRecipients()
+    {
+        var author = await CreateUserAsync("Alice", "alice");
+        var bob = await CreateUserAsync("Bob", "bob-user");
+        var carol = await CreateUserAsync("Carol", "carol-user");
+        var post = await CreatePostAsync(author);
+        var comment = await _sut.CreateCommentAsync(
+            post.Id,
+            author.Id,
+            new CreateCommentRequest("Hi @bob-user"));
+        _notificationsMock.Invocations.Clear();
+
+        await _sut.UpdateCommentAsync(
+            comment.Id,
+            author.Id,
+            new UpdateCommentRequest("Still @bob-user, welcome @carol-user"));
+
+        (await _db.CommentMentions.Where(m => m.CommentId == comment.Id).Select(m => m.MentionedUserId).ToListAsync())
+            .Should().BeEquivalentTo([bob.Id, carol.Id]);
+        _notificationsMock.Verify(n => n.CreateAsync(
+            carol.Id, NotificationType.MentionInComment, comment.Id.ToString(), author.Id), Times.Once);
+        _notificationsMock.Verify(n => n.CreateAsync(
+            bob.Id, NotificationType.MentionInComment, It.IsAny<string>(), author.Id), Times.Never);
+
+        _notificationsMock.Invocations.Clear();
+        await _sut.UpdateCommentAsync(
+            comment.Id,
+            author.Id,
+            new UpdateCommentRequest("Only unchanged @bob-user remains"));
+
+        (await _db.CommentMentions.Where(m => m.CommentId == comment.Id).Select(m => m.MentionedUserId).ToListAsync())
+            .Should().Equal(bob.Id);
+        _notificationsMock.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task UpdateComment_OverMentionLimit_LeavesContentAndMentionsUnchanged()
+    {
+        var author = await CreateUserAsync("Alice", "alice");
+        var bob = await CreateUserAsync("Bob", "bob-user");
+        var post = await CreatePostAsync(author);
+        var comment = await _sut.CreateCommentAsync(
+            post.Id,
+            author.Id,
+            new CreateCommentRequest("Original @bob-user"));
+        _notificationsMock.Invocations.Clear();
+        var overLimit = string.Join(' ', Enumerable.Range(0, 11).Select(i => $"@user{i}"));
+
+        await _sut.Invoking(s => s.UpdateCommentAsync(
+                comment.Id,
+                author.Id,
+                new UpdateCommentRequest(overLimit)))
+            .Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*10 distinct users*");
+
+        (await _db.Comments.FindAsync(comment.Id))!.Content.Should().Be("Original @bob-user");
+        (await _db.CommentMentions.SingleAsync(m => m.CommentId == comment.Id)).MentionedUserId.Should().Be(bob.Id);
+        _notificationsMock.VerifyNoOtherCalls();
     }
 
     // ── DeleteCommentAsync ────────────────────────────────────────────────────

@@ -3,6 +3,8 @@ using Omnijoy.Core.DTOs;
 using Omnijoy.Core.DTOs.Comments;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models;
+using Omnijoy.Core.Models.Enums;
+using Omnijoy.Core.Services;
 using Omnijoy.Infrastructure.Data;
 
 namespace Omnijoy.Infrastructure.Services;
@@ -10,10 +12,25 @@ namespace Omnijoy.Infrastructure.Services;
 public class CommentService : ICommentService
 {
     private readonly OmnijoyDbContext _db;
+    private readonly IMentionResolver _mentionResolver;
+    private readonly IPrivacyService _privacy;
+    private readonly INotificationService? _notifications;
 
     public CommentService(OmnijoyDbContext db)
+        : this(db, new MentionResolver(db), new PrivacyService(db), null)
     {
-        _db = db;
+    }
+
+    public CommentService(
+        OmnijoyDbContext db,
+        IMentionResolver mentionResolver,
+        IPrivacyService privacy,
+        INotificationService? notifications)
+    {
+        _db              = db;
+        _mentionResolver = mentionResolver;
+        _privacy         = privacy;
+        _notifications   = notifications;
     }
 
     // ── Create ────────────────────────────────────────────────────────────────
@@ -25,6 +42,8 @@ public class CommentService : ICommentService
     {
         if (string.IsNullOrWhiteSpace(request.Content))
             throw new ArgumentException("Comment content cannot be empty.");
+
+        var parsedMentions = ParseMentionsOrThrow(request.Content);
 
         // Verify post exists
         var postExists = await _db.Posts.AnyAsync(p => p.Id == postId && p.DeletedAt == null);
@@ -63,7 +82,27 @@ public class CommentService : ICommentService
         };
 
         _db.Comments.Add(comment);
+
+        var mentions = await ResolveAllowedMentionsAsync(parsedMentions.Slugs, authorId);
+        var mentionCreatedAt = DateTime.UtcNow;
+        foreach (var mention in mentions)
+        {
+            _db.CommentMentions.Add(new CommentMention
+            {
+                CommentId = comment.Id,
+                MentionedUserId = mention.UserId,
+                MatchedSlug = mention.MatchedSlug,
+                CreatedAt = mentionCreatedAt,
+            });
+        }
+
         await _db.SaveChangesAsync();
+
+        await NotifyMentionsAsync(
+            mentions.Where(mention => mention.UserId != authorId).Select(mention => mention.UserId),
+            NotificationType.MentionInComment,
+            comment.Id,
+            authorId);
 
         return await LoadCommentDtoAsync(comment.Id)
             ?? throw new InvalidOperationException("Comment not found after creation.");
@@ -147,16 +186,28 @@ public class CommentService : ICommentService
 
         var comment = await _db.Comments
             .Include(c => c.Author)
+            .Include(c => c.Mentions)
             .FirstOrDefaultAsync(c => c.Id == commentId && !c.IsDeleted)
             ?? throw new KeyNotFoundException($"Comment {commentId} not found.");
 
         if (comment.AuthorId != requesterId)
             throw new UnauthorizedAccessException("You can only edit your own comments.");
 
+        var parsedMentions = ParseMentionsOrThrow(request.Content);
+
         comment.Content = request.Content.Trim();
         comment.UpdatedAt = DateTime.UtcNow;
 
+        var resolvedMentions = await ResolveAllowedMentionsAsync(parsedMentions.Slugs, requesterId);
+        var newlyMentionedUserIds = SynchronizeMentions(comment, resolvedMentions);
+
         await _db.SaveChangesAsync();
+
+        await NotifyMentionsAsync(
+            newlyMentionedUserIds.Where(userId => userId != requesterId),
+            NotificationType.MentionInComment,
+            comment.Id,
+            requesterId);
 
         // Load reply count
         var replyCount = await _db.Comments
@@ -183,6 +234,91 @@ public class CommentService : ICommentService
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static MentionParseResult ParseMentionsOrThrow(string content)
+    {
+        var parsed = MentionParser.Parse(content);
+        if (parsed.ExceedsLimit)
+            throw new ArgumentException($"Content cannot mention more than {MentionParser.MaxDistinctMentions} distinct users.");
+        return parsed;
+    }
+
+    private async Task<IReadOnlyList<ResolvedMention>> ResolveAllowedMentionsAsync(
+        IEnumerable<string> slugs,
+        Guid actorUserId)
+    {
+        var resolved = await _mentionResolver.ResolveUsersAsync(slugs);
+        var allowed = new List<ResolvedMention>(resolved.Count);
+        foreach (var mention in resolved)
+        {
+            if (mention.UserId == actorUserId ||
+                await _privacy.AreNotBlockedAsync(actorUserId, mention.UserId))
+            {
+                allowed.Add(mention);
+            }
+        }
+
+        return allowed;
+    }
+
+    private static IReadOnlyList<Guid> SynchronizeMentions(
+        Comment comment,
+        IReadOnlyList<ResolvedMention> resolvedMentions)
+    {
+        var oldUserIds = comment.Mentions.Select(mention => mention.MentionedUserId).ToHashSet();
+        var newByUserId = resolvedMentions.ToDictionary(mention => mention.UserId);
+        var now = DateTime.UtcNow;
+
+        foreach (var existing in comment.Mentions.ToArray())
+        {
+            if (!newByUserId.TryGetValue(existing.MentionedUserId, out var replacement))
+            {
+                comment.Mentions.Remove(existing);
+                continue;
+            }
+
+            if (!string.Equals(existing.MatchedSlug, replacement.MatchedSlug, StringComparison.Ordinal))
+            {
+                existing.MatchedSlug = replacement.MatchedSlug;
+                existing.CreatedAt = now;
+            }
+        }
+
+        foreach (var mention in resolvedMentions.Where(mention => !oldUserIds.Contains(mention.UserId)))
+        {
+            comment.Mentions.Add(new CommentMention
+            {
+                CommentId = comment.Id,
+                MentionedUserId = mention.UserId,
+                MatchedSlug = mention.MatchedSlug,
+                CreatedAt = now,
+            });
+        }
+
+        return resolvedMentions
+            .Select(mention => mention.UserId)
+            .Where(userId => !oldUserIds.Contains(userId))
+            .ToArray();
+    }
+
+    private async Task NotifyMentionsAsync(
+        IEnumerable<Guid> recipientUserIds,
+        NotificationType type,
+        Guid referenceId,
+        Guid actorUserId)
+    {
+        if (_notifications is null)
+            return;
+
+        foreach (var recipientUserId in recipientUserIds.Distinct())
+        {
+            await _notifications.CreateAsync(
+                recipientUserId,
+                type,
+                referenceId.ToString(),
+                actorUserId);
+        }
+    }
 
     private async Task<CommentDto?> LoadCommentDtoAsync(Guid commentId)
     {

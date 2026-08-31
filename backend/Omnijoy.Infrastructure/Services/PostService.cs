@@ -4,6 +4,7 @@ using Omnijoy.Core.DTOs.Posts;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models;
 using Omnijoy.Core.Models.Enums;
+using Omnijoy.Core.Services;
 using Omnijoy.Infrastructure.Data;
 
 namespace Omnijoy.Infrastructure.Services;
@@ -16,6 +17,8 @@ public class PostService : IPostService
     private readonly IFeedCache? _feedCache;
     private readonly IImageProcessingService? _imageProcessor;
     private readonly IThumbnailService? _thumbnailService;
+    private readonly IMentionResolver _mentionResolver;
+    private readonly INotificationService? _notifications;
 
     public PostService(OmnijoyDbContext db, IMediaStorageService storage, IPrivacyService privacy)
         : this(db, storage, privacy, null, null, null)
@@ -48,6 +51,27 @@ public class PostService : IPostService
         IFeedCache? feedCache,
         IImageProcessingService? imageProcessor,
         IThumbnailService? thumbnailService)
+        : this(
+            db,
+            storage,
+            privacy,
+            feedCache,
+            imageProcessor,
+            thumbnailService,
+            new MentionResolver(db),
+            null)
+    {
+    }
+
+    public PostService(
+        OmnijoyDbContext db,
+        IMediaStorageService storage,
+        IPrivacyService privacy,
+        IFeedCache? feedCache,
+        IImageProcessingService? imageProcessor,
+        IThumbnailService? thumbnailService,
+        IMentionResolver mentionResolver,
+        INotificationService? notifications)
     {
         _db               = db;
         _storage          = storage;
@@ -55,6 +79,8 @@ public class PostService : IPostService
         _feedCache        = feedCache;
         _imageProcessor   = imageProcessor;
         _thumbnailService = thumbnailService;
+        _mentionResolver  = mentionResolver;
+        _notifications    = notifications;
     }
 
     // ── Create ────────────────────────────────────────────────────────────────
@@ -64,6 +90,8 @@ public class PostService : IPostService
         CreatePostRequest request,
         IReadOnlyList<MediaUploadItem>? mediaItems)
     {
+        var parsedMentions = ParseMentionsOrThrow(request.Content);
+
         if (!Enum.TryParse<PostType>(request.PostType, ignoreCase: true, out var postType))
             throw new ArgumentException($"Invalid PostType: '{request.PostType}'.");
 
@@ -102,6 +130,19 @@ public class PostService : IPostService
         };
 
         _db.Posts.Add(post);
+
+        var mentions = await ResolveAllowedMentionsAsync(parsedMentions.Slugs, authorId);
+        var mentionCreatedAt = DateTime.UtcNow;
+        foreach (var mention in mentions)
+        {
+            _db.PostMentions.Add(new PostMention
+            {
+                PostId = post.Id,
+                MentionedUserId = mention.UserId,
+                MatchedSlug = mention.MatchedSlug,
+                CreatedAt = mentionCreatedAt,
+            });
+        }
 
         // Upload + attach media files; track video entries so we can enqueue thumbnail jobs later.
         var videoMediaItems = new List<(Guid Id, string Url)>();
@@ -142,6 +183,12 @@ public class PostService : IPostService
         }
 
         await _db.SaveChangesAsync();
+
+        await NotifyMentionsAsync(
+            mentions.Where(mention => mention.UserId != authorId).Select(mention => mention.UserId),
+            NotificationType.MentionInPost,
+            post.Id,
+            authorId);
 
         // Enqueue thumbnail generation for every video attachment.
         // Fire-and-forget: the queue write is fast and PostService should not wait for FFmpeg.
@@ -382,14 +429,24 @@ public class PostService : IPostService
             .Include(p => p.Author)
             .Include(p => p.Media)
             .Include(p => p.CompanyPage)
+            .Include(p => p.Mentions)
             .FirstOrDefaultAsync(p => p.Id == postId && p.DeletedAt == null)
             ?? throw new KeyNotFoundException($"Post {postId} not found.");
 
         if (post.AuthorUserId != requesterId)
             throw new UnauthorizedAccessException("You can only edit your own posts.");
 
+        MentionParseResult? parsedMentions = request.Content is null
+            ? null
+            : ParseMentionsOrThrow(request.Content);
+
+        IReadOnlyList<Guid> newlyMentionedUserIds = Array.Empty<Guid>();
         if (request.Content is not null)
+        {
             post.Content = request.Content;
+            var resolvedMentions = await ResolveAllowedMentionsAsync(parsedMentions!.Slugs, requesterId);
+            newlyMentionedUserIds = SynchronizeMentions(post, resolvedMentions);
+        }
 
         if (request.Privacy is not null)
         {
@@ -400,6 +457,12 @@ public class PostService : IPostService
 
         post.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+
+        await NotifyMentionsAsync(
+            newlyMentionedUserIds.Where(userId => userId != requesterId),
+            NotificationType.MentionInPost,
+            post.Id,
+            requesterId);
 
         return await HydratePostAsync(MapToDto(post), requesterId);
     }
@@ -421,6 +484,91 @@ public class PostService : IPostService
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static MentionParseResult ParseMentionsOrThrow(string? content)
+    {
+        var parsed = MentionParser.Parse(content);
+        if (parsed.ExceedsLimit)
+            throw new ArgumentException($"Content cannot mention more than {MentionParser.MaxDistinctMentions} distinct users.");
+        return parsed;
+    }
+
+    private async Task<IReadOnlyList<ResolvedMention>> ResolveAllowedMentionsAsync(
+        IEnumerable<string> slugs,
+        Guid actorUserId)
+    {
+        var resolved = await _mentionResolver.ResolveUsersAsync(slugs);
+        var allowed = new List<ResolvedMention>(resolved.Count);
+        foreach (var mention in resolved)
+        {
+            if (mention.UserId == actorUserId ||
+                await _privacy.AreNotBlockedAsync(actorUserId, mention.UserId))
+            {
+                allowed.Add(mention);
+            }
+        }
+
+        return allowed;
+    }
+
+    private static IReadOnlyList<Guid> SynchronizeMentions(
+        Post post,
+        IReadOnlyList<ResolvedMention> resolvedMentions)
+    {
+        var oldUserIds = post.Mentions.Select(mention => mention.MentionedUserId).ToHashSet();
+        var newByUserId = resolvedMentions.ToDictionary(mention => mention.UserId);
+        var now = DateTime.UtcNow;
+
+        foreach (var existing in post.Mentions.ToArray())
+        {
+            if (!newByUserId.TryGetValue(existing.MentionedUserId, out var replacement))
+            {
+                post.Mentions.Remove(existing);
+                continue;
+            }
+
+            if (!string.Equals(existing.MatchedSlug, replacement.MatchedSlug, StringComparison.Ordinal))
+            {
+                existing.MatchedSlug = replacement.MatchedSlug;
+                existing.CreatedAt = now;
+            }
+        }
+
+        foreach (var mention in resolvedMentions.Where(mention => !oldUserIds.Contains(mention.UserId)))
+        {
+            post.Mentions.Add(new PostMention
+            {
+                PostId = post.Id,
+                MentionedUserId = mention.UserId,
+                MatchedSlug = mention.MatchedSlug,
+                CreatedAt = now,
+            });
+        }
+
+        return resolvedMentions
+            .Select(mention => mention.UserId)
+            .Where(userId => !oldUserIds.Contains(userId))
+            .ToArray();
+    }
+
+    private async Task NotifyMentionsAsync(
+        IEnumerable<Guid> recipientUserIds,
+        NotificationType type,
+        Guid referenceId,
+        Guid actorUserId)
+    {
+        if (_notifications is null)
+            return;
+
+        foreach (var recipientUserId in recipientUserIds.Distinct())
+        {
+            await _notifications.CreateAsync(
+                recipientUserId,
+                type,
+                referenceId.ToString(),
+                actorUserId);
+        }
+    }
 
     public async Task<List<Guid>> GetFriendIdsAsync(Guid userId)
     {
