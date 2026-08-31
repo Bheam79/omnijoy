@@ -9,3 +9,10 @@ public record SavedPostDto(
     PostDto Post,
     SavedPostCollectionDto? Collection,
     DateTime SavedAt);
+
+/// <summary>
+/// Idempotent result returned by save and unsave operations. <c>Changed</c>
+/// reports whether this request altered persisted state, while <c>IsSaved</c>
+/// is the resulting state.
+/// </summary>
+public record SavedPostStateDto(bool IsSaved, bool Changed);
