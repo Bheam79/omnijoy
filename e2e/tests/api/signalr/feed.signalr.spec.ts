@@ -15,6 +15,8 @@ import { request as playwrightRequest } from '@playwright/test'
  *   - NewPost — friend connects, author posts → friend receives `NewPost`.
  *   - ReactionCountsUpdated — viewer subscribes to a post, another user
  *     reacts → `ReactionCountsUpdated` fires.
+ *   - CommentReactionCountsUpdated — a post subscriber receives absolute
+ *     comment counts for add, update, and remove mutations.
  *   - NewSharedPost — friend connects, author shares a post → friend
  *     receives `NewSharedPost`.
  *
@@ -139,6 +141,103 @@ test.describe('FeedHub — /hubs/feed', () => {
 
     const update = await updateEvent
     expect(update.totalCount).toBeGreaterThanOrEqual(1)
+  })
+
+  test('delivers CommentReactionCountsUpdated for add, update, and remove', async ({ request }) => {
+    const post = await createPost(
+      request, baseURL, tokenAuthor,
+      `signalr-comment-reaction-${Date.now()}`,
+      'Everyone',
+    )
+    const commentResponse = await request.post(`${baseURL}/api/posts/${post.id}/comments`, {
+      headers: { Authorization: `Bearer ${tokenAuthor}` },
+      data: { content: `SignalR reaction comment ${Date.now()}` },
+    })
+    expect(commentResponse.status()).toBe(201)
+    const comment = await commentResponse.json()
+
+    const subscriber = await connectToHub(baseURL, 'feed', tokenAuthor)
+    connections.push(subscriber)
+    await subscriber.invoke('SubscribeToPost', post.id)
+
+    type CommentReactionEvent = {
+      postId: string
+      commentId: string
+      counts: { reactionType: string; count: number }[]
+      total: number
+    }
+    const matchingComment = (event: CommentReactionEvent) =>
+      String(event.postId).toLowerCase() === String(post.id).toLowerCase() &&
+      String(event.commentId).toLowerCase() === String(comment.id).toLowerCase()
+
+    try {
+      const addEvent = waitForEvent<CommentReactionEvent>(
+        subscriber,
+        'CommentReactionCountsUpdated',
+        { timeoutMs: 8000, filter: matchingComment },
+      )
+      const addResponse = await request.post(
+        `${baseURL}/api/comments/${comment.id}/reactions`,
+        {
+          headers: { Authorization: `Bearer ${tokenAuthor}` },
+          data: { reactionType: 'Like' },
+        },
+      )
+      expect(addResponse.status()).toBe(200)
+      expect(await addEvent).toEqual({
+        postId: post.id,
+        commentId: comment.id,
+        counts: [{ reactionType: 'Like', count: 1 }],
+        total: 1,
+      })
+
+      const updateEvent = waitForEvent<CommentReactionEvent>(
+        subscriber,
+        'CommentReactionCountsUpdated',
+        { timeoutMs: 8000, filter: matchingComment },
+      )
+      const updateResponse = await request.post(
+        `${baseURL}/api/comments/${comment.id}/reactions`,
+        {
+          headers: { Authorization: `Bearer ${tokenAuthor}` },
+          data: { reactionType: 'Wow' },
+        },
+      )
+      expect(updateResponse.status()).toBe(200)
+      expect(await updateEvent).toEqual({
+        postId: post.id,
+        commentId: comment.id,
+        counts: [{ reactionType: 'Wow', count: 1 }],
+        total: 1,
+      })
+
+      const removeEvent = waitForEvent<CommentReactionEvent>(
+        subscriber,
+        'CommentReactionCountsUpdated',
+        { timeoutMs: 8000, filter: matchingComment },
+      )
+      const removeResponse = await request.delete(
+        `${baseURL}/api/comments/${comment.id}/reactions`,
+        { headers: { Authorization: `Bearer ${tokenAuthor}` } },
+      )
+      expect(removeResponse.status()).toBe(200)
+      expect(await removeEvent).toEqual({
+        postId: post.id,
+        commentId: comment.id,
+        counts: [],
+        total: 0,
+      })
+    } finally {
+      const reactionCleanup = await request.delete(
+        `${baseURL}/api/comments/${comment.id}/reactions`,
+        { headers: { Authorization: `Bearer ${tokenAuthor}` } },
+      )
+      expect([200, 404]).toContain(reactionCleanup.status())
+      const cleanup = await request.delete(`${baseURL}/api/posts/${post.id}`, {
+        headers: { Authorization: `Bearer ${tokenAuthor}` },
+      })
+      expect([204, 404]).toContain(cleanup.status())
+    }
   })
 
   test('delivers NewSharedPost to a connected friend when a post is shared', async ({ request }) => {
