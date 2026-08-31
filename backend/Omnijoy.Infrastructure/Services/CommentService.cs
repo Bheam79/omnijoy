@@ -363,6 +363,9 @@ public class CommentService : ICommentService
             CreatedAt: comment.CreatedAt,
             UpdatedAt: comment.UpdatedAt,
             IsDeleted: comment.IsDeleted,
+            ReactionsCount: 0,
+            TopReactions: [],
+            MyReaction: null,
             Mentions: mentions
         );
     }

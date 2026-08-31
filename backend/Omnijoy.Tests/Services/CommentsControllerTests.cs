@@ -46,7 +46,10 @@ public class CommentsControllerTests
         ReplyCount:      0,
         CreatedAt:       DateTime.UtcNow,
         UpdatedAt:       DateTime.UtcNow,
-        IsDeleted:       false
+        IsDeleted:       false,
+        ReactionsCount:  0,
+        TopReactions:    [],
+        MyReaction:      null
     );
 
     // ── CreateComment ────────────────────────────────────────────────────────

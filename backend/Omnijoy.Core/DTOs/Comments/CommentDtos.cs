@@ -1,4 +1,5 @@
 using Omnijoy.Core.DTOs;
+using Omnijoy.Core.DTOs.Posts;
 
 namespace Omnijoy.Core.DTOs.Comments;
 
@@ -18,6 +19,12 @@ public record CommentDto(
     DateTime CreatedAt,
     DateTime UpdatedAt,
     bool IsDeleted,
+    /// <summary>Total number of reactions on this comment.</summary>
+    int ReactionsCount,
+    /// <summary>Up to the three most-used reaction types, ordered by count.</summary>
+    ReactionCountDto[] TopReactions,
+    /// <summary>The authenticated requester's reaction, or null when they have none.</summary>
+    string? MyReaction,
     /// <summary>Resolved mentions persisted for this content.</summary>
     MentionDto[]? Mentions = null
 );

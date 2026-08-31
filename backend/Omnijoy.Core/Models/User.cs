@@ -137,6 +137,7 @@ public class User
     public ICollection<SavedPostCollection> SavedPostCollections { get; set; } = [];
     public ICollection<PostMention> PostMentions { get; set; } = [];
     public ICollection<CommentMention> CommentMentions { get; set; } = [];
+    public ICollection<CommentReaction> CommentReactions { get; set; } = [];
     public ICollection<UserFollow> Followers { get; set; } = [];
     public ICollection<UserFollow> Following { get; set; } = [];
 }
