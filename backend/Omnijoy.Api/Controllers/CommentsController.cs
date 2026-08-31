@@ -78,7 +78,7 @@ public class CommentsController : ControllerBase
     {
         try
         {
-            var result = await _comments.GetCommentsAsync(postId, page, pageSize);
+            var result = await _comments.GetCommentsAsync(postId, page, pageSize, CurrentUserId);
             return Ok(result);
         }
         catch (KeyNotFoundException ex)

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Omnijoy.Core.DTOs;
 using Omnijoy.Core.DTOs.Comments;
+using Omnijoy.Core.DTOs.Posts;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models;
 using Omnijoy.Core.Models.Enums;
@@ -110,7 +111,11 @@ public class CommentService : ICommentService
 
     // ── Get paginated top-level comments ──────────────────────────────────────
 
-    public async Task<PagedResult<CommentDto>> GetCommentsAsync(Guid postId, int page, int pageSize)
+    public async Task<PagedResult<CommentDto>> GetCommentsAsync(
+        Guid postId,
+        int page,
+        int pageSize,
+        Guid? currentUserId = null)
     {
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 100) pageSize = 20;
@@ -142,8 +147,60 @@ public class CommentService : ICommentService
             .Select(g => new { CommentId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.CommentId, x => x.Count);
 
+        // Hydrate the entire page in batches. Deleted comment tombstones retain their
+        // historical reaction rows, but deliberately expose no reaction state.
+        var activeCommentIds = comments
+            .Where(c => !c.IsDeleted)
+            .Select(c => c.Id)
+            .ToArray();
+
+        var reactionCountRows = await _db.CommentReactions
+            .AsNoTracking()
+            .Where(r => activeCommentIds.Contains(r.CommentId))
+            .GroupBy(r => new { r.CommentId, r.ReactionType })
+            .Select(g => new
+            {
+                g.Key.CommentId,
+                g.Key.ReactionType,
+                Count = g.Count(),
+            })
+            .ToListAsync();
+
+        var reactionSummaries = reactionCountRows
+            .GroupBy(row => row.CommentId)
+            .ToDictionary(
+                group => group.Key,
+                group => new CommentReactionSummary(
+                    TotalCount: group.Sum(row => row.Count),
+                    TopReactions: group
+                        .OrderByDescending(row => row.Count)
+                        .ThenBy(row => row.ReactionType)
+                        .Take(3)
+                        .Select(row => new ReactionCountDto(row.ReactionType.ToString(), row.Count))
+                        .ToArray()));
+
+        var myReactionRows = currentUserId.HasValue
+            ? await _db.CommentReactions
+                .AsNoTracking()
+                .Where(r => activeCommentIds.Contains(r.CommentId) &&
+                            r.UserId == currentUserId.Value)
+                .Select(r => new { r.CommentId, r.ReactionType })
+                .ToListAsync()
+            : [];
+        var myReactions = myReactionRows
+            .ToDictionary(row => row.CommentId, row => row.ReactionType.ToString());
+
         var dtos = comments
-            .Select(c => MapToDto(c, replyCounts.GetValueOrDefault(c.Id, 0)))
+            .Select(c =>
+            {
+                var summary = reactionSummaries.GetValueOrDefault(c.Id);
+                return MapToDto(
+                    c,
+                    replyCounts.GetValueOrDefault(c.Id, 0),
+                    summary?.TotalCount ?? 0,
+                    summary?.TopReactions ?? [],
+                    myReactions.GetValueOrDefault(c.Id));
+            })
             .ToArray();
 
         return new PagedResult<CommentDto>(
@@ -335,7 +392,12 @@ public class CommentService : ICommentService
         return MapToDto(comment, replyCount);
     }
 
-    private static CommentDto MapToDto(Comment comment, int replyCount)
+    private static CommentDto MapToDto(
+        Comment comment,
+        int replyCount,
+        int reactionsCount = 0,
+        ReactionCountDto[]? topReactions = null,
+        string? myReaction = null)
     {
         var author = new CommentAuthorDto(
             comment.Author.Id,
@@ -363,10 +425,14 @@ public class CommentService : ICommentService
             CreatedAt: comment.CreatedAt,
             UpdatedAt: comment.UpdatedAt,
             IsDeleted: comment.IsDeleted,
-            ReactionsCount: 0,
-            TopReactions: [],
-            MyReaction: null,
+            ReactionsCount: comment.IsDeleted ? 0 : reactionsCount,
+            TopReactions: comment.IsDeleted ? [] : topReactions ?? [],
+            MyReaction: comment.IsDeleted ? null : myReaction,
             Mentions: mentions
         );
     }
+
+    private sealed record CommentReactionSummary(
+        int TotalCount,
+        ReactionCountDto[] TopReactions);
 }

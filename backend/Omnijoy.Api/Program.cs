@@ -327,6 +327,7 @@ builder.Services.AddHostedService<TrendingFeedRefreshService>();
 builder.Services.AddHostedService<AccountDeletionPurgeService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IReactionService, ReactionService>();
+builder.Services.AddScoped<ICommentReactionService, CommentReactionService>();
 builder.Services.AddScoped<IFriendService, FriendService>();
 builder.Services.AddScoped<IFriendInviteService, FriendInviteService>();
 builder.Services.AddScoped<IChatService, ChatService>();

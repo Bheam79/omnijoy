@@ -15,7 +15,11 @@ public interface ICommentService
     Task<CommentDto> CreateCommentAsync(Guid postId, Guid authorId, CreateCommentRequest request);
 
     /// <summary>Returns paginated top-level comments for a post (ParentCommentId == null), newest first.</summary>
-    Task<PagedResult<CommentDto>> GetCommentsAsync(Guid postId, int page, int pageSize);
+    Task<PagedResult<CommentDto>> GetCommentsAsync(
+        Guid postId,
+        int page,
+        int pageSize,
+        Guid? currentUserId = null);
 
     /// <summary>Returns all non-deleted replies for a top-level comment, oldest first.</summary>
     Task<CommentDto[]> GetRepliesAsync(Guid commentId);

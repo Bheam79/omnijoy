@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Omnijoy.Core.DTOs.Comments;
+using Omnijoy.Core.DTOs.Posts;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models;
 using Omnijoy.Core.Models.Enums;
@@ -372,6 +373,58 @@ public class CommentServiceTests : IDisposable
     {
         await _sut.Invoking(s => s.GetCommentsAsync(Guid.NewGuid(), 1, 20))
             .Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public async Task GetComments_HydratesReactionSummariesForWholePage_AndHidesDeletedState()
+    {
+        var author = await CreateUserAsync("Author");
+        var viewer = await CreateUserAsync("Viewer");
+        var user2 = await CreateUserAsync("User 2");
+        var user3 = await CreateUserAsync("User 3");
+        var user4 = await CreateUserAsync("User 4");
+        var user5 = await CreateUserAsync("User 5");
+        var user6 = await CreateUserAsync("User 6");
+        var post = await CreatePostAsync(author);
+        var first = await CreateTopLevelCommentAsync(post, author, "First");
+        var second = await CreateTopLevelCommentAsync(post, author, "Second");
+        var deleted = await CreateTopLevelCommentAsync(post, author, "Deleted");
+        deleted.IsDeleted = true;
+
+        var now = DateTime.UtcNow;
+        _db.CommentReactions.AddRange(
+            new CommentReaction { Id = Guid.NewGuid(), CommentId = first.Id, UserId = viewer.Id, ReactionType = ReactionType.Like, CreatedAt = now },
+            new CommentReaction { Id = Guid.NewGuid(), CommentId = first.Id, UserId = user2.Id, ReactionType = ReactionType.Like, CreatedAt = now },
+            new CommentReaction { Id = Guid.NewGuid(), CommentId = first.Id, UserId = user3.Id, ReactionType = ReactionType.Love, CreatedAt = now },
+            new CommentReaction { Id = Guid.NewGuid(), CommentId = first.Id, UserId = user4.Id, ReactionType = ReactionType.Love, CreatedAt = now },
+            new CommentReaction { Id = Guid.NewGuid(), CommentId = first.Id, UserId = user5.Id, ReactionType = ReactionType.Haha, CreatedAt = now },
+            new CommentReaction { Id = Guid.NewGuid(), CommentId = first.Id, UserId = user6.Id, ReactionType = ReactionType.Haha, CreatedAt = now },
+            new CommentReaction { Id = Guid.NewGuid(), CommentId = first.Id, UserId = author.Id, ReactionType = ReactionType.Wow, CreatedAt = now },
+            new CommentReaction { Id = Guid.NewGuid(), CommentId = second.Id, UserId = user2.Id, ReactionType = ReactionType.Sad, CreatedAt = now },
+            new CommentReaction { Id = Guid.NewGuid(), CommentId = deleted.Id, UserId = viewer.Id, ReactionType = ReactionType.Angry, CreatedAt = now });
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetCommentsAsync(post.Id, 1, 20, viewer.Id);
+
+        var firstDto = result.Items.Single(item => item.Id == first.Id);
+        firstDto.ReactionsCount.Should().Be(7);
+        firstDto.MyReaction.Should().Be("Like");
+        firstDto.TopReactions.Should().Equal(
+            new ReactionCountDto("Like", 2),
+            new ReactionCountDto("Love", 2),
+            new ReactionCountDto("Haha", 2));
+
+        var secondDto = result.Items.Single(item => item.Id == second.Id);
+        secondDto.ReactionsCount.Should().Be(1);
+        secondDto.TopReactions.Should().ContainSingle()
+            .Which.Should().Be(new ReactionCountDto("Sad", 1));
+        secondDto.MyReaction.Should().BeNull();
+
+        var deletedDto = result.Items.Single(item => item.Id == deleted.Id);
+        deletedDto.ReactionsCount.Should().Be(0);
+        deletedDto.TopReactions.Should().BeEmpty();
+        deletedDto.MyReaction.Should().BeNull();
+        (await _db.CommentReactions.CountAsync(r => r.CommentId == deleted.Id)).Should().Be(1);
     }
 
     [Fact]
