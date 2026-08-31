@@ -46,6 +46,7 @@ const samplePost: PostDto = {
   postType:   'Text',
   privacy:    'Everyone',
   media:      [],
+  isSavedByMe: false,
   createdAt:  '2026-05-01T12:00:00Z',
   updatedAt:  '2026-05-01T12:00:00Z',
 }

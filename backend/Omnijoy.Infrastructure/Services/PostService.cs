@@ -151,7 +151,7 @@ public class PostService : IPostService
                 await _thumbnailService.EnqueueAsync(mediaId, mediaUrl);
         }
 
-        return await LoadPostDtoAsync(post.Id)
+        return await LoadPostDtoAsync(post.Id, authorId)
             ?? throw new InvalidOperationException("Post not found after creation.");
     }
 
@@ -171,7 +171,8 @@ public class PostService : IPostService
         if (useCache)
         {
             var cached = await _feedCache!.GetUserFeedPage1Async(userId);
-            if (cached is not null) return cached;
+            if (cached is not null)
+                return await HydrateFeedAsync(cached, userId);
         }
 
         // Accepted friend IDs
@@ -291,10 +292,14 @@ public class PostService : IPostService
 
         if (useCache)
         {
+            // Cache only the viewer-neutral content snapshot. Bookmark flags
+            // and author-only save totals are reloaded on every request, so a
+            // stale/mis-keyed cache entry can never disclose another user's
+            // private state and save/unsave does not require feed invalidation.
             await _feedCache!.SetUserFeedPage1Async(userId, result);
         }
 
-        return result;
+        return await HydrateFeedAsync(result, userId);
     }
 
     // ── Trending posts ────────────────────────────────────────────────────────
@@ -363,7 +368,10 @@ public class PostService : IPostService
 
         await EnforceReadAccessAsync(post, requesterId);
 
-        return MapToDto(post);
+        var dto = MapToDto(post);
+        return requesterId.HasValue
+            ? await HydratePostAsync(dto, requesterId.Value)
+            : dto;
     }
 
     // ── Update ────────────────────────────────────────────────────────────────
@@ -393,7 +401,7 @@ public class PostService : IPostService
         post.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
-        return MapToDto(post);
+        return await HydratePostAsync(MapToDto(post), requesterId);
     }
 
     // ── Delete (soft) ─────────────────────────────────────────────────────────
@@ -440,7 +448,7 @@ public class PostService : IPostService
         return [.. ids];
     }
 
-    private async Task<PostDto?> LoadPostDtoAsync(Guid postId)
+    private async Task<PostDto?> LoadPostDtoAsync(Guid postId, Guid requesterId)
     {
         var post = await _db.Posts
             .AsNoTracking()
@@ -449,7 +457,52 @@ public class PostService : IPostService
             .Include(p => p.CompanyPage)
             .FirstOrDefaultAsync(p => p.Id == postId);
 
-        return post is null ? null : MapToDto(post);
+        return post is null
+            ? null
+            : await HydratePostAsync(MapToDto(post), requesterId);
+    }
+
+    private async Task<PostDto> HydratePostAsync(PostDto post, Guid requesterId)
+    {
+        var state = await PostViewerStateHydrator.LoadAsync(
+            _db,
+            requesterId,
+            [(post.Id, post.Author.Id)]);
+        return PostViewerStateHydrator.Apply(post, requesterId, state);
+    }
+
+    private async Task<PagedResult<FeedItemDto>> HydrateFeedAsync(
+        PagedResult<FeedItemDto> result,
+        Guid requesterId)
+    {
+        var posts = result.Items
+            .Select(item => item.Post ?? item.SharedPost?.OriginalPost)
+            .OfType<PostDto>()
+            .ToArray();
+
+        if (posts.Length == 0)
+            return result;
+
+        var state = await PostViewerStateHydrator.LoadAsync(
+            _db,
+            requesterId,
+            posts.Select(post => (post.Id, post.Author.Id)));
+
+        var hydratedItems = result.Items.Select(item =>
+        {
+            if (item.Post is not null)
+                return item with { Post = PostViewerStateHydrator.Apply(item.Post, requesterId, state) };
+
+            if (item.SharedPost is not null)
+                return item with
+                {
+                    SharedPost = PostViewerStateHydrator.Apply(item.SharedPost, requesterId, state),
+                };
+
+            return item;
+        }).ToArray();
+
+        return result with { Items = hydratedItems };
     }
 
     private async Task EnforceReadAccessAsync(Post post, Guid? requesterId)

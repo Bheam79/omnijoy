@@ -484,6 +484,16 @@ public class EventService : IEventService
             .ToListAsync();
 
         var items = posts.Select(MapPostToDto).ToArray();
+        if (requesterId.HasValue)
+        {
+            var state = await PostViewerStateHydrator.LoadAsync(
+                _db,
+                requesterId.Value,
+                items.Select(post => (post.Id, post.Author.Id)));
+            items = items
+                .Select(post => PostViewerStateHydrator.Apply(post, requesterId.Value, state))
+                .ToArray();
+        }
         return new PagedResult<PostDto>(items, page, pageSize, (page * pageSize) < total);
     }
 
@@ -537,7 +547,12 @@ public class EventService : IEventService
             .Include(p => p.Media)
             .FirstAsync(p => p.Id == post.Id);
 
-        return MapPostToDto(loaded);
+        var dto = MapPostToDto(loaded);
+        var state = await PostViewerStateHydrator.LoadAsync(
+            _db,
+            authorId,
+            [(dto.Id, dto.Author.Id)]);
+        return PostViewerStateHydrator.Apply(dto, authorId, state);
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────

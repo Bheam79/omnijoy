@@ -63,6 +63,7 @@ const samplePost = (id: string, name: string, content: string): PostDto => ({
   postType:  'Text',
   privacy:   'Everyone',
   media:     [],
+  isSavedByMe: false,
   createdAt: '2026-05-10T09:00:00Z',
   updatedAt: '2026-05-10T09:00:00Z',
 })

@@ -24,6 +24,7 @@ function makePost(id: string, content = `Post ${id}`) {
     postType:  'Text' as const,
     privacy:   'Friends' as const,
     media:     [],
+    isSavedByMe: false,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
   }

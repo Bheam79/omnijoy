@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Omnijoy.Core.DTOs.Posts;
 
 // ── Embedded sub-records ───────────────────────────────────────────────────────
@@ -57,7 +59,15 @@ public record PostDto(
     /// post author rather than the underlying user. Null for regular
     /// personal posts.
     /// </summary>
-    PostCompanyPageDto? CompanyPage = null
+    PostCompanyPageDto? CompanyPage = null,
+    /// <summary>Whether the authenticated requester has privately saved this post.</summary>
+    bool IsSavedByMe = false,
+    /// <summary>
+    /// Total private saves. Populated only when the authenticated requester is
+    /// the post author and omitted from JSON for every other viewer.
+    /// </summary>
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    int? SavesCount = null
 );
 
 // ── Create / Update requests ──────────────────────────────────────────────────

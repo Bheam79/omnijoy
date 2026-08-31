@@ -183,6 +183,17 @@ public class SavedPostService : ISavedPostService
             .Select(MapToDto)
             .ToArray();
 
+        var state = await PostViewerStateHydrator.LoadAsync(
+            _db,
+            userId,
+            items.Select(item => (item.Post.Id, item.Post.Author.Id)));
+        items = items
+            .Select(item => item with
+            {
+                Post = PostViewerStateHydrator.Apply(item.Post, userId, state),
+            })
+            .ToArray();
+
         return new PagedResult<SavedPostDto>(items, page, pageSize, hasMore);
     }
 

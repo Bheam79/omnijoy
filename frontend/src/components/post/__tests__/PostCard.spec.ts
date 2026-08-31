@@ -73,6 +73,7 @@ function makePost(overrides: Record<string, unknown> = {}) {
     postType:  'Text' as const,
     privacy:   'Friends' as const,
     media:     [],
+    isSavedByMe: false,
     createdAt: '2024-06-01T12:00:00Z',
     updatedAt: '2024-06-01T12:00:00Z',
     ...overrides,

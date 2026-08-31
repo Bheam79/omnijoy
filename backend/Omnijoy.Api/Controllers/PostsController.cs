@@ -119,11 +119,12 @@ public class PostsController : ControllerBase
             // ── Push NewPost to author + friends via FeedHub ──────────────────
             var friendIds = await _posts.GetFriendIdsAsync(userId);
             var recipientIds = friendIds.Append(userId).ToList();
+            var broadcastPost = post with { IsSavedByMe = false, SavesCount = null };
             foreach (var recipientId in recipientIds)
             {
                 await _feedHub.Clients
                     .Group($"user:{recipientId}")
-                    .SendAsync("NewPost", post);
+                    .SendAsync("NewPost", broadcastPost);
             }
 
             // ── Cache invalidation (push, not pull) ───────────────────────────
@@ -367,7 +368,15 @@ public class PostsController : ControllerBase
 
             // Push NewSharedPost to relevant users via FeedHub
             var recipientIds = await _shares.GetShareRecipientIdsAsync(userId, sharedPost);
-            var feedItem = new FeedItemDto("SharedPost", null, sharedPost);
+            var broadcastSharedPost = sharedPost with
+            {
+                OriginalPost = sharedPost.OriginalPost with
+                {
+                    IsSavedByMe = false,
+                    SavesCount = null,
+                },
+            };
+            var feedItem = new FeedItemDto("SharedPost", null, broadcastSharedPost);
 
             foreach (var recipientId in recipientIds)
             {

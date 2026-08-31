@@ -56,6 +56,9 @@ export interface PostDto {
   privacy: 'Everyone' | 'Friends' | 'OnlyMe' | 'Followers'
   media: PostMediaItem[]
   linkPreview?: PostLinkPreview
+  isSavedByMe: boolean
+  /** Present only when the current user authored the post. */
+  savesCount?: number
   createdAt: string
   updatedAt: string
 }

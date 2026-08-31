@@ -88,7 +88,12 @@ public class ShareService : IShareService
         // Load sharer user for DTO
         var sharer = await _db.Users.AsNoTracking().FirstAsync(u => u.Id == sharerId);
 
-        return MapToDto(share, sharer, post);
+        var dto = MapToDto(share, sharer, post);
+        var state = await PostViewerStateHydrator.LoadAsync(
+            _db,
+            sharerId,
+            [(post.Id, post.AuthorUserId)]);
+        return PostViewerStateHydrator.Apply(dto, sharerId, state);
     }
 
     // ── Recipient IDs for feed / notifications ─────────────────────────────────

@@ -48,6 +48,7 @@ function makePost(overrides: Partial<PostDto> = {}): PostDto {
     postType:  'Text',
     privacy:   'Friends',
     media:     [],
+    isSavedByMe: false,
     createdAt: '2024-06-01T12:00:00Z',
     updatedAt: '2024-06-01T12:00:00Z',
     ...overrides,

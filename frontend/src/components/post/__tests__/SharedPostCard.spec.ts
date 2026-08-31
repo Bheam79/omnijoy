@@ -40,6 +40,7 @@ function makeOriginalPost(overrides: Partial<PostDto> = {}): PostDto {
     postType:  'Text',
     privacy:   'Everyone',
     media:     [],
+    isSavedByMe: false,
     createdAt: '2026-05-01T10:00:00Z',
     updatedAt: '2026-05-01T10:00:00Z',
     ...overrides,
