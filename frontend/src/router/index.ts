@@ -70,6 +70,12 @@ const router = createRouter({
       meta: { requiresAuth: true, layout: 'app' },
     },
     {
+      path: '/saved',
+      name: 'saved-posts',
+      component: () => import('@/views/feed/SavedPostsView.vue'),
+      meta: { requiresAuth: true, layout: 'app' },
+    },
+    {
       path: '/friends',
       name: 'friends',
       component: () => import('@/views/friends/FriendsView.vue'),

@@ -65,6 +65,13 @@ describe('router route registration order', () => {
     expect(resolved.name).toBe('wall')
   })
 
+  it('resolves /saved to the authenticated saved-posts route', async () => {
+    const router = await importRouter()
+    const resolved = router.resolve('/saved')
+    expect(resolved.name).toBe('saved-posts')
+    expect(resolved.meta.requiresAuth).toBe(true)
+  })
+
   it('resolves /settings to the settings route, NOT the slug resolver', async () => {
     const router = await importRouter()
     const resolved = router.resolve('/settings')
@@ -190,5 +197,23 @@ describe('admin route role guard', () => {
 
     // /admin redirects to /admin/reports
     expect(router.currentRoute.value.name).toBe('admin-reports')
+  })
+})
+
+describe('saved posts route guard', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.resetModules()
+  })
+
+  it('redirects an unauthenticated user to login with a return path', async () => {
+    setMockAuth({ isAuthenticated: false, user: null })
+    const router = await importRouter()
+
+    await router.push('/saved')
+    await router.isReady()
+
+    expect(router.currentRoute.value.name).toBe('login')
+    expect(router.currentRoute.value.query.redirect).toBe('/saved')
   })
 })

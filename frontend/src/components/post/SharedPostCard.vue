@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import type { SharedPostFeedItemDto } from '@/services/postService'
+import { computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import SavePostButton from './SavePostButton.vue'
 
 const props = defineProps<{ sharedPost: SharedPostFeedItemDto }>()
+const auth = useAuthStore()
+const isLoggedIn = computed(() => !!auth.user)
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString(undefined, {
@@ -59,33 +64,38 @@ const privacyIcon: Record<string, string> = {
     <!-- Embedded original post -->
     <div class="mx-4 mb-4 border border-slate-700 rounded-xl overflow-hidden bg-slate-950">
       <!-- Original post header -->
-      <div class="flex items-center gap-3 px-3 pt-3 pb-2">
-        <RouterLink :to="`/profile/${sharedPost.originalPost.author.id}`">
-          <img
-            v-if="sharedPost.originalPost.author.avatarUrl"
-            :src="sharedPost.originalPost.author.avatarUrl"
-            :alt="sharedPost.originalPost.author.displayName"
-            class="w-8 h-8 rounded-full object-cover"
-          />
-          <div
-            v-else
-            class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-xs"
-          >
-            {{ sharedPost.originalPost.author.displayName.charAt(0).toUpperCase() }}
-          </div>
-        </RouterLink>
-        <div>
-          <RouterLink
-            :to="`/profile/${sharedPost.originalPost.author.id}`"
-            class="font-semibold text-slate-100 hover:underline text-sm"
-          >
-            {{ sharedPost.originalPost.author.displayName }}
+      <div class="flex items-center justify-between gap-3 px-3 pt-3 pb-2">
+        <div class="flex items-center gap-3">
+          <RouterLink :to="`/profile/${sharedPost.originalPost.author.id}`">
+            <img
+              v-if="sharedPost.originalPost.author.avatarUrl"
+              :src="sharedPost.originalPost.author.avatarUrl"
+              :alt="sharedPost.originalPost.author.displayName"
+              class="w-8 h-8 rounded-full object-cover"
+            />
+            <div
+              v-else
+              class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-xs"
+            >
+              {{ sharedPost.originalPost.author.displayName.charAt(0).toUpperCase() }}
+            </div>
           </RouterLink>
-          <div class="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
-            <span>{{ formatDate(sharedPost.originalPost.createdAt) }}</span>
-            <span>·</span>
-            <span>{{ privacyIcon[sharedPost.originalPost.privacy] ?? '👥' }}</span>
+          <div>
+            <RouterLink
+              :to="`/profile/${sharedPost.originalPost.author.id}`"
+              class="font-semibold text-slate-100 hover:underline text-sm"
+            >
+              {{ sharedPost.originalPost.author.displayName }}
+            </RouterLink>
+            <div class="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
+              <span>{{ formatDate(sharedPost.originalPost.createdAt) }}</span>
+              <span>·</span>
+              <span>{{ privacyIcon[sharedPost.originalPost.privacy] ?? '👥' }}</span>
+            </div>
           </div>
+        </div>
+        <div v-if="isLoggedIn" class="w-28 shrink-0">
+          <SavePostButton :post="sharedPost.originalPost" />
         </div>
       </div>
 

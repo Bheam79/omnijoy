@@ -44,7 +44,7 @@ public static class SlugValidator
     ///   • Auth flow paths (login, register, signup, logout, signin, signout, …)
     ///   • Every current top-level Vue Router path (see /frontend/src/router/index.ts):
     ///     home, login, register, wall, friends, profile, events, company, live,
-    ///     search, settings, notifications, share.
+    ///     search, settings, notifications, saved, share.
     ///   • Aliases / plurals (companies, users, friend, event, …)
     /// </summary>
     public static readonly FrozenSet<string> ReservedSlugs =
@@ -57,7 +57,7 @@ public static class SlugValidator
             "forgot-password", "verify-email",
             // Social surfaces
             "feed", "messenger", "chat", "conversations", "notifications", "search",
-            "friends", "friend", "events", "event", "live", "wall", "share",
+            "friends", "friend", "events", "event", "live", "wall", "saved", "share",
             // Static / system paths
             "admin", "api", "hubs", "hub",
             // Site meta

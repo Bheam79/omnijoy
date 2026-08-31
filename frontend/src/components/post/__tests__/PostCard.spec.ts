@@ -5,6 +5,14 @@ import { RouterLinkStub } from '@vue/test-utils'
 import PostCard from '@/components/post/PostCard.vue'
 import { useAuthStore } from '@/stores/auth'
 
+const mockSavedPostsService = vi.hoisted(() => ({
+  getSavedPosts: vi.fn(),
+  savePost: vi.fn(),
+  unsavePost: vi.fn(),
+}))
+
+vi.mock('@/services/savedPostsService', () => ({ savedPostsService: mockSavedPostsService }))
+
 // ── Mock feedStore ────────────────────────────────────────────────────────────
 
 vi.mock('@/stores/feed', () => ({
@@ -117,6 +125,8 @@ function mountCard(post: ReturnType<typeof makePost>, currentUserId = 'other-use
 describe('PostCard', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockSavedPostsService.savePost.mockResolvedValue({ isSaved: true, changed: true })
+    mockSavedPostsService.unsavePost.mockResolvedValue({ isSaved: false, changed: true })
     Object.defineProperty(navigator, 'clipboard', {
       value:    { writeText: vi.fn().mockResolvedValue(undefined) },
       writable: true,
@@ -151,6 +161,30 @@ describe('PostCard', () => {
   it('renders the Comment button', () => {
     const wrapper = mountCard(makePost())
     expect(wrapper.text()).toContain('Comment')
+  })
+
+  it('initializes an accessible bookmark toggle from isSavedByMe', () => {
+    const wrapper = mountCard(makePost({ isSavedByMe: true }))
+    const button = wrapper.get('[data-testid="post-save-button"]')
+
+    expect(button.attributes('aria-label')).toBe('Remove from saved posts')
+    expect(button.attributes('title')).toBe('Remove from saved posts')
+    expect(button.attributes('aria-pressed')).toBe('true')
+    expect(button.text()).toContain('Saved')
+  })
+
+  it('optimistically toggles the bookmark and disables while in flight', async () => {
+    let resolve!: (value: { isSaved: boolean; changed: boolean }) => void
+    mockSavedPostsService.savePost.mockReturnValue(new Promise(r => { resolve = r }))
+    const wrapper = mountCard(makePost())
+    const button = wrapper.get('[data-testid="post-save-button"]')
+
+    await button.trigger('click')
+    expect(button.attributes('aria-pressed')).toBe('true')
+    expect(button.attributes('disabled')).toBeDefined()
+    resolve({ isSaved: true, changed: true })
+    await vi.waitFor(() => expect(button.attributes('disabled')).toBeUndefined())
+    expect(mockSavedPostsService.savePost).toHaveBeenCalledWith('post-1')
   })
 
   // ── Own vs. others' posts ─────────────────────────────────────────────────

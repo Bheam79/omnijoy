@@ -18,7 +18,7 @@ const route = useRoute()
 interface NavItem {
   label: string
   to: string
-  icon: 'home' | 'users' | 'calendar' | 'building' | 'broadcast' | 'shield'
+  icon: 'home' | 'bookmark' | 'users' | 'calendar' | 'building' | 'broadcast' | 'shield'
   /** If true, also mark active for sub-routes (e.g. /events/123) */
   matchPrefix?: boolean
   testId: string
@@ -27,6 +27,7 @@ interface NavItem {
 const navItems = computed<NavItem[]>(() => {
   const items: NavItem[] = [
     { label: auth.user?.displayName ?? 'My Wall', to: '/wall', icon: 'home', testId: 'nav-wall' },
+    { label: 'Saved posts',   to: '/saved', icon: 'bookmark',  testId: 'nav-saved' },
     { label: 'Friends',       to: '/friends', icon: 'users',     testId: 'nav-friends' },
     { label: 'Events',        to: '/events',  icon: 'calendar',  matchPrefix: true, testId: 'nav-events' },
     { label: 'Company Pages', to: '/company', icon: 'building',  matchPrefix: true, testId: 'nav-company' },
@@ -114,6 +115,11 @@ function isEventActive(suffix: string): boolean {
             {{ auth.user?.displayName?.[0]?.toUpperCase() ?? '?' }}
           </div>
         </template>
+
+        <!-- Friends / Users -->
+        <svg v-else-if="item.icon === 'bookmark'" class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-4-7 4V5z"/>
+        </svg>
 
         <!-- Friends / Users -->
         <svg v-else-if="item.icon === 'users'" class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

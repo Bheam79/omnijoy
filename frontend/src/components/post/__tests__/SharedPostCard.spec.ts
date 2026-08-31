@@ -3,6 +3,15 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { RouterLinkStub } from '@vue/test-utils'
 import type { SharedPostFeedItemDto, PostDto, PostAuthor } from '@/services/postService'
+import { useAuthStore } from '@/stores/auth'
+
+const mockSavedPostsService = vi.hoisted(() => ({
+  getSavedPosts: vi.fn(),
+  savePost: vi.fn(),
+  unsavePost: vi.fn(),
+}))
+
+vi.mock('@/services/savedPostsService', () => ({ savedPostsService: mockSavedPostsService }))
 
 // ── vue-router mock ───────────────────────────────────────────────────────────
 
@@ -61,11 +70,18 @@ function makeSharedPost(overrides: Partial<SharedPostFeedItemDto> = {}): SharedP
 
 // ── Mount helper ──────────────────────────────────────────────────────────────
 
-function mountCard(sharedPost: SharedPostFeedItemDto = makeSharedPost()) {
+function mountCard(sharedPost: SharedPostFeedItemDto = makeSharedPost(), pinia = createPinia()) {
+  setActivePinia(pinia)
+  const auth = useAuthStore(pinia)
+  auth.setTokens('token', 'refresh')
+  auth.setUser({
+    id: 'viewer-1', email: 'viewer@example.com', displayName: 'Viewer',
+    gender: 'NotDisclosed', showBirthDate: false, createdAt: '2026-01-01T00:00:00Z',
+  })
   return mount(SharedPostCard, {
     props:  { sharedPost },
     global: {
-      plugins: [createPinia()],
+      plugins: [pinia],
       stubs:   { RouterLink: RouterLinkStub },
     },
   })
@@ -76,6 +92,9 @@ function mountCard(sharedPost: SharedPostFeedItemDto = makeSharedPost()) {
 describe('SharedPostCard', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    vi.clearAllMocks()
+    mockSavedPostsService.savePost.mockResolvedValue({ isSaved: true, changed: true })
+    mockSavedPostsService.unsavePost.mockResolvedValue({ isSaved: false, changed: true })
   })
 
   // ── Root element ──────────────────────────────────────────────────────────
@@ -84,6 +103,32 @@ describe('SharedPostCard', () => {
     const wrapper = mountCard()
 
     expect(wrapper.find('[data-testid="shared-post-card"]').exists()).toBe(true)
+  })
+
+  it('initializes and toggles the original post bookmark', async () => {
+    const wrapper = mountCard(makeSharedPost({
+      originalPost: makeOriginalPost({ isSavedByMe: true }),
+    }))
+    const button = wrapper.get('[data-testid="post-save-button"]')
+    expect(button.attributes('aria-pressed')).toBe('true')
+    expect(button.attributes('aria-label')).toBe('Remove from saved posts')
+
+    await button.trigger('click')
+
+    expect(mockSavedPostsService.unsavePost).toHaveBeenCalledWith('post-1')
+    expect(button.attributes('aria-pressed')).toBe('false')
+  })
+
+  it('keeps duplicate shared cards for the same post in sync', async () => {
+    const pinia = createPinia()
+    const first = mountCard(makeSharedPost(), pinia)
+    const second = mountCard(makeSharedPost({ id: 'share-2' }), pinia)
+
+    await first.get('[data-testid="post-save-button"]').trigger('click')
+
+    expect(second.get('[data-testid="post-save-button"]').attributes('aria-pressed')).toBe('true')
+    first.unmount()
+    second.unmount()
   })
 
   // ── Sharer info ───────────────────────────────────────────────────────────

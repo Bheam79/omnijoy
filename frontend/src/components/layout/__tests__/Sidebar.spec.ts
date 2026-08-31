@@ -82,10 +82,12 @@ describe('Sidebar', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-testid="nav-wall"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="nav-saved"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="nav-friends"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="nav-events"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="nav-company"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="nav-live"]').exists()).toBe(true)
+    expect(wrapper.findComponent('[data-testid="nav-saved"]').props('to')).toBe('/saved')
   })
 
   it("shows the user's displayName on the wall link", async () => {

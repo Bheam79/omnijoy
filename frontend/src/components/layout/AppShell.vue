@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, computed } from 'vue'
+import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import TopNav from './TopNav.vue'
 import Sidebar from './Sidebar.vue'
@@ -8,12 +8,16 @@ import MessengerPopup from '@/components/chat/MessengerPopup.vue'
 import UpdateAvailableBanner from '@/components/shared/UpdateAvailableBanner.vue'
 import { useLiveStore } from '@/stores/live'
 import { useCompanyModeStore } from '@/stores/companyMode'
+import { useAuthStore } from '@/stores/auth'
+import { useSavedPostsStore } from '@/stores/savedPosts'
 import { useVersionCheck } from '@/composables/useVersionCheck'
 
 const sidebarOpen = ref(false)
 const route = useRoute()
 const liveStore = useLiveStore()
 const companyMode = useCompanyModeStore()
+const auth = useAuthStore()
+const savedPosts = useSavedPostsStore()
 const { updateAvailable, dismiss } = useVersionCheck()
 
 /** Wide-content routes manage their own max-width; standard routes use the default wrapper. */
@@ -27,7 +31,20 @@ watch(() => route.path, () => {
 // Prefetch active streams so the sidebar Live badge is accurate
 onMounted(() => {
   liveStore.loadActiveStreams().catch(() => {})
+  window.addEventListener('focus', reconcileSavedPosts)
 })
+
+onUnmounted(() => {
+  window.removeEventListener('focus', reconcileSavedPosts)
+})
+
+watch(() => auth.user?.id, (userId, previousUserId) => {
+  if (userId !== previousUserId) savedPosts.reset()
+})
+
+function reconcileSavedPosts() {
+  if (auth.isAuthenticated) void savedPosts.reconcile()
+}
 </script>
 
 <template>

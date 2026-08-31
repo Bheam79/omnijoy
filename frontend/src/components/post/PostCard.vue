@@ -9,6 +9,7 @@ import PostReactionBar from './PostReactionBar.vue'
 import CommentThread from './CommentThread.vue'
 import ShareModal from './ShareModal.vue'
 import ReportModal from './ReportModal.vue'
+import SavePostButton from './SavePostButton.vue'
 
 const props = defineProps<{ post: PostDto }>()
 const emit = defineEmits<{ deleted: [id: string] }>()
@@ -299,7 +300,7 @@ const tobStyle = computed(() => {
     <!-- Reaction bar (picker + counts) -->
     <PostReactionBar :post-id="post.id" :logged-in="isLoggedIn" />
 
-    <!-- Actions bar (Comment + Share) -->
+    <!-- Actions bar (Comment + Share + Save) -->
     <div class="flex items-center gap-1 px-4 py-2 border-t border-slate-700">
       <button
         data-testid="post-comment-button"
@@ -325,6 +326,7 @@ const tobStyle = computed(() => {
         </svg>
         {{ shareCopied ? 'Copied!' : 'Share' }}
       </button>
+      <SavePostButton v-if="isLoggedIn" :post="post" />
     </div>
 
     <!-- Comment thread (collapsed by default, expands on Comment button click) -->

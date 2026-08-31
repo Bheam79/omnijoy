@@ -113,6 +113,7 @@ public class SlugValidatorTests
     [InlineData("company")]
     [InlineData("companies")]
     [InlineData("wall")]
+    [InlineData("saved")]
     [InlineData("share")]
     [InlineData("swagger")]
     public void Validate_ReservedWords_ReturnReserved(string slug)
@@ -135,7 +136,7 @@ public class SlugValidatorTests
             "support", "home", "index", "404", "error", "assets",
             "static", "public", "wwwroot", "swagger",
             // Vue Router top-level paths
-            "wall", "share",
+            "wall", "saved", "share",
         });
     }
 
