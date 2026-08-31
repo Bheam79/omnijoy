@@ -1,3 +1,5 @@
+using Omnijoy.Core.DTOs;
+
 namespace Omnijoy.Core.DTOs.Comments;
 
 // ── Sub-records ───────────────────────────────────────────────────────────────
@@ -15,7 +17,9 @@ public record CommentDto(
     int ReplyCount,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    bool IsDeleted
+    bool IsDeleted,
+    /// <summary>Resolved mentions persisted for this content.</summary>
+    MentionDto[]? Mentions = null
 );
 
 // ── Create / Update requests ──────────────────────────────────────────────────

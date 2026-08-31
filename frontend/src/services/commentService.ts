@@ -1,4 +1,7 @@
 import api from './api'
+import type { MentionDto } from '@/types/mentions'
+
+export type { MentionDto } from '@/types/mentions'
 
 // ── DTOs (mirrors backend CommentDtos.cs) ────────────────────────────────────
 
@@ -14,6 +17,7 @@ export interface CommentDto {
   author: CommentAuthor
   parentCommentId?: string | null
   content: string
+  mentions: MentionDto[]
   replyCount: number
   createdAt: string
   updatedAt: string

@@ -25,6 +25,7 @@ function makeComment(id: string, postId: string, overrides: Partial<CommentDto> 
     postId,
     author:          { id: 'user-1', displayName: 'Alice' },
     content:         `Comment ${id}`,
+    mentions:        [],
     replyCount:      0,
     createdAt:       '2024-01-01T00:00:00Z',
     updatedAt:       '2024-01-01T00:00:00Z',

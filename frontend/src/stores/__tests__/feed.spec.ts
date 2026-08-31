@@ -21,6 +21,7 @@ function makePost(id: string, content = `Post ${id}`) {
     id,
     author:    { id: 'author-1', displayName: 'Alice' },
     content,
+    mentions:  [],
     postType:  'Text' as const,
     privacy:   'Friends' as const,
     media:     [],

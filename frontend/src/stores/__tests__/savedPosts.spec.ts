@@ -17,6 +17,7 @@ function makePost(id: string, isSavedByMe = false): PostDto {
     id,
     author: { id: 'author-1', displayName: 'Alice' },
     content: `Post ${id}`,
+    mentions: [],
     postType: 'Text',
     privacy: 'Friends',
     media: [],

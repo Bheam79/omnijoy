@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { postService, type PostDto } from '@/services/postService'
 import { useAuthStore } from '@/stores/auth'
+import MentionText from '@/components/shared/MentionText.vue'
 
 const route = useRoute()
 const auth = useAuthStore()
@@ -128,7 +129,7 @@ function formatDate(iso: string) {
         <div
           v-if="post.content"
           class="px-5 pb-3 text-slate-200 leading-relaxed whitespace-pre-wrap"
-        >{{ post.content }}</div>
+        ><MentionText :content="post.content" :mentions="post.mentions" /></div>
 
         <!-- Link preview -->
         <a
@@ -195,7 +196,7 @@ function formatDate(iso: string) {
             : { background: post.backgroundImageUrl ?? '#1877f2' }"
         >
           <p class="text-white text-xl font-bold text-center drop-shadow leading-relaxed">
-            {{ post.content }}
+            <MentionText :content="post.content" :mentions="post.mentions" />
           </p>
         </div>
 

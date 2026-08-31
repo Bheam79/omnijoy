@@ -231,6 +231,13 @@ public class CommentServiceTests : IDisposable
         mention.CommentId.Should().Be(dto.Id);
         mention.MentionedUserId.Should().Be(mentioned.Id);
         mention.MatchedSlug.Should().Be("bob-user");
+        dto.Mentions.Should().ContainSingle().Which.Should().BeEquivalentTo(new
+        {
+            MatchedSlug = "bob-user",
+            UserId = mentioned.Id,
+            DisplayName = "Bob",
+            UrlSlug = "bob-user",
+        });
         _notificationsMock.Verify(n => n.CreateAsync(
             mentioned.Id,
             NotificationType.MentionInComment,
@@ -271,6 +278,7 @@ public class CommentServiceTests : IDisposable
             new CreateCommentRequest("Hello @blocked-bob"));
 
         dto.Content.Should().Be("Hello @blocked-bob");
+        dto.Mentions.Should().BeEmpty();
         (await _db.CommentMentions.CountAsync()).Should().Be(0);
         _notificationsMock.Verify(n => n.CreateAsync(
             It.IsAny<Guid>(), It.IsAny<NotificationType>(), It.IsAny<string>(), It.IsAny<Guid?>()),
@@ -364,6 +372,46 @@ public class CommentServiceTests : IDisposable
     {
         await _sut.Invoking(s => s.GetCommentsAsync(Guid.NewGuid(), 1, 20))
             .Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public async Task CommentDtoQueries_ReturnMatchedSlugWithCurrentMentionedUserProfile()
+    {
+        var author = await CreateUserAsync("Alice", "alice");
+        var mentioned = await CreateUserAsync("Bob Before", "bob-old");
+        var post = await CreatePostAsync(author);
+        var parent = await _sut.CreateCommentAsync(
+            post.Id,
+            author.Id,
+            new CreateCommentRequest("Parent mentions @bob-old"));
+        var reply = await _sut.CreateCommentAsync(
+            post.Id,
+            author.Id,
+            new CreateCommentRequest("Reply mentions @BOB-OLD!", parent.Id));
+
+        mentioned.DisplayName = "Bob After";
+        mentioned.UrlSlug = "bob-current";
+        await _db.SaveChangesAsync();
+
+        var comments = await _sut.GetCommentsAsync(post.Id, 1, 20);
+        var replies = await _sut.GetRepliesAsync(parent.Id);
+
+        comments.Items.Single().Mentions.Should().ContainSingle().Which.Should().BeEquivalentTo(new
+        {
+            MatchedSlug = "bob-old",
+            UserId = mentioned.Id,
+            DisplayName = "Bob After",
+            UrlSlug = "bob-current",
+        });
+        replies.Single(item => item.Id == reply.Id).Mentions
+            .Should().BeEquivalentTo(comments.Items.Single().Mentions);
+
+        var updated = await _sut.UpdateCommentAsync(
+            parent.Id,
+            author.Id,
+            new UpdateCommentRequest("Now mentions @bob-current"));
+        updated.Mentions.Should().ContainSingle().Which.MatchedSlug.Should().Be("bob-current");
+        updated.Mentions![0].UrlSlug.Should().Be("bob-current");
     }
 
     // ── GetRepliesAsync ───────────────────────────────────────────────────────

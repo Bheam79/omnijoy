@@ -10,6 +10,7 @@ import CommentThread from './CommentThread.vue'
 import ShareModal from './ShareModal.vue'
 import ReportModal from './ReportModal.vue'
 import SavePostButton from './SavePostButton.vue'
+import MentionText from '@/components/shared/MentionText.vue'
 
 const props = defineProps<{ post: PostDto }>()
 const emit = defineEmits<{ deleted: [id: string] }>()
@@ -210,7 +211,7 @@ const tobStyle = computed(() => {
       v-if="post.postType === 'Text' && post.content"
       class="px-4 pb-3 text-slate-200 leading-relaxed whitespace-pre-wrap"
     >
-      {{ post.content }}
+      <MentionText :content="post.content" :mentions="post.mentions" />
     </div>
 
     <!-- Link preview card (Open Graph) -->
@@ -251,14 +252,14 @@ const tobStyle = computed(() => {
       class="mx-4 mb-3 rounded-xl flex items-center justify-center min-h-52 p-6"
     >
       <p class="text-white text-xl font-bold text-center drop-shadow leading-relaxed">
-        {{ post.content }}
+        <MentionText :content="post.content" :mentions="post.mentions" />
       </p>
     </div>
 
     <!-- Content: Image(s) -->
     <template v-else-if="post.postType === 'Image'">
       <div class="px-4 pb-2 text-slate-200 leading-relaxed whitespace-pre-wrap" v-if="post.content">
-        {{ post.content }}
+        <MentionText :content="post.content" :mentions="post.mentions" />
       </div>
       <div
         class="grid gap-1"
@@ -284,7 +285,7 @@ const tobStyle = computed(() => {
     <!-- Content: Video -->
     <template v-else-if="post.postType === 'Video'">
       <div class="px-4 pb-2 text-slate-200 leading-relaxed whitespace-pre-wrap" v-if="post.content">
-        {{ post.content }}
+        <MentionText :content="post.content" :mentions="post.mentions" />
       </div>
       <div v-for="m in post.media" :key="m.id" class="relative bg-black">
         <video

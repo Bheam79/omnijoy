@@ -1,4 +1,7 @@
 import api from './api'
+import type { MentionDto } from '@/types/mentions'
+
+export type { MentionDto } from '@/types/mentions'
 
 // ── DTOs (mirrors backend PostDtos.cs) ───────────────────────────────────────
 
@@ -51,6 +54,7 @@ export interface PostDto {
    */
   companyPage?: PostCompanyPage | null
   content: string
+  mentions: MentionDto[]
   backgroundImageUrl?: string
   postType: 'Text' | 'Image' | 'Video' | 'TextOnBackground'
   privacy: 'Everyone' | 'Friends' | 'OnlyMe' | 'Followers'

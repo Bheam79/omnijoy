@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Omnijoy.Core.DTOs;
 
 namespace Omnijoy.Core.DTOs.Posts;
 
@@ -67,7 +68,9 @@ public record PostDto(
     /// the post author and omitted from JSON for every other viewer.
     /// </summary>
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    int? SavesCount = null
+    int? SavesCount = null,
+    /// <summary>Resolved mentions persisted for this content.</summary>
+    MentionDto[]? Mentions = null
 );
 
 // ── Create / Update requests ──────────────────────────────────────────────────

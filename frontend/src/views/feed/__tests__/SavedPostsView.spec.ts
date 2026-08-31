@@ -22,6 +22,7 @@ function makePost(id: string): PostDto {
     id,
     author: { id: 'author-1', displayName: 'Alice' },
     content: id,
+    mentions: [],
     postType: 'Text',
     privacy: 'Friends',
     media: [],

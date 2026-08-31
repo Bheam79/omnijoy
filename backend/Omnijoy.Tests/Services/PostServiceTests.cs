@@ -172,6 +172,13 @@ public class PostServiceTests : IDisposable
         mention.PostId.Should().Be(dto.Id);
         mention.MentionedUserId.Should().Be(mentioned.Id);
         mention.MatchedSlug.Should().Be("bob-user");
+        dto.Mentions.Should().ContainSingle().Which.Should().BeEquivalentTo(new
+        {
+            MatchedSlug = "bob-user",
+            UserId = mentioned.Id,
+            DisplayName = "Bob",
+            UrlSlug = "bob-user",
+        });
         _notificationsMock.Verify(n => n.CreateAsync(
             mentioned.Id,
             NotificationType.MentionInPost,
@@ -210,6 +217,7 @@ public class PostServiceTests : IDisposable
             null);
 
         dto.Content.Should().Be("Hello @blocked-bob");
+        dto.Mentions.Should().BeEmpty();
         (await _db.PostMentions.CountAsync()).Should().Be(0);
         _notificationsMock.Verify(n => n.CreateAsync(
             It.IsAny<Guid>(), It.IsAny<NotificationType>(), It.IsAny<string>(), It.IsAny<Guid?>()),
@@ -363,6 +371,41 @@ public class PostServiceTests : IDisposable
 
         var dto = await _sut.GetPostAsync(postId, null);
         dto.Content.Should().Be("Public post");
+    }
+
+    [Fact]
+    public async Task PostDtoQueries_ReturnMatchedSlugWithCurrentMentionedUserProfile()
+    {
+        var author = await CreateUserAsync("Alice", "alice");
+        var mentioned = await CreateUserAsync("Bob Before", "bob-old");
+        var created = await _sut.CreatePostAsync(
+            author.Id,
+            new CreatePostRequest("Hi @bob-old, again @BOB-OLD", "Text", "Everyone", null),
+            null);
+
+        mentioned.DisplayName = "Bob After";
+        mentioned.UrlSlug = "bob-current";
+        await _db.SaveChangesAsync();
+
+        var detail = await _sut.GetPostAsync(created.Id, author.Id);
+        var feed = await _sut.GetFeedAsync(author.Id, 1, 20);
+
+        detail.Mentions.Should().ContainSingle().Which.Should().BeEquivalentTo(new
+        {
+            MatchedSlug = "bob-old",
+            UserId = mentioned.Id,
+            DisplayName = "Bob After",
+            UrlSlug = "bob-current",
+        });
+        feed.Items.Single(item => item.Post?.Id == created.Id)
+            .Post!.Mentions.Should().BeEquivalentTo(detail.Mentions);
+
+        var updated = await _sut.UpdatePostAsync(
+            created.Id,
+            author.Id,
+            new UpdatePostRequest("Still using @bob-current", null));
+        updated.Mentions.Should().ContainSingle().Which.MatchedSlug.Should().Be("bob-current");
+        updated.Mentions![0].UrlSlug.Should().Be("bob-current");
     }
 
     [Fact]

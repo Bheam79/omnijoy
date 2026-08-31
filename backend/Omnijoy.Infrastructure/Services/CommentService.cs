@@ -128,6 +128,7 @@ public class CommentService : ICommentService
 
         var comments = await query
             .Include(c => c.Author)
+            .Include(c => c.Mentions).ThenInclude(m => m.MentionedUser)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -167,6 +168,7 @@ public class CommentService : ICommentService
         var replies = await _db.Comments
             .AsNoTracking()
             .Include(c => c.Author)
+            .Include(c => c.Mentions).ThenInclude(m => m.MentionedUser)
             .Where(c => c.ParentCommentId == commentId && !c.IsDeleted)
             .OrderBy(c => c.CreatedAt)
             .ToListAsync();
@@ -186,7 +188,7 @@ public class CommentService : ICommentService
 
         var comment = await _db.Comments
             .Include(c => c.Author)
-            .Include(c => c.Mentions)
+            .Include(c => c.Mentions).ThenInclude(m => m.MentionedUser)
             .FirstOrDefaultAsync(c => c.Id == commentId && !c.IsDeleted)
             ?? throw new KeyNotFoundException($"Comment {commentId} not found.");
 
@@ -209,11 +211,8 @@ public class CommentService : ICommentService
             comment.Id,
             requesterId);
 
-        // Load reply count
-        var replyCount = await _db.Comments
-            .CountAsync(c => c.ParentCommentId == commentId && !c.IsDeleted);
-
-        return MapToDto(comment, replyCount);
+        return await LoadCommentDtoAsync(comment.Id)
+            ?? throw new InvalidOperationException("Comment not found after update.");
     }
 
     // ── Delete (soft) ─────────────────────────────────────────────────────────
@@ -325,6 +324,7 @@ public class CommentService : ICommentService
         var comment = await _db.Comments
             .AsNoTracking()
             .Include(c => c.Author)
+            .Include(c => c.Mentions).ThenInclude(m => m.MentionedUser)
             .FirstOrDefaultAsync(c => c.Id == commentId);
 
         if (comment is null) return null;
@@ -343,6 +343,16 @@ public class CommentService : ICommentService
             comment.Author.AvatarUrl
         );
 
+        var mentions = comment.Mentions
+            .OrderBy(m => m.CreatedAt)
+            .ThenBy(m => m.MatchedSlug)
+            .Select(m => new MentionDto(
+                MatchedSlug: m.MatchedSlug,
+                UserId: m.MentionedUserId,
+                DisplayName: m.MentionedUser.DisplayName,
+                UrlSlug: m.MentionedUser.UrlSlug))
+            .ToArray();
+
         return new CommentDto(
             Id: comment.Id,
             PostId: comment.PostId,
@@ -352,7 +362,8 @@ public class CommentService : ICommentService
             ReplyCount: replyCount,
             CreatedAt: comment.CreatedAt,
             UpdatedAt: comment.UpdatedAt,
-            IsDeleted: comment.IsDeleted
+            IsDeleted: comment.IsDeleted,
+            Mentions: mentions
         );
     }
 }

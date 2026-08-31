@@ -170,6 +170,7 @@ public class SavedPostService : ISavedPostService
             .Include(s => s.Post).ThenInclude(p => p.Author)
             .Include(s => s.Post).ThenInclude(p => p.Media)
             .Include(s => s.Post).ThenInclude(p => p.CompanyPage)
+            .Include(s => s.Post).ThenInclude(p => p.Mentions).ThenInclude(m => m.MentionedUser)
             .OrderByDescending(s => s.CreatedAt)
             .ThenByDescending(s => s.Id)
             .Skip((page - 1) * pageSize)

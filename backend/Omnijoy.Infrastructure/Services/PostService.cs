@@ -300,6 +300,7 @@ public class PostService : IPostService
                 .Include(p => p.Author)
                 .Include(p => p.Media)
                 .Include(p => p.CompanyPage)
+                .Include(p => p.Mentions).ThenInclude(m => m.MentionedUser)
                 .Where(p => postIds.Contains(p.Id))
                 .ToDictionaryAsync(p => p.Id)
             : new Dictionary<Guid, Post>();
@@ -310,6 +311,7 @@ public class PostService : IPostService
                 .Include(s => s.OriginalPost).ThenInclude(p => p.Author)
                 .Include(s => s.OriginalPost).ThenInclude(p => p.Media)
                 .Include(s => s.OriginalPost).ThenInclude(p => p.CompanyPage)
+                .Include(s => s.OriginalPost).ThenInclude(p => p.Mentions).ThenInclude(m => m.MentionedUser)
                 .Where(s => shareIds.Contains(s.Id))
                 .ToDictionaryAsync(s => s.Id)
             : new Dictionary<Guid, SharedPost>();
@@ -388,6 +390,7 @@ public class PostService : IPostService
             .Include(p => p.Author)
             .Include(p => p.Media)
             .Include(p => p.CompanyPage)
+            .Include(p => p.Mentions).ThenInclude(m => m.MentionedUser)
             .Where(p => topPostIds.Contains(p.Id))
             .ToListAsync(ct);
 
@@ -410,6 +413,7 @@ public class PostService : IPostService
             .Include(p => p.Author)
             .Include(p => p.Media)
             .Include(p => p.CompanyPage)
+            .Include(p => p.Mentions).ThenInclude(m => m.MentionedUser)
             .FirstOrDefaultAsync(p => p.Id == postId && p.DeletedAt == null)
             ?? throw new KeyNotFoundException($"Post {postId} not found.");
 
@@ -429,7 +433,7 @@ public class PostService : IPostService
             .Include(p => p.Author)
             .Include(p => p.Media)
             .Include(p => p.CompanyPage)
-            .Include(p => p.Mentions)
+            .Include(p => p.Mentions).ThenInclude(m => m.MentionedUser)
             .FirstOrDefaultAsync(p => p.Id == postId && p.DeletedAt == null)
             ?? throw new KeyNotFoundException($"Post {postId} not found.");
 
@@ -464,7 +468,8 @@ public class PostService : IPostService
             post.Id,
             requesterId);
 
-        return await HydratePostAsync(MapToDto(post), requesterId);
+        return await LoadPostDtoAsync(post.Id, requesterId)
+            ?? throw new InvalidOperationException("Post not found after update.");
     }
 
     // ── Delete (soft) ─────────────────────────────────────────────────────────
@@ -603,6 +608,7 @@ public class PostService : IPostService
             .Include(p => p.Author)
             .Include(p => p.Media)
             .Include(p => p.CompanyPage)
+            .Include(p => p.Mentions).ThenInclude(m => m.MentionedUser)
             .FirstOrDefaultAsync(p => p.Id == postId);
 
         return post is null
@@ -743,6 +749,16 @@ public class PostService : IPostService
                 LogoUrl: post.CompanyPage.LogoUrl,
                 UrlSlug: post.CompanyPage.UrlSlug);
 
+        var mentions = post.Mentions
+            .OrderBy(m => m.CreatedAt)
+            .ThenBy(m => m.MatchedSlug)
+            .Select(m => new MentionDto(
+                MatchedSlug: m.MatchedSlug,
+                UserId: m.MentionedUserId,
+                DisplayName: m.MentionedUser.DisplayName,
+                UrlSlug: m.MentionedUser.UrlSlug))
+            .ToArray();
+
         return new PostDto(
             Id: post.Id,
             Author: author,
@@ -755,7 +771,8 @@ public class PostService : IPostService
             LinkPreview: linkPreview,
             CreatedAt: post.CreatedAt,
             UpdatedAt: post.UpdatedAt,
-            CompanyPage: companyPage
+            CompanyPage: companyPage,
+            Mentions: mentions
         );
     }
 

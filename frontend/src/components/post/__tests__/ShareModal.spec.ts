@@ -45,6 +45,7 @@ function makePost(overrides: Partial<PostDto> = {}): PostDto {
     id:        'post-123',
     author:    { id: 'author-1', displayName: 'Alice' },
     content:   'Hello world!',
+    mentions:  [],
     postType:  'Text',
     privacy:   'Friends',
     media:     [],

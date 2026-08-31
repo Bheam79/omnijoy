@@ -43,6 +43,7 @@ const samplePost: PostDto = {
   id:         'post-1',
   author:     { id: 'u1', displayName: 'Alice', avatarUrl: undefined },
   content:    'Hello from the public share view.',
+  mentions:   [],
   postType:   'Text',
   privacy:    'Everyone',
   media:      [],

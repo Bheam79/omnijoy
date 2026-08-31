@@ -74,6 +74,7 @@ function makeComment(overrides: Partial<CommentDto> = {}): CommentDto {
     author:          { id: 'user-2', displayName: 'Bob' },
     parentCommentId: null,
     content:         'Hello, world!',
+    mentions:        [],
     replyCount:      0,
     createdAt:       new Date(Date.now() - 60_000).toISOString(), // 1 min ago
     updatedAt:       new Date().toISOString(),
@@ -132,6 +133,23 @@ describe('CommentItem', () => {
     const wrapper = mountItem(makeComment({ content: 'Test comment content' }))
 
     expect(wrapper.text()).toContain('Test comment content')
+  })
+
+  it('renders only persisted comment mentions as profile links', () => {
+    const wrapper = mountItem(makeComment({
+      content: '@bob-old and @unresolved',
+      mentions: [{
+        matchedSlug: 'bob-old',
+        userId: 'mentioned-2',
+        displayName: 'Bob Mentioned',
+        urlSlug: 'bob-current',
+      }],
+    }))
+    const mentionLink = wrapper.findAllComponents(RouterLinkStub)
+      .find(link => link.text() === '@bob-old')
+
+    expect(mentionLink?.props('to')).toBe('/bob-current')
+    expect(wrapper.text()).toContain('@unresolved')
   })
 
   it('renders a formatted relative timestamp (1 min ago → "1m")', () => {

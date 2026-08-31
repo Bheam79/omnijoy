@@ -44,6 +44,7 @@ function makeComment(overrides: Partial<CommentDto> = {}): CommentDto {
     author: { id: 'author-1', displayName: 'Alice' },
     parentCommentId: null,
     content: 'Test comment',
+    mentions: [],
     replyCount: 0,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),

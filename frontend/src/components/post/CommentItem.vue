@@ -16,6 +16,7 @@ import type { CommentDto } from '@/services/commentService'
 import { useAuthStore } from '@/stores/auth'
 import { useCommentsStore } from '@/stores/comments'
 import CommentComposer from './CommentComposer.vue'
+import MentionText from '@/components/shared/MentionText.vue'
 
 const props = defineProps<{
   comment: CommentDto
@@ -186,7 +187,7 @@ async function handleDelete() {
         </div>
         <!-- Content -->
         <p v-else class="text-sm text-slate-200 mt-0.5 whitespace-pre-wrap break-words">
-          {{ comment.content }}
+          <MentionText :content="comment.content" :mentions="comment.mentions" />
         </p>
       </div>
 

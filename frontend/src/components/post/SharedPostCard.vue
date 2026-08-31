@@ -3,6 +3,7 @@ import type { SharedPostFeedItemDto } from '@/services/postService'
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import SavePostButton from './SavePostButton.vue'
+import MentionText from '@/components/shared/MentionText.vue'
 
 const props = defineProps<{ sharedPost: SharedPostFeedItemDto }>()
 const auth = useAuthStore()
@@ -104,7 +105,10 @@ const privacyIcon: Record<string, string> = {
         v-if="sharedPost.originalPost.postType === 'Text' && sharedPost.originalPost.content"
         class="px-3 pb-3 text-slate-200 text-sm leading-relaxed whitespace-pre-wrap"
       >
-        {{ sharedPost.originalPost.content }}
+        <MentionText
+          :content="sharedPost.originalPost.content"
+          :mentions="sharedPost.originalPost.mentions"
+        />
       </div>
 
       <!-- Link preview -->
@@ -139,14 +143,20 @@ const privacyIcon: Record<string, string> = {
         class="mx-3 mb-3 rounded-lg flex items-center justify-center min-h-32 p-4"
       >
         <p class="text-white text-lg font-bold text-center drop-shadow">
-          {{ sharedPost.originalPost.content }}
+          <MentionText
+            :content="sharedPost.originalPost.content"
+            :mentions="sharedPost.originalPost.mentions"
+          />
         </p>
       </div>
 
       <!-- Images -->
       <template v-else-if="sharedPost.originalPost.postType === 'Image'">
         <div class="px-3 pb-2 text-sm text-slate-200 whitespace-pre-wrap" v-if="sharedPost.originalPost.content">
-          {{ sharedPost.originalPost.content }}
+          <MentionText
+            :content="sharedPost.originalPost.content"
+            :mentions="sharedPost.originalPost.mentions"
+          />
         </div>
         <div
           class="grid gap-0.5"
@@ -168,7 +178,10 @@ const privacyIcon: Record<string, string> = {
       <!-- Video -->
       <template v-else-if="sharedPost.originalPost.postType === 'Video'">
         <div class="px-3 pb-2 text-sm text-slate-200 whitespace-pre-wrap" v-if="sharedPost.originalPost.content">
-          {{ sharedPost.originalPost.content }}
+          <MentionText
+            :content="sharedPost.originalPost.content"
+            :mentions="sharedPost.originalPost.mentions"
+          />
         </div>
         <div v-for="m in sharedPost.originalPost.media" :key="m.id" class="bg-black">
           <video

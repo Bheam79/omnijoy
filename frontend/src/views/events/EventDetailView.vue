@@ -6,6 +6,7 @@ import { companyPageService, type CompanyPageDto } from '@/services/companyPageS
 import { useAuthStore } from '@/stores/auth'
 import { useCompanyModeStore } from '@/stores/companyMode'
 import type { PostDto } from '@/services/postService'
+import MentionText from '@/components/shared/MentionText.vue'
 
 const route       = useRoute()
 const auth        = useAuthStore()
@@ -536,7 +537,9 @@ onUnmounted(() => {
                     {{ new Date(post.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) }}
                   </span>
                 </div>
-                <p class="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{{ post.content }}</p>
+                <p class="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">
+                  <MentionText :content="post.content" :mentions="post.mentions" />
+                </p>
               </div>
             </div>
           </div>

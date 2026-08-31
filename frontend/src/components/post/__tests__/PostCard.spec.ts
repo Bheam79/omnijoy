@@ -78,6 +78,7 @@ function makePost(overrides: Record<string, unknown> = {}) {
     id:        'post-1',
     author:    { id: 'author-1', displayName: 'Alice' },
     content:   'Hello world!',
+    mentions:  [],
     postType:  'Text' as const,
     privacy:   'Friends' as const,
     media:     [],
@@ -143,6 +144,23 @@ describe('PostCard', () => {
   it('renders post content for Text post', () => {
     const wrapper = mountCard(makePost({ content: 'This is my post content' }))
     expect(wrapper.text()).toContain('This is my post content')
+  })
+
+  it('renders only persisted post mentions as profile links', () => {
+    const wrapper = mountCard(makePost({
+      content: 'Hi @alice-old and @unknown',
+      mentions: [{
+        matchedSlug: 'alice-old',
+        userId: 'mentioned-1',
+        displayName: 'Mentioned Alice',
+        urlSlug: 'alice-current',
+      }],
+    }))
+    const mentionLink = wrapper.findAllComponents(RouterLinkStub)
+      .find(link => link.text() === '@alice-old')
+
+    expect(mentionLink?.props('to')).toBe('/alice-current')
+    expect(wrapper.text()).toContain('@unknown')
   })
 
   it('renders the Share button', () => {

@@ -46,6 +46,7 @@ function makeOriginalPost(overrides: Partial<PostDto> = {}): PostDto {
     id:        'post-1',
     author:    makeAuthor(),
     content:   'Original post content here.',
+    mentions:  [],
     postType:  'Text',
     privacy:   'Everyone',
     media:     [],

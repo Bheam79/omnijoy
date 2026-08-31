@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Omnijoy.Core.DTOs;
 using Omnijoy.Core.DTOs.Posts;
 using Omnijoy.Core.Interfaces;
 using Omnijoy.Core.Models;
@@ -40,6 +41,7 @@ public class ShareService : IShareService
             .Include(p => p.Author)
             .Include(p => p.Media)
             .Include(p => p.CompanyPage)
+            .Include(p => p.Mentions).ThenInclude(m => m.MentionedUser)
             .FirstOrDefaultAsync(p => p.Id == postId && p.DeletedAt == null)
             ?? throw new KeyNotFoundException($"Post {postId} not found.");
 
@@ -186,7 +188,16 @@ public class ShareService : IShareService
             LinkPreview: linkPreview,
             CreatedAt: originalPost.CreatedAt,
             UpdatedAt: originalPost.UpdatedAt,
-            CompanyPage: originalCompanyPage);
+            CompanyPage: originalCompanyPage,
+            Mentions: originalPost.Mentions
+                .OrderBy(m => m.CreatedAt)
+                .ThenBy(m => m.MatchedSlug)
+                .Select(m => new MentionDto(
+                    m.MatchedSlug,
+                    m.MentionedUserId,
+                    m.MentionedUser.DisplayName,
+                    m.MentionedUser.UrlSlug))
+                .ToArray());
 
         return new SharedPostFeedItemDto(
             Id:           share.Id,

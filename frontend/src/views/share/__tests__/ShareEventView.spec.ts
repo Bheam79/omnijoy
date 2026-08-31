@@ -60,6 +60,7 @@ const samplePost = (id: string, name: string, content: string): PostDto => ({
   id,
   author:    { id: `u-${id}`, displayName: name, avatarUrl: undefined },
   content,
+  mentions:  [],
   postType:  'Text',
   privacy:   'Everyone',
   media:     [],

@@ -481,6 +481,7 @@ public class EventService : IEventService
             .Take(pageSize)
             .Include(p => p.Author)
             .Include(p => p.Media)
+            .Include(p => p.Mentions).ThenInclude(m => m.MentionedUser)
             .ToListAsync();
 
         var items = posts.Select(MapPostToDto).ToArray();
@@ -545,6 +546,7 @@ public class EventService : IEventService
             .AsNoTracking()
             .Include(p => p.Author)
             .Include(p => p.Media)
+            .Include(p => p.Mentions).ThenInclude(m => m.MentionedUser)
             .FirstAsync(p => p.Id == post.Id);
 
         var dto = MapPostToDto(loaded);
@@ -623,7 +625,16 @@ public class EventService : IEventService
             Media:              media,
             LinkPreview:        null,
             CreatedAt:          post.CreatedAt,
-            UpdatedAt:          post.UpdatedAt);
+            UpdatedAt:          post.UpdatedAt,
+            Mentions:           post.Mentions
+                .OrderBy(m => m.CreatedAt)
+                .ThenBy(m => m.MatchedSlug)
+                .Select(m => new MentionDto(
+                    m.MatchedSlug,
+                    m.MentionedUserId,
+                    m.MentionedUser.DisplayName,
+                    m.MentionedUser.UrlSlug))
+                .ToArray());
     }
 
     /// <summary>
