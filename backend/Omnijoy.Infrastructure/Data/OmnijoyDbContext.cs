@@ -20,7 +20,9 @@ public class OmnijoyDbContext : DbContext
     public DbSet<PostReaction> PostReactions => Set<PostReaction>();
     public DbSet<SavedPost> SavedPosts => Set<SavedPost>();
     public DbSet<SavedPostCollection> SavedPostCollections => Set<SavedPostCollection>();
+    public DbSet<PostMention> PostMentions => Set<PostMention>();
     public DbSet<Comment> Comments => Set<Comment>();
+    public DbSet<CommentMention> CommentMentions => Set<CommentMention>();
     public DbSet<Friend> Friends => Set<Friend>();
     public DbSet<FamilyRelation> FamilyRelations => Set<FamilyRelation>();
     public DbSet<Event> Events => Set<Event>();

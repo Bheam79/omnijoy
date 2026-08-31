@@ -337,6 +337,7 @@ builder.Services.AddScoped<IShareService, ShareService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<ISlugService, SlugService>();
+builder.Services.AddScoped<IMentionResolver, MentionResolver>();
 builder.Services.AddScoped<IModerationLogService, ModerationLogService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 

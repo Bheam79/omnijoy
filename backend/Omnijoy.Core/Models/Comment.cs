@@ -16,4 +16,5 @@ public class Comment
     public User Author { get; set; } = null!;
     public Comment? ParentComment { get; set; }
     public ICollection<Comment> Replies { get; set; } = [];
+    public ICollection<CommentMention> Mentions { get; set; } = [];
 }

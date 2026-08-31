@@ -33,4 +33,5 @@ public class Post
     public ICollection<PostMedia> Media { get; set; } = [];
     public ICollection<PostReaction> Reactions { get; set; } = [];
     public ICollection<SavedPost> SavedBy { get; set; } = [];
+    public ICollection<PostMention> Mentions { get; set; } = [];
 }

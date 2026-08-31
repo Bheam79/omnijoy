@@ -129,4 +129,6 @@ public class User
     public ICollection<Report> FiledReports { get; set; } = [];
     public ICollection<SavedPost> SavedPosts { get; set; } = [];
     public ICollection<SavedPostCollection> SavedPostCollections { get; set; } = [];
+    public ICollection<PostMention> PostMentions { get; set; } = [];
+    public ICollection<CommentMention> CommentMentions { get; set; } = [];
 }
