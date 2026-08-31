@@ -78,7 +78,8 @@ public record PrivacySettingsDto(
     string WhoCanSendMessages,
     string WhoCanSeeFriendList,
     string WhoCanSeeEvents,
-    string WhoCanTagInPosts
+    string WhoCanTagInPosts,
+    string WhoCanSeeFollowers
 );
 
 public record UpdatePrivacyRequest(
@@ -87,5 +88,6 @@ public record UpdatePrivacyRequest(
     string? WhoCanSendMessages,
     string? WhoCanSeeFriendList,
     string? WhoCanSeeEvents,
-    string? WhoCanTagInPosts
+    string? WhoCanTagInPosts,
+    string? WhoCanSeeFollowers = null
 );

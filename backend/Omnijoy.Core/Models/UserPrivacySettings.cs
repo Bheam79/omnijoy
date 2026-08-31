@@ -9,6 +9,8 @@ public class UserPrivacySettings
     public PrivacyLevel WhoCanSeeProfile { get; set; } = PrivacyLevel.Everyone;
     public PrivacyLevel WhoCanSendMessages { get; set; } = PrivacyLevel.Friends;
     public PrivacyLevel WhoCanSeeFriendList { get; set; } = PrivacyLevel.Friends;
+    /// <summary>Controls visibility of both the follower and following lists.</summary>
+    public PrivacyLevel WhoCanSeeFollowers { get; set; } = PrivacyLevel.Friends;
     public PrivacyLevel WhoCanSeeEvents { get; set; } = PrivacyLevel.Friends;
     public PrivacyLevel WhoCanTagInPosts { get; set; } = PrivacyLevel.Friends;
 

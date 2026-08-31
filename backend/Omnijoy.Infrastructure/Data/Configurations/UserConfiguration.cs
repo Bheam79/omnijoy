@@ -72,6 +72,14 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.UpdatedAt)
                .IsRequired();
 
+        builder.Property(u => u.FollowersCount)
+               .IsRequired()
+               .HasDefaultValue(0);
+
+        builder.Property(u => u.FollowingCount)
+               .IsRequired()
+               .HasDefaultValue(0);
+
         // ── Location fields ────────────────────────────────────────────────────
         builder.Property(u => u.LocationPlaceId)
                .HasMaxLength(512);

@@ -261,6 +261,9 @@ public class UserService : IUserService
         if (request.WhoCanSeeFriendList is not null)
             settings.WhoCanSeeFriendList = ParsePrivacy(request.WhoCanSeeFriendList, nameof(request.WhoCanSeeFriendList));
 
+        if (request.WhoCanSeeFollowers is not null)
+            settings.WhoCanSeeFollowers = ParsePrivacy(request.WhoCanSeeFollowers, nameof(request.WhoCanSeeFollowers));
+
         if (request.WhoCanSeeEvents is not null)
             settings.WhoCanSeeEvents = ParsePrivacy(request.WhoCanSeeEvents, nameof(request.WhoCanSeeEvents));
 
@@ -306,6 +309,7 @@ public class UserService : IUserService
         WhoCanSeeProfile: s.WhoCanSeeProfile.ToString(),
         WhoCanSendMessages: s.WhoCanSendMessages.ToString(),
         WhoCanSeeFriendList: s.WhoCanSeeFriendList.ToString(),
+        WhoCanSeeFollowers: s.WhoCanSeeFollowers.ToString(),
         WhoCanSeeEvents: s.WhoCanSeeEvents.ToString(),
         WhoCanTagInPosts: s.WhoCanTagInPosts.ToString()
     );

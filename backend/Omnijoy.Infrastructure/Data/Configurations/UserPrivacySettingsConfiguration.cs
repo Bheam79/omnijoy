@@ -26,6 +26,11 @@ public class UserPrivacySettingsConfiguration : IEntityTypeConfiguration<UserPri
                .HasConversion<string>()
                .HasMaxLength(32);
 
+        builder.Property(ps => ps.WhoCanSeeFollowers)
+               .HasConversion<string>()
+               .HasMaxLength(32)
+               .HasDefaultValue(Omnijoy.Core.Models.Enums.PrivacyLevel.Friends);
+
         builder.Property(ps => ps.WhoCanSeeEvents)
                .HasConversion<string>()
                .HasMaxLength(32);

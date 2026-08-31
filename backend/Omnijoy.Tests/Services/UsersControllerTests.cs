@@ -181,7 +181,8 @@ public class UsersControllerTests
             WhoCanSendMessages:   "Friends",
             WhoCanSeeFriendList:  "Everyone",
             WhoCanSeeEvents:      "Everyone",
-            WhoCanTagInPosts:     "Friends"
+            WhoCanTagInPosts:     "Friends",
+            WhoCanSeeFollowers:   "Friends"
         );
         users.Setup(u => u.GetPrivacySettingsAsync(userId)).ReturnsAsync(settings);
         var controller = Build(users, friends, presence, slugs, userId);
@@ -291,7 +292,7 @@ public class UsersControllerTests
         var userId  = Guid.NewGuid();
         var (users, friends, presence, slugs) = Mocks();
         var request  = new UpdatePrivacyRequest("Everyone", "Everyone", "Friends", "Everyone", "Everyone", "Friends");
-        var settings = new PrivacySettingsDto("Everyone", "Everyone", "Friends", "Everyone", "Everyone", "Friends");
+        var settings = new PrivacySettingsDto("Everyone", "Everyone", "Friends", "Everyone", "Everyone", "Friends", "Everyone");
         users.Setup(u => u.UpdatePrivacySettingsAsync(userId, request)).ReturnsAsync(settings);
         var controller = Build(users, friends, presence, slugs, userId);
 

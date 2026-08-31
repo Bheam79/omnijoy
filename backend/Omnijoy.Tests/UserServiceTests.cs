@@ -372,6 +372,7 @@ public class UserServiceTests : IDisposable
 
         result.WhoCanSeeProfile.Should().Be("Everyone");
         result.WhoCanSeePosts.Should().Be("Friends");
+        result.WhoCanSeeFollowers.Should().Be("Friends");
     }
 
     [Fact]
@@ -385,11 +386,13 @@ public class UserServiceTests : IDisposable
             WhoCanSendMessages: null,
             WhoCanSeeFriendList: null,
             WhoCanSeeEvents: null,
-            WhoCanTagInPosts: null));
+            WhoCanTagInPosts: null,
+            WhoCanSeeFollowers: "OnlyMe"));
 
         result.WhoCanSeePosts.Should().Be("OnlyMe");
         result.WhoCanSeeProfile.Should().Be("Friends");
         result.WhoCanSendMessages.Should().Be("Friends"); // unchanged default
+        result.WhoCanSeeFollowers.Should().Be("OnlyMe");
     }
 
     [Fact]

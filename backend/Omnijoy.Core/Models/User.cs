@@ -86,6 +86,12 @@ public class User
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
+    /// <summary>Number of users following this user.</summary>
+    public int FollowersCount { get; set; } = 0;
+
+    /// <summary>Number of users this user follows.</summary>
+    public int FollowingCount { get; set; } = 0;
+
     // ── Location ('where I'm from' — city/country level) ──────────────────────
 
     /// <summary>Google Place ID for the user's home location.</summary>
@@ -131,4 +137,6 @@ public class User
     public ICollection<SavedPostCollection> SavedPostCollections { get; set; } = [];
     public ICollection<PostMention> PostMentions { get; set; } = [];
     public ICollection<CommentMention> CommentMentions { get; set; } = [];
+    public ICollection<UserFollow> Followers { get; set; } = [];
+    public ICollection<UserFollow> Following { get; set; } = [];
 }
