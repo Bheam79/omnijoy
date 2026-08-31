@@ -9,7 +9,8 @@ namespace Omnijoy.Api.Hubs;
 /// When a user creates a post, the server pushes a NewPost event to all
 /// connected friends/followers — no polling required.
 /// Clients may also subscribe to individual post groups to receive
-/// real-time reaction count updates (<c>ReactionCountsUpdated</c> event).
+/// real-time post and comment reaction count updates
+/// (<c>ReactionCountsUpdated</c> and <c>CommentReactionCountsUpdated</c> events).
 /// </summary>
 [Authorize]
 public class FeedHub : Hub

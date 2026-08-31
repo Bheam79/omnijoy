@@ -214,6 +214,20 @@ public class CommentReactionServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetOwningPostId_ReturnsPostId_AndRejectsMissingOrDeletedComment()
+    {
+        var author = await CreateUserAsync();
+        var active = await CreateCommentAsync(author);
+        var deleted = await CreateCommentAsync(author, deleted: true);
+
+        (await _sut.GetOwningPostIdAsync(active.Id)).Should().Be(active.PostId);
+        await _sut.Invoking(s => s.GetOwningPostIdAsync(deleted.Id))
+            .Should().ThrowAsync<KeyNotFoundException>();
+        await _sut.Invoking(s => s.GetOwningPostIdAsync(Guid.NewGuid()))
+            .Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
     public async Task GetReactionWho_PrioritizesAcceptedFriends_LimitsFiveAndReturnsRemainder()
     {
         var viewer = await CreateUserAsync("Viewer");

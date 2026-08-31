@@ -18,6 +18,9 @@ public class CommentReactionService : ICommentReactionService
         _notifications = notifications;
     }
 
+    public async Task<Guid> GetOwningPostIdAsync(Guid commentId)
+        => (await GetActiveCommentAsync(commentId)).PostId;
+
     public async Task<PostReactionsDto> GetReactionsAsync(Guid commentId, Guid? currentUserId)
     {
         await GetActiveCommentAsync(commentId);

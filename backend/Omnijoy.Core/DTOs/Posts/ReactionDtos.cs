@@ -19,6 +19,16 @@ public record AddOrUpdateReactionRequest(string ReactionType);
 /// </summary>
 public record ReactionCountsUpdatedEvent(Guid PostId, ReactionCountDto[] Counts, int TotalCount);
 
+/// <summary>
+/// Real-time event pushed via FeedHub to the owning <c>post:{postId}</c> group
+/// whenever a comment's reaction tally changes.
+/// </summary>
+public record CommentReactionCountsUpdatedEvent(
+    Guid CommentId,
+    Guid PostId,
+    ReactionCountDto[] Counts,
+    int Total);
+
 /// <summary>A single person who reacted to a post, returned by the "who reacted" endpoint.</summary>
 public record ReactionWhoUserDto(
     Guid Id,

@@ -8,6 +8,12 @@ namespace Omnijoy.Core.Interfaces;
 public interface ICommentReactionService
 {
     /// <summary>
+    /// Returns the post that owns an active comment.
+    /// Throws <see cref="KeyNotFoundException"/> if the comment does not exist.
+    /// </summary>
+    Task<Guid> GetOwningPostIdAsync(Guid commentId);
+
+    /// <summary>
     /// Returns the reaction counts per type and the current user's reaction (if any).
     /// Throws <see cref="KeyNotFoundException"/> if the comment does not exist.
     /// </summary>
