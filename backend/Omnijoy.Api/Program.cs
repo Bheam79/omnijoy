@@ -316,6 +316,7 @@ builder.Services.AddScoped<IThumbnailService, ThumbnailService>();
 builder.Services.AddHostedService<ThumbnailGeneratorService>();
 
 builder.Services.AddScoped<IPostService, PostService>();
+builder.Services.AddScoped<ISavedPostService, SavedPostService>();
 // Feed cache (per-user page-1 + trending list). Uses IDistributedCache —
 // Redis when configured, in-memory otherwise. Trade-offs documented on
 // DistributedFeedCache + TrendingFeedRefreshService.

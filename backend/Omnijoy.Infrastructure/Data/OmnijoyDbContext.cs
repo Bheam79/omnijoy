@@ -18,6 +18,8 @@ public class OmnijoyDbContext : DbContext
     public DbSet<SharedPost> SharedPosts => Set<SharedPost>();
     public DbSet<PostMedia> PostMedia => Set<PostMedia>();
     public DbSet<PostReaction> PostReactions => Set<PostReaction>();
+    public DbSet<SavedPost> SavedPosts => Set<SavedPost>();
+    public DbSet<SavedPostCollection> SavedPostCollections => Set<SavedPostCollection>();
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Friend> Friends => Set<Friend>();
     public DbSet<FamilyRelation> FamilyRelations => Set<FamilyRelation>();

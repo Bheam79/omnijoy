@@ -32,4 +32,5 @@ public class Post
     public Event? Event { get; set; }
     public ICollection<PostMedia> Media { get; set; } = [];
     public ICollection<PostReaction> Reactions { get; set; } = [];
+    public ICollection<SavedPost> SavedBy { get; set; } = [];
 }

@@ -512,7 +512,7 @@ public class PostService : IPostService
             throw new UnauthorizedAccessException("You do not have permission to view this post.");
     }
 
-    private static PostDto MapToDto(Post post)
+    internal static PostDto MapToDto(Post post)
     {
         var author = new PostAuthorDto(
             post.Author.Id,

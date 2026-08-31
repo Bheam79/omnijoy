@@ -127,4 +127,6 @@ public class User
     public ICollection<Notification> Notifications { get; set; } = [];
     public ICollection<LiveStream> LiveStreams { get; set; } = [];
     public ICollection<Report> FiledReports { get; set; } = [];
+    public ICollection<SavedPost> SavedPosts { get; set; } = [];
+    public ICollection<SavedPostCollection> SavedPostCollections { get; set; } = [];
 }
